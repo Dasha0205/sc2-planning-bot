@@ -1,0 +1,5 @@
+(define (problem sc2-economy)
+  (:domain sc2)
+  (:init)
+  (:goal (and (second_barracks_built) (ready_for_attack)))
+)

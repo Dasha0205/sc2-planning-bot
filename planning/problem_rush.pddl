@@ -1,0 +1,5 @@
+(define (problem sc2-rush)
+  (:domain sc2)
+  (:init)
+  (:goal (ready_for_attack))
+)
