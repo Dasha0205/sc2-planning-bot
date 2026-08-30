@@ -5,7 +5,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 from planning.planner import generate_plan_from_file
-from planning.dynamic_problem import write_dynamic_problem
+from planning.dynamic_problem import write_dynamic_problem, harvest_rates
 from bot.executor import execute_action
 from utils.metrics import MetricsCollector
 
@@ -46,16 +46,104 @@ STAGE_GOALS = [
 # PDDL action -> in-game completion conditions
 # ============================================================
 
+# A gated action can stall forever: income may be spent as fast as it
+# arrives, or a build order lost when its worker dies. Rather than hang the
+# agent, a stalled action is released after this long and recorded.
+ACTION_TIMEOUT_SECONDS = 30.0
+
+
+# Build actions and the structure each one produces.
+STRUCTURE_OF_ACTION = {
+    "build_supply_depot":   UnitTypeId.SUPPLYDEPOT,
+    "build_barracks":       UnitTypeId.BARRACKS,
+    "build_refinery":       UnitTypeId.REFINERY,
+    "expand":               UnitTypeId.COMMANDCENTER,
+    "build_factory":        UnitTypeId.FACTORY,
+    "build_engineeringbay": UnitTypeId.ENGINEERINGBAY,
+}
+
+
+def _structure_progress(bot, unit_id):
+    """
+    Everything of this type already paid for: finished buildings plus those
+    under construction or queued. Ready and pending are counted separately
+    because a building in progress appears in bot.structures() before it is
+    ready, and would otherwise be counted twice.
+    """
+
+    return bot.structures(unit_id).ready.amount + bot.already_pending(unit_id)
+
+
+def _deadline_passed(bot, action):
+    """
+    Safety valve for a gated action that can no longer make progress. The
+    stall is released and recorded, so it shows up in metrics.json instead
+    of silently hanging the agent.
+    """
+
+    if bot.time < bot.issue_baseline.get("deadline", 0):
+        return False
+
+    bot.metrics.log_event(
+        "action_timeout",
+        f"{action} released after stalling at {int(bot.time)}s"
+    )
+
+    return True
+
+
+def _structure_added(action):
+    """
+    A build action completes when the structure count has grown past what it
+    was when the action was issued.
+
+    Comparing against a baseline rather than against "any exists" is what
+    makes a plan containing four build_supply_depot actions build four
+    depots, instead of all four being satisfied by the first one.
+    """
+
+    unit_id = STRUCTURE_OF_ACTION[action]
+
+    def condition(bot):
+        if _structure_progress(bot, unit_id) > bot.issue_baseline.get("count", 0):
+            return True
+        return _deadline_passed(bot, action)
+
+    return condition
+
+
+def _resource_banked(resource):
+    """
+    A wait completes only once the game has actually banked the amount the
+    domain assumed it would produce.
+
+    This is what makes the numeric plan's timing real. Without it the
+    executor consumes every wait in a single frame while the domain believed
+    each one added mining-rate minerals -- the mismatch that produced a run
+    ending with 7 755 minerals banked and no army.
+    """
+
+    def condition(bot):
+        current = bot.minerals if resource == "minerals" else bot.vespene
+        if current >= bot.issue_baseline.get("target", 0):
+            return True
+        return _deadline_passed(bot, f"wait_for_{resource}")
+
+    return condition
+
+
 COMPLETION_CONDITIONS = {
-    # Structures. A build order that is merely *pending* counts as done:
-    # waiting for the structure to finish would stall the whole plan for
-    # the full build time, and the SC2 API has already accepted the order.
-    "build_supply_depot":   lambda b: b.already_pending(UnitTypeId.SUPPLYDEPOT) > 0 or b.structures(UnitTypeId.SUPPLYDEPOT).exists,
-    "build_barracks":       lambda b: b.already_pending(UnitTypeId.BARRACKS) > 0 or b.structures(UnitTypeId.BARRACKS).exists,
-    "build_refinery":       lambda b: b.already_pending(UnitTypeId.REFINERY) > 0 or b.gas_buildings.exists,
-    "expand":               lambda b: b.already_pending(UnitTypeId.COMMANDCENTER) > 0 or b.townhalls.amount > 1,
-    "build_factory":        lambda b: b.already_pending(UnitTypeId.FACTORY) > 0 or b.structures(UnitTypeId.FACTORY).exists,
-    "build_engineeringbay": lambda b: b.already_pending(UnitTypeId.ENGINEERINGBAY) > 0 or b.structures(UnitTypeId.ENGINEERINGBAY).exists,
+    # Structures: must add one beyond the count captured at issue time.
+    "build_supply_depot":   _structure_added("build_supply_depot"),
+    "build_barracks":       _structure_added("build_barracks"),
+    "build_refinery":       _structure_added("build_refinery"),
+    "expand":               _structure_added("expand"),
+    "build_factory":        _structure_added("build_factory"),
+    "build_engineeringbay": _structure_added("build_engineeringbay"),
+
+    # Waits: must bank the resources the domain assumed they would.
+    "wait_for_minerals":    _resource_banked("minerals"),
+    "wait_for_vespene":     _resource_banked("vespene"),
 
     # Unit training and research. execute_action() only returns True once
     # the production order was actually accepted by a ready building, so
@@ -86,6 +174,10 @@ class PlanningBot(BotAI):
         self.index = 0
         self.action_issued = False
 
+        # Game state captured when the current action was issued; the
+        # completion condition is judged against it.
+        self.issue_baseline = {}
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -105,6 +197,7 @@ class PlanningBot(BotAI):
         self.plan = []
         self.index = 0
         self.action_issued = False
+        self.issue_baseline = {}
 
         self._advance_plan()
 
@@ -202,6 +295,45 @@ class PlanningBot(BotAI):
             return False
 
     # ========================================================
+    # Issue-time state capture
+    # ========================================================
+
+    def _snapshot_baseline(self, action):
+        """
+        Capture the game state *before* the action is issued.
+
+        Taken before execute_action runs, because issuing a build order can
+        register as pending immediately; a baseline captured afterwards would
+        already include the new order and could never be exceeded.
+        """
+
+        deadline = self.time + ACTION_TIMEOUT_SECONDS
+
+        if action in STRUCTURE_OF_ACTION:
+            return {
+                "count": _structure_progress(
+                    self,
+                    STRUCTURE_OF_ACTION[action]
+                ),
+                "deadline": deadline,
+            }
+
+        if action in ("wait_for_minerals", "wait_for_vespene"):
+            mining_rate, gas_rate = harvest_rates(self)
+
+            if action == "wait_for_minerals":
+                banked, rate = self.minerals, mining_rate
+            else:
+                banked, rate = self.vespene, gas_rate
+
+            return {
+                "target": banked + rate,
+                "deadline": deadline,
+            }
+
+        return {"deadline": deadline}
+
+    # ========================================================
     # Main game loop
     # ========================================================
 
@@ -256,12 +388,16 @@ class PlanningBot(BotAI):
 
         if not self.action_issued:
 
+            # Captured before issuing -- see _snapshot_baseline.
+            baseline = self._snapshot_baseline(action)
+
             success = await execute_action(
                 self,
                 action
             )
 
             if success:
+                self.issue_baseline = baseline
                 self.action_issued = True
 
                 self.metrics.log_event(

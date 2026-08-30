@@ -8,9 +8,9 @@ async def execute_action(bot, action):
     """
 
     if "build_supply_depot" in action:
-        if bot.supply_left >= 8:
-            return True
-
+        # No "we have spare supply, skip it" shortcut here. If the domain
+        # planned a depot for supply-cap, skipping it silently is exactly the
+        # model/execution divergence the completion conditions exist to stop.
         if bot.can_afford(UnitTypeId.SUPPLYDEPOT) and bot.workers.exists and bot.townhalls.exists:
             await bot.build(UnitTypeId.SUPPLYDEPOT, near=bot.townhalls.first)
             return True
@@ -92,12 +92,10 @@ async def execute_action(bot, action):
             return True
         return False
 
-    # Resource-accumulation actions. The domain models mining as explicit
-    # "clock" actions, but the game mines continuously on its own, so there
-    # is no command to issue -- the step is simply acknowledged.
-    # NOTE: this makes the executor race through a plan's waiting actions in
-    # a single frame while the domain assumed each one banked resources.
-    # See README section 6, item 4 -- this mismatch is still open.
+    # Resource-accumulation actions. The game mines continuously on its own,
+    # so there is no command to issue and issuing always succeeds. The real
+    # work is in COMPLETION_CONDITIONS, which holds the plan here until the
+    # game has actually banked what the domain assumed this wait produces.
     if "wait_for_minerals" in action or "wait_for_vespene" in action:
         return True
 
