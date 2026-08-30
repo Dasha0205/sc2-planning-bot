@@ -1,0 +1,115 @@
+(define (domain sc2-terran-macro)
+  (:requirements :typing :numeric-fluents)
+
+  (:functions
+    (minerals) (vespene) (mining-rate) (gas-rate)
+    (supply-used) (supply-cap)
+    (depot-count) (barracks-count) (refinery-count)
+    (factory-count) (engineeringbay-count) (cc-count)
+    (marine-count) (marauder-count) (tank-count)
+    (weapon-upgrades) (armor-upgrades)
+)
+
+  (:action wait_for_minerals
+  :parameters () :precondition ()
+  :effect (increase (minerals) (mining-rate)))
+
+  (:action build_supply_depot
+    :parameters ()
+    :precondition (and
+        (>= (minerals) 100)
+    )
+    :effect (and
+        (decrease (minerals) 100)
+        (increase (supply-cap) 8)
+        (increase (depot-count) 1) ;
+    )
+  )
+
+  (:action build_barracks
+    :parameters ()
+    :precondition (and
+        (>= (minerals) 150)
+        (>= (depot-count) 1) ;
+    )
+    :effect (and
+        (decrease (minerals) 150)
+        (increase (barracks-count) 1)
+    )
+  )
+
+  (:action build_refinery
+  :parameters ()
+  :precondition (and (>= (minerals) 75) (>= (cc-count) 1)
+                      (< (refinery-count) (* 2 (cc-count))))
+  :effect (and (decrease (minerals) 75)
+               (increase (refinery-count) 1)
+               (increase (gas-rate) 25)))
+
+(:action wait_for_vespene
+  :parameters () :precondition (>= (refinery-count) 1)
+  :effect (increase (vespene) (gas-rate)))
+
+  (:action expand
+  :parameters ()
+  :precondition (and (>= (minerals) 400) (< (cc-count) 2))
+  :effect (and (decrease (minerals) 400)
+               (increase (cc-count) 1)
+               (increase (mining-rate) 40)))
+
+
+               (:action build_factory
+  :parameters ()
+  :precondition (and (>= (minerals) 150) (>= (barracks-count) 1))
+  :effect (and (decrease (minerals) 150) (increase (factory-count) 1)))
+
+(:action train_marauder
+  :parameters ()
+  :precondition (and (>= (barracks-count) 1) (>= (minerals) 100) (>= (vespene) 25)
+                      (<= (+ (supply-used) 2) (supply-cap)))
+  :effect (and (decrease (minerals) 100) (decrease (vespene) 25)
+               (increase (supply-used) 2) (increase (marauder-count) 1)))
+
+(:action train_siegetank
+  :parameters ()
+  :precondition (and (>= (factory-count) 1) (>= (minerals) 150) (>= (vespene) 125)
+                      (<= (+ (supply-used) 3) (supply-cap)))
+  :effect (and (decrease (minerals) 150) (decrease (vespene) 125)
+               (increase (supply-used) 3) (increase (tank-count) 1)))
+
+
+
+(:action build_engineeringbay
+  :parameters ()
+  :precondition (and (>= (minerals) 125) (>= (depot-count) 1))
+  :effect (and (decrease (minerals) 125) (increase (engineeringbay-count) 1)))
+
+(:action research_weapons
+  :parameters ()
+  :precondition (and (>= (engineeringbay-count) 1) (>= (minerals) 100) (>= (vespene) 100)
+                      (< (weapon-upgrades) 3))
+  :effect (and (decrease (minerals) 100) (decrease (vespene) 100)
+               (increase (weapon-upgrades) 1)))
+
+  (:action train_marine
+    :parameters ()
+    :precondition (and
+        (>= (barracks-count) 1)
+        (>= (minerals) 50)
+        (<= (+ (supply-used) 1) (supply-cap))
+    )
+    :effect (and
+        (decrease (minerals) 50)
+        (increase (supply-used) 1)
+        (increase (marine-count) 1)
+    )
+  )
+
+  ;; Army value is weighted by unit strength: a Marauder counts as two
+  ;; Marines and a Siege Tank as three. Committing the army resets all
+  ;; three counters, so the planner must rebuild before attacking again.
+  (:action attack
+  :parameters ()
+  :precondition (>= (+ (marine-count) (+ (* 2 (marauder-count)) (* 3 (tank-count)))) 20)
+  :effect (and (assign (marine-count) 0) (assign (marauder-count) 0) (assign (tank-count) 0)))
+)

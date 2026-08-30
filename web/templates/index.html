@@ -151,24 +151,80 @@
   /* ── CONTENT ── */
   .content { padding: 24px 28px; display: flex; flex-direction: column; gap: 22px; }
 
-  /* plan steps */
-  .plan-row {
-    display: flex; gap: 0; align-items: center;
+  /* ── PLAN COLUMN ── */
+  .plan-wrapper {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    height: 420px;
+    display: flex;
+    flex-direction: column;
   }
+  .plan-column {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    padding-right: 6px;
+    flex: 1;
+  }
+  .plan-column::-webkit-scrollbar { width: 5px; }
+  .plan-column::-webkit-scrollbar-track { background: transparent; }
+  .plan-column::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
+
   .plan-step {
-    display: flex; align-items: center; gap: 8px;
-    padding: 9px 15px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg3);
     font-size: 12px;
-    min-width: 170px;
-    transition: all 0.3s;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
   }
-  .plan-step.done    { border-color: var(--green); background: var(--green-dim); color: var(--green); }
-  .plan-step.active  { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-  .plan-step.pending { color: var(--muted); }
-  .plan-arrow { color: var(--muted); padding: 0 8px; font-size: 14px; flex-shrink: 0; }
+  .plan-step.wait-step {
+    padding: 5px 14px;
+    font-size: 11px;
+    opacity: 0.45;
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+  }
+  .plan-step.active {
+    border-color: var(--accent);
+    background: var(--bg);
+    color: #fff;
+    transform: translateX(4px);
+    box-shadow: -3px 0 0 var(--accent);
+  }
+  .plan-step.wait-step.active {
+    border-color: var(--accent);
+    opacity: 0.8;
+    transform: translateX(4px);
+    box-shadow: -3px 0 0 var(--accent);
+  }
+  .plan-step.completed {
+    border-color: var(--green);
+    color: var(--green);
+    opacity: 0.5;
+  }
+  .plan-step.wait-step.completed { opacity: 0.25; }
+
+  .step-num {
+    background: var(--border);
+    color: var(--muted);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 26px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .step-icon { font-size: 13px; flex-shrink: 0; }
+  .step-name { text-transform: capitalize; }
 
   /* metric grid */
   .metric-grid {
@@ -346,18 +402,25 @@
   <!-- ── CONTENT ── -->
   <main class="content">
 
-    <!-- plan steps -->
-    <div>
-      <div class="section-label">Generated plan</div>
-      <div class="plan-row" id="plan-row">
-        <div class="empty-state" style="padding:18px 0; text-align:left; font-size:12px">
-          Plan will appear here after the bot starts.
+    <!-- top row: plan timeline + right panel -->
+    <div style="display:grid; grid-template-columns:260px 1fr; gap:16px; align-items:start;">
+
+      <!-- vertical plan timeline -->
+      <div>
+        <div class="section-label">Generated plan</div>
+        <div class="plan-wrapper">
+          <div class="plan-column" id="plan-column">
+            <div class="empty-state" style="padding:18px 0; font-size:12px; color:var(--muted)">
+              Plan will appear here after the bot starts.
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- metric cards -->
-    <div class="metric-grid">
+      <!-- right: metrics + charts -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="section-label">Live metrics</div>
+        <div class="metric-grid">
       <div class="metric-card">
         <div class="label">Minerals</div>
         <div class="value blue" id="m-minerals">—</div>
@@ -376,17 +439,20 @@
       </div>
     </div>
 
-    <!-- charts -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-title">Minerals over time</div>
-        <canvas id="chart-minerals"></canvas>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Army size over time</div>
-        <canvas id="chart-army"></canvas>
-      </div>
-    </div>
+        <!-- charts -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Minerals over time</div>
+            <canvas id="chart-minerals"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Army size over time</div>
+            <canvas id="chart-army"></canvas>
+          </div>
+        </div>
+
+      </div><!-- end right panel -->
+    </div><!-- end top row -->
 
     <!-- event log -->
     <div class="log-card">
@@ -403,14 +469,6 @@
 </div>
 
 <script>
-const PLAN_LABELS = {
-  build_supply_depot:    'Supply Depot',
-  build_barracks:        'Barracks',
-  build_second_barracks: '2nd Barracks',
-  train_army:            'Train Army',
-  attack:                'Attack',
-};
-
 let chartMinerals, chartArmy;
 let pollInterval = null;
 let lastEventCount = 0;
@@ -443,36 +501,60 @@ function initCharts() {
   });
 }
 
+function stepIcon(action) {
+  if (action.includes('wait'))   return '⏳';
+  if (action.includes('build'))  return '🏗';
+  if (action.includes('train'))  return '⚔';
+  if (action.includes('attack')) return '🚀';
+  return '⚡';
+}
+
 function renderPlanSteps(steps, events) {
-  const completed = new Set(
-    events.filter(e => e.kind === 'plan_completed').map(e => e.detail)
-  );
-  const issued = new Set(
-    events.filter(e => e.kind === 'plan_issued').map(e => e.detail)
-  );
+  const completedCounts = {};
+  const issuedCounts    = {};
+  events.forEach(e => {
+    if (e.kind === 'plan_completed') completedCounts[e.detail] = (completedCounts[e.detail] || 0) + 1;
+    if (e.kind === 'plan_issued')    issuedCounts[e.detail]    = (issuedCounts[e.detail]    || 0) + 1;
+  });
 
-  const row = document.getElementById('plan-row');
-  row.innerHTML = '';
+  // track per-action how many completions/issues we've seen so far
+  const seenCompleted = {};
+  const seenIssued    = {};
 
-  steps.forEach((step, i) => {
-    if (i > 0) {
-      const arrow = document.createElement('div');
-      arrow.className = 'plan-arrow';
-      arrow.textContent = '→';
-      row.appendChild(arrow);
+  const col = document.getElementById('plan-column');
+  let activeEl = null;
+
+  const html = steps.map((step, i) => {
+    seenCompleted[step] = (seenCompleted[step] || 0);
+    seenIssued[step]    = (seenIssued[step]    || 0);
+
+    let statusClass = '';
+    if (seenCompleted[step] < (completedCounts[step] || 0)) {
+      statusClass = 'completed';
+      seenCompleted[step]++;
+    } else if (seenIssued[step] < (issuedCounts[step] || 0)) {
+      statusClass = 'active';
+      seenIssued[step]++;
     }
 
-    const el = document.createElement('div');
-    el.className = 'plan-step';
+    const isWait = step.includes('wait') || step.includes('mine');
+    const waitClass = isWait ? 'wait-step' : '';
+    const label = step.replace(/_/g, ' ');
 
-    const icon = completed.has(step) ? '✓' : issued.has(step) ? '⬤' : '○';
-    const cls  = completed.has(step) ? 'done' : issued.has(step) ? 'active' : 'pending';
-    el.classList.add(cls);
+    return `<div id="ps-${i}" class="plan-step ${waitClass} ${statusClass}">
+      <span class="step-num">${i + 1}</span>
+      <span class="step-icon">${stepIcon(step)}</span>
+      <span class="step-name">${label}</span>
+    </div>`;
+  }).join('');
 
-    const label = PLAN_LABELS[step] || step.replace(/_/g, ' ');
-    el.innerHTML = `<span>${icon}</span><span>${label}</span>`;
-    row.appendChild(el);
-  });
+  col.innerHTML = html;
+
+  // scroll to last active step
+  const actives = col.querySelectorAll('.plan-step.active');
+  if (actives.length) {
+    actives[actives.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function renderLog(events) {
@@ -537,7 +619,11 @@ function updateMetrics(data) {
   const snaps   = data.snapshots || [];
   const events  = data.events    || [];
 
-  // extract plan from issued events if we don't have it yet
+  // use stored plan from metrics.json if available (most reliable source)
+  if (planSteps.length === 0 && data.plan && data.plan.length > 0) {
+    planSteps = data.plan;
+  }
+  // fallback: reconstruct from issued events
   if (planSteps.length === 0 && events.length > 0) {
     const issued = events.filter(e => e.kind === 'plan_issued').map(e => e.detail);
     if (issued.length > 0) planSteps = issued;
@@ -575,7 +661,7 @@ async function startBot() {
   planSteps = [];
   lastEventCount = 0;
   lastSnapshotCount = 0;
-  document.getElementById('plan-row').innerHTML = '<div class="empty-state" style="padding:18px 0; text-align:left; font-size:12px">Waiting for planner...</div>';
+  document.getElementById('plan-column').innerHTML = '<div class="empty-state" style="padding:18px 0; font-size:12px; color:var(--muted)">Waiting for planner...</div>';
   document.getElementById('log-body').innerHTML = '<div class="empty-state"><big>📋</big>Events will stream here during the game.</div>';
   ['m-minerals','m-marines','m-scvs','m-supply'].forEach(id => document.getElementById(id).textContent = '—');
   chartMinerals.data.labels = []; chartMinerals.data.datasets[0].data = []; chartMinerals.update();

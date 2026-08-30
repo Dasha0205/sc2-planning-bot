@@ -29,7 +29,7 @@ def run_bot():
 
     data = request.get_json(silent=True) or {}
     goal = data.get("goal", "rush")
-    planner = data.get("planner", "fast-downward")
+    planner = data.get("planner", "enhsp")
 
     # Clear old metrics so the UI starts fresh
     metrics_path = os.path.join(os.path.dirname(__file__), "..", "metrics.json")
