@@ -5,7 +5,11 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 from planning.planner import generate_plan_from_file
-from planning.dynamic_problem import write_dynamic_problem, harvest_rates
+from planning.dynamic_problem import (
+    write_dynamic_problem,
+    harvest_rates,
+    army_value,
+)
 from bot.executor import execute_action
 from utils.metrics import MetricsCollector
 
@@ -23,22 +27,42 @@ STAGE_GOALS = [
     ")",
 
     # Stage 1:
-    # Gas + Factory + Marauders
+    # Gas + Barracks Tech Lab + Marauders.
+    # The Tech Lab is what actually unlocks the Marauder; without it in the
+    # goal the planner has no reason to build one and every Marauder order
+    # the game receives is silently rejected.
+    # The Marine floor keeps a standing defence while the bot techs. Without
+    # it the agent spent the whole midgame on six Marines and logged 719
+    # reactive defence events while its base was dismantled. Expressing it as
+    # a goal keeps the decision in the planner rather than reintroducing the
+    # hardcoded Marine production this design removed.
     "(and "
     "(>= (refinery-count) 1) "
-    "(>= (factory-count) 1) "
-    "(>= (marauder-count) 4)"
+    "(>= (techlab-barracks-count) 1) "
+    "(>= (marauder-count) 4) "
+    "(>= (marine-count) 8)"
     ")",
 
     # Stage 2:
-    # Upgrade + Siege Tanks + sufficiently large army
+    # Factory Tech Lab + Siege Tanks + infantry upgrades
     "(and "
-    "(>= (weapon-upgrades) 1) "
+    "(>= (factory-count) 1) "
+    "(>= (techlab-factory-count) 1) "
     "(>= (tank-count) 2) "
-    "(>= (+ (marine-count) "
-    "      (+ (* 2 (marauder-count)) "
-    "         (* 3 (tank-count)))) 20)"
+    "(>= (weapon-upgrades) 1) "
+    "(>= (stimpack) 1) "
+    "(>= (marine-count) 14)"
     ")",
+
+    # Stage 3 -- final, and deliberately repeating.
+    #
+    # attacks-launched is initialised to 0 by every generated problem, so this
+    # goal always reads as "commit one more attack". Reaching it forces the
+    # planner to first mass army value up to the attack action's threshold.
+    # Once the plan is exhausted the stage is replanned rather than advanced,
+    # which makes the late game a planner-driven build-commit-rebuild cycle
+    # instead of the hardcoded Marine all-in it used to be.
+    "(>= (attacks-launched) 1)",
 ]
 
 
@@ -51,15 +75,51 @@ STAGE_GOALS = [
 # agent, a stalled action is released after this long and recorded.
 ACTION_TIMEOUT_SECONDS = 30.0
 
+# The above only guards an action that was issued and is waiting to complete.
+# An action that can never be *issued* -- execute_action returning False on
+# every frame -- has no such guard and freezes the agent permanently. That is
+# what happened to research_stimpack: with no Barracks Tech Lab in existence
+# it could not be issued, and the bot stood still from game second 462 to the
+# end of the match holding 8 820 minerals. This is the issue-phase deadline.
+ISSUE_TIMEOUT_SECONDS = 30.0
+
+# When an action cannot be issued, the current stage is replanned: the
+# planner reads live state and routes around whatever is missing. If that
+# does not help after this many consecutive attempts the action is skipped,
+# so a stubbornly impossible action degrades the plan instead of ending it.
+MAX_FORCED_REPLANS = 3
+
+# How long a committed attack is given to resolve before the plan moves on.
+# An attack is not a stall, so it gets its own window rather than the generic
+# action timeout: the army may spend a long time walking across the map.
+ATTACK_ENGAGE_SECONDS = 45.0
+
 
 # Build actions and the structure each one produces.
 STRUCTURE_OF_ACTION = {
-    "build_supply_depot":   UnitTypeId.SUPPLYDEPOT,
-    "build_barracks":       UnitTypeId.BARRACKS,
-    "build_refinery":       UnitTypeId.REFINERY,
-    "expand":               UnitTypeId.COMMANDCENTER,
-    "build_factory":        UnitTypeId.FACTORY,
-    "build_engineeringbay": UnitTypeId.ENGINEERINGBAY,
+    "build_supply_depot":     UnitTypeId.SUPPLYDEPOT,
+    "build_barracks":         UnitTypeId.BARRACKS,
+    "build_refinery":         UnitTypeId.REFINERY,
+    "expand":                 UnitTypeId.COMMANDCENTER,
+    "build_factory":          UnitTypeId.FACTORY,
+    "build_engineeringbay":   UnitTypeId.ENGINEERINGBAY,
+    "build_techlab_barracks": UnitTypeId.BARRACKSTECHLAB,
+    "build_techlab_factory":  UnitTypeId.FACTORYTECHLAB,
+}
+
+
+# Training actions and the unit each one produces.
+UNIT_OF_ACTION = {
+    "train_marine":    UnitTypeId.MARINE,
+    "train_marauder":  UnitTypeId.MARAUDER,
+    "train_siegetank": UnitTypeId.SIEGETANK,
+}
+
+
+# Research actions and the upgrade each one completes.
+UPGRADE_OF_ACTION = {
+    "research_weapons":  UpgradeId.TERRANINFANTRYWEAPONSLEVEL1,
+    "research_stimpack": UpgradeId.STIMPACK,
 }
 
 
@@ -112,6 +172,95 @@ def _structure_added(action):
     return condition
 
 
+def _unit_progress(bot, unit_id):
+    """
+    Units of this type already paid for: those alive plus those still in a
+    production queue. A Siege Tank that has deployed changes unit type, so
+    the sieged form counts as the same unit.
+    """
+
+    alive = bot.units(unit_id).amount
+
+    if unit_id == UnitTypeId.SIEGETANK:
+        alive += bot.units(UnitTypeId.SIEGETANKSIEGED).amount
+
+    return alive + bot.already_pending(unit_id)
+
+
+def _unit_added(action):
+    """
+    A training action completes when the unit count has grown past what it
+    was when the action was issued.
+
+    Previously these completed on `lambda b: True`, on the assumption that a
+    training order accepted by a ready building always produces a unit. It
+    does not: a Marauder ordered from a Barracks with no Tech Lab is rejected
+    by the game while the executor still reports success. Four Marauders and
+    four Siege Tanks were "trained" that way in the last recorded game, and
+    none of them ever existed.
+    """
+
+    unit_id = UNIT_OF_ACTION[action]
+
+    def condition(bot):
+        if _unit_progress(bot, unit_id) > bot.issue_baseline.get("count", 0):
+            return True
+        return _deadline_passed(bot, action)
+
+    return condition
+
+
+def _upgrade_done(action):
+    """
+    A research action completes once the upgrade is finished, or is at least
+    confirmed to be under way. Researching takes far longer than the action
+    timeout, so accepting "in progress" is what keeps the plan moving without
+    claiming an upgrade that was never started.
+    """
+
+    upgrade_id = UPGRADE_OF_ACTION[action]
+
+    def condition(bot):
+        if upgrade_id in bot.state.upgrades:
+            return True
+        if bot.already_pending_upgrade(upgrade_id) > 0:
+            return True
+        return _deadline_passed(bot, action)
+
+    return condition
+
+
+def _attack_resolved(bot):
+    """
+    A committed attack is finished once the army has actually paid for it --
+    half the weighted value it was sent in with -- or once the engagement
+    window has elapsed.
+
+    The domain models `attack` as consuming the whole army, so completing it
+    the instant the move command is issued would let the planner commit again
+    every frame. Waiting for losses or for the window is what gives the
+    action a duration the model can be honest about.
+    """
+
+    committed = bot.issue_baseline.get("army_value", 0)
+
+    if army_value(bot) * 2 <= committed:
+        bot.metrics.log_event(
+            "attack_resolved",
+            f"army spent: {committed} -> {army_value(bot)}"
+        )
+        return True
+
+    if bot.time >= bot.issue_baseline.get("attack_deadline", 0):
+        bot.metrics.log_event(
+            "attack_resolved",
+            f"engagement window elapsed, army value {army_value(bot)}"
+        )
+        return True
+
+    return False
+
+
 def _resource_banked(resource):
     """
     A wait completes only once the game has actually banked the amount the
@@ -134,26 +283,31 @@ def _resource_banked(resource):
 
 COMPLETION_CONDITIONS = {
     # Structures: must add one beyond the count captured at issue time.
-    "build_supply_depot":   _structure_added("build_supply_depot"),
-    "build_barracks":       _structure_added("build_barracks"),
-    "build_refinery":       _structure_added("build_refinery"),
-    "expand":               _structure_added("expand"),
-    "build_factory":        _structure_added("build_factory"),
-    "build_engineeringbay": _structure_added("build_engineeringbay"),
+    "build_supply_depot":     _structure_added("build_supply_depot"),
+    "build_barracks":         _structure_added("build_barracks"),
+    "build_refinery":         _structure_added("build_refinery"),
+    "expand":                 _structure_added("expand"),
+    "build_factory":          _structure_added("build_factory"),
+    "build_engineeringbay":   _structure_added("build_engineeringbay"),
+    "build_techlab_barracks": _structure_added("build_techlab_barracks"),
+    "build_techlab_factory":  _structure_added("build_techlab_factory"),
 
     # Waits: must bank the resources the domain assumed they would.
-    "wait_for_minerals":    _resource_banked("minerals"),
-    "wait_for_vespene":     _resource_banked("vespene"),
+    "wait_for_minerals":      _resource_banked("minerals"),
+    "wait_for_vespene":       _resource_banked("vespene"),
 
-    # Unit training and research. execute_action() only returns True once
-    # the production order was actually accepted by a ready building, so
-    # reaching this point already means the order is queued.
-    "train_marine":         lambda b: True,
-    "train_marauder":       lambda b: True,
-    "train_siegetank":      lambda b: True,
-    "research_weapons":     lambda b: True,
+    # Training: must add a unit beyond the count captured at issue time. An
+    # order accepted by the executor is not proof the game produced anything.
+    "train_marine":           _unit_added("train_marine"),
+    "train_marauder":         _unit_added("train_marauder"),
+    "train_siegetank":        _unit_added("train_siegetank"),
 
-    "attack":               lambda b: True,
+    # Research: must reach the game's upgrade state.
+    "research_weapons":       _upgrade_done("research_weapons"),
+    "research_stimpack":      _upgrade_done("research_stimpack"),
+
+    # Attack: must be fought, not merely ordered.
+    "attack":                 _attack_resolved,
 }
 
 
@@ -178,6 +332,11 @@ class PlanningBot(BotAI):
         # completion condition is judged against it.
         self.issue_baseline = {}
 
+        # Deadline for getting the current action issued at all, and how many
+        # times in a row an unissuable action has forced a replan.
+        self.issue_deadline = None
+        self.forced_replans = 0
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -198,6 +357,8 @@ class PlanningBot(BotAI):
         self.index = 0
         self.action_issued = False
         self.issue_baseline = {}
+        self.issue_deadline = None
+        self.forced_replans = 0
 
         self._advance_plan()
 
@@ -219,6 +380,16 @@ class PlanningBot(BotAI):
         return int(
             UpgradeId.TERRANINFANTRYWEAPONSLEVEL1 in self.state.upgrades
         )
+
+    @property
+    def stimpack_done(self):
+        """
+        Whether Stimpack has finished researching, as the domain's 0/1
+        stimpack fluent expects. Read from game state for the same reason as
+        the weapon upgrades: a separate counter could drift from reality.
+        """
+
+        return int(UpgradeId.STIMPACK in self.state.upgrades)
 
     # ========================================================
     # Plan generation
@@ -264,6 +435,7 @@ class PlanningBot(BotAI):
 
             self.index = 0
             self.action_issued = False
+            self.issue_deadline = None
 
             print(
                 f"[PLAN STAGE {self.stage}] "
@@ -286,6 +458,7 @@ class PlanningBot(BotAI):
             self.plan = []
             self.index = 0
             self.action_issued = False
+            self.issue_deadline = None
 
             self.metrics.log_event(
                 "planner_error",
@@ -318,6 +491,22 @@ class PlanningBot(BotAI):
                 "deadline": deadline,
             }
 
+        if action in UNIT_OF_ACTION:
+            return {
+                "count": _unit_progress(
+                    self,
+                    UNIT_OF_ACTION[action]
+                ),
+                "deadline": deadline,
+            }
+
+        if action == "attack":
+            return {
+                "army_value": army_value(self),
+                "attack_deadline": self.time + ATTACK_ENGAGE_SECONDS,
+                "deadline": deadline,
+            }
+
         if action in ("wait_for_minerals", "wait_for_vespene"):
             mining_rate, gas_rate = harvest_rates(self)
 
@@ -332,6 +521,77 @@ class PlanningBot(BotAI):
             }
 
         return {"deadline": deadline}
+
+    # ========================================================
+    # Recovery from an action that cannot be issued
+    # ========================================================
+
+    async def _handle_unissuable(self, action):
+        """
+        Release an action that execute_action has refused for too long.
+
+        Escalates in three steps, so the response is proportionate to how
+        badly the plan has diverged from the game:
+
+        1. Replan the current stage. This is the honest answer to a dynamic
+           environment -- the problem is regenerated from live game state, so
+           the planner sees for itself what is missing (no Barracks Tech Lab,
+           say) and either builds it or routes around it.
+        2. Skip the action, if replanning keeps producing the same wall.
+        3. Abandon the stage entirely, if nothing in it can be executed.
+
+        The counter is reset only by real progress: an action successfully
+        issued or completed. Resetting it on a skip instead let the agent
+        cycle between two unissuable actions forever, replanning back to the
+        start of the plan each time and never leaving the stage.
+        """
+
+        self.forced_replans += 1
+
+        if self.forced_replans <= MAX_FORCED_REPLANS:
+
+            self.metrics.log_event(
+                "action_unissuable",
+                f"{action} could not be issued at {int(self.time)}s; "
+                f"replanning stage {self.stage} "
+                f"(attempt {self.forced_replans})"
+            )
+
+            if self._advance_plan():
+                return
+
+            await self._emergency_fallback()
+            return
+
+        if self.forced_replans <= 2 * MAX_FORCED_REPLANS:
+
+            self.metrics.log_event(
+                "action_skipped",
+                f"{action} still unissuable after {MAX_FORCED_REPLANS} "
+                f"replans; skipping it at {int(self.time)}s"
+            )
+
+            self.index += 1
+            self.action_issued = False
+            self.issue_deadline = None
+            return
+
+        # Nothing in this stage can be executed at all. Move on rather than
+        # spend the rest of the match retrying it.
+        self.metrics.log_event(
+            "stage_abandoned",
+            f"stage {self.stage} abandoned at {int(self.time)}s; "
+            f"no action could be issued"
+        )
+
+        self.forced_replans = 0
+        self.stage = min(
+            self.stage + 1,
+            len(STAGE_GOALS) - 1
+        )
+
+        if not self._advance_plan():
+            await self._emergency_fallback()
 
     # ========================================================
     # Main game loop
@@ -362,15 +622,19 @@ class PlanningBot(BotAI):
         # No more actions in the current plan.
         if self.index >= len(self.plan):
 
-            # If the final stage has been reached,
-            # switch to continuous army production.
-            if self.stage >= len(STAGE_GOALS):
-                await self._continuous_marine_production()
-                await self._attack_with_all()
-                return
-
-            # Otherwise generate a new plan for the next stage.
-            self.stage += 1
+            # Advance to the next stage, or stay on the last one. The final
+            # stage goal asks for one more attack, so replanning it is what
+            # drives the late game: mass an army, commit it, mass again.
+            #
+            # This deliberately replaces the previous behaviour, which handed
+            # the endgame to hardcoded Marine production and a Python all-in.
+            # That code decided the last game -- the plans ran out at 70 s and
+            # Python played the remaining 72 s -- which is exactly the kind of
+            # result the planning layer is supposed to be producing.
+            self.stage = min(
+                self.stage + 1,
+                len(STAGE_GOALS) - 1
+            )
 
             success = self._advance_plan()
 
@@ -388,6 +652,10 @@ class PlanningBot(BotAI):
 
         if not self.action_issued:
 
+            # Start the issue clock the first frame this action is attempted.
+            if self.issue_deadline is None:
+                self.issue_deadline = self.time + ISSUE_TIMEOUT_SECONDS
+
             # Captured before issuing -- see _snapshot_baseline.
             baseline = self._snapshot_baseline(action)
 
@@ -399,11 +667,16 @@ class PlanningBot(BotAI):
             if success:
                 self.issue_baseline = baseline
                 self.action_issued = True
+                self.issue_deadline = None
+                self.forced_replans = 0
 
                 self.metrics.log_event(
                     "plan_issued",
                     action
                 )
+
+            elif self.time >= self.issue_deadline:
+                await self._handle_unissuable(action)
 
         else:
 
@@ -421,6 +694,8 @@ class PlanningBot(BotAI):
 
                 self.index += 1
                 self.action_issued = False
+                self.issue_deadline = None
+                self.forced_replans = 0
 
     # ========================================================
     # Game end
@@ -530,8 +805,12 @@ class PlanningBot(BotAI):
 
     async def _continuous_marine_production(self):
         """
-        Used only after all planned macro stages have been
-        completed.
+        Reachable only from _emergency_fallback, when the planner could not
+        produce a plan at all.
+
+        It used to run the whole endgame, which meant a hardcoded Marine
+        all-in decided games the planner was supposed to decide. Army
+        production is now driven by the repeating final stage goal instead.
         """
 
         for rax in self.structures(
@@ -569,10 +848,11 @@ class PlanningBot(BotAI):
 
     async def _attack_with_all(self):
         """
-        Emergency/default attack behavior.
+        Emergency attack behaviour, reachable only from _emergency_fallback.
 
-        This is intentionally NOT part of normal macro
-        planning anymore.
+        Normal attacking is a planned action: the domain's `attack` decides
+        when the army is worth committing, and bot.executor issues the orders.
+        This exists so a planner failure does not leave the bot idle forever.
         """
 
         forces = self.units(

@@ -15,6 +15,45 @@ VESPENE_PER_SCV_PER_SEC = 0.63
 # almost nothing, so surplus workers do not raise the rate.
 MAX_MINERAL_HARVESTERS_PER_BASE = 16
 
+# Weights behind the domain's army-value term in the attack precondition:
+# a Marauder is worth two Marines and a Siege Tank three. A sieged tank is a
+# distinct unit type in the API but the same unit on the battlefield, so both
+# forms are counted -- otherwise tank-count silently drops to zero the moment
+# a tank deploys.
+ARMY_WEIGHTS = {
+    UnitTypeId.MARINE: 1,
+    UnitTypeId.MARAUDER: 2,
+    UnitTypeId.SIEGETANK: 3,
+    UnitTypeId.SIEGETANKSIEGED: 3,
+}
+
+
+def army_counts(bot):
+    """
+    Returns (marines, marauders, tanks) as the domain counts them.
+    """
+
+    return (
+        bot.units(UnitTypeId.MARINE).amount,
+        bot.units(UnitTypeId.MARAUDER).amount,
+        bot.units(UnitTypeId.SIEGETANK).amount
+        + bot.units(UnitTypeId.SIEGETANKSIEGED).amount,
+    )
+
+
+def army_value(bot):
+    """
+    The weighted army strength the attack action's precondition tests.
+
+    Shared with the executor's attack-completion check so that the force the
+    planner decided was worth committing is the same force measured in game.
+    """
+
+    return sum(
+        bot.units(unit_id).amount * weight
+        for unit_id, weight in ARMY_WEIGHTS.items()
+    )
+
 
 def harvest_rates(bot):
     """
@@ -59,6 +98,7 @@ def write_dynamic_problem(
     """
 
     mining_rate, gas_rate = harvest_rates(bot)
+    marines, marauders, tanks = army_counts(bot)
 
     init = f"""
 (= (minerals) {int(bot.minerals)})
@@ -87,19 +127,34 @@ def write_dynamic_problem(
 (= (cc-count)
    {bot.townhalls.amount})
 
+(= (techlab-barracks-count)
+   {bot.structures(UnitTypeId.BARRACKSTECHLAB).ready.amount})
+
+(= (techlab-factory-count)
+   {bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount})
+
 (= (marine-count)
-   {bot.units(UnitTypeId.MARINE).amount})
+   {marines})
 
 (= (marauder-count)
-   {bot.units(UnitTypeId.MARAUDER).amount})
+   {marauders})
 
 (= (tank-count)
-   {bot.units(UnitTypeId.SIEGETANK).amount})
+   {tanks})
 
 (= (weapon-upgrades)
    {bot.weapon_upgrades_done})
 
+(= (stimpack)
+   {bot.stimpack_done})
+
 (= (armor-upgrades)
+   0)
+
+; Always zero: the counter measures waves launched since this plan began, so
+; a goal of (>= (attacks-launched) 1) asks for one more commitment every time
+; the final stage is replanned.
+(= (attacks-launched)
    0)
 """
 
