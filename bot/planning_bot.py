@@ -18,6 +18,11 @@ from utils.metrics import MetricsCollector
 # High-level macro stages
 # ============================================================
 
+# Final-stage bank ceiling: the most each resource may float after a plan.
+BANK_CEILING_MINERALS = 400
+BANK_CEILING_VESPENE = 300
+MAXED_SUPPLY = 190
+
 STAGE_GOALS = [
     # Stage 0:
     # Basic Terran production infrastructure
@@ -62,7 +67,15 @@ STAGE_GOALS = [
     # Once the plan is exhausted the stage is replanned rather than advanced,
     # which makes the late game a planner-driven build-commit-rebuild cycle
     # instead of the hardcoded Marine all-in it used to be.
-    "(>= (attacks-launched) 1)",
+    #
+    # The bank ceiling (T1.7) makes the planner spend what it floats; it is
+    # waived once supply is nearly maxed and nothing more can be trained.
+    "(and "
+    "(>= (attacks-launched) 1) "
+    f"(or (>= (supply-used) {MAXED_SUPPLY}) "
+    f"(and (<= (minerals) {BANK_CEILING_MINERALS}) "
+    f"(<= (vespene) {BANK_CEILING_VESPENE})))"
+    ")",
 ]
 
 

@@ -74,11 +74,11 @@ Running in parallel every step, independent of the plan: `distribute_workers()`,
 | 0 | ≥ 1 Barracks, ≥ 6 Marines |
 | 1 | ≥ 1 Refinery, ≥ 1 Barracks Tech Lab, ≥ 4 Marauders, ≥ 8 Marines |
 | 2 | ≥ 1 Factory, ≥ 1 Factory Tech Lab, ≥ 2 Siege Tanks, ≥ 1 weapon upgrade, Stimpack, ≥ 14 Marines |
-| 3 (repeats) | ≥ 1 attack launched — the `attack` action requires weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) |
+| 3 (repeats) | ≥ 1 attack launched — the `attack` action requires weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) — **and** at most 400 minerals and 300 gas left in the bank, unless supply is ≥ 190 |
 
 ### The numeric domain
 
-`planning/domain_numeric.pddl` declares `:requirements :typing :numeric-fluents` and 21 functions: `minerals`, `vespene`, `mining-rate`, `gas-rate`, `supply-used`, `supply-cap`, `depot-count`, `barracks-count`, `refinery-count`, `factory-count`, `engineeringbay-count`, `cc-count`, `marine-count`, `marauder-count`, `tank-count`, `weapon-upgrades`, `armor-upgrades`, `techlab-barracks-count`, `techlab-factory-count`, `stimpack`, `attacks-launched`.
+The active domain is `planning/domain_numeric_v2.pddl` (`DOMAIN_PATH` in `planning/planner.py`); `domain_numeric.pddl` (v1) is kept for comparison. v2 adds production limits so that the bank ceiling of stage 3 leads to sensible spending: Supply Depots only while supply-cap ≤ 192, at most 3 Barracks and 1 Factory per Command Center, one Engineering Bay. Both declare `:requirements :typing :numeric-fluents` and 21 functions: `minerals`, `vespene`, `mining-rate`, `gas-rate`, `supply-used`, `supply-cap`, `depot-count`, `barracks-count`, `refinery-count`, `factory-count`, `engineeringbay-count`, `cc-count`, `marine-count`, `marauder-count`, `tank-count`, `weapon-upgrades`, `armor-upgrades`, `techlab-barracks-count`, `techlab-factory-count`, `stimpack`, `attacks-launched`.
 
 Sixteen actions model the Terran macro tech tree with real in-game costs: `wait_for_minerals`, `wait_for_vespene`, `build_supply_depot`, `build_barracks`, `build_refinery`, `build_factory`, `build_engineeringbay`, `build_techlab_barracks`, `build_techlab_factory`, `expand`, `train_marine`, `train_marauder`, `train_siegetank`, `research_weapons`, `research_stimpack`, `attack`. Costs are the game's own — for example `train_siegetank` requires a Factory with a Tech Lab, 150 minerals, 125 vespene and 3 free supply. Resource accumulation is modelled by two explicit "clock" actions, `wait_for_minerals` (`increase (minerals) (mining-rate)`) and `wait_for_vespene`, which is what makes the numeric formulation express *timing* rather than just *ordering*.
 
@@ -185,6 +185,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 20. **Dead model parts.** `armor-upgrades` is always 0, and `expand` is in the domain but in no stage goal, so it is never planned.
 21. ~~**Relative paths.** The problem file and `metrics.json` were resolved from the working directory, so the bot only ran from the repository root.~~ *Fixed: paths are anchored to the source files.*
 22. ~~**Marauders and Siege Tanks ordered from buildings without a Tech Lab.** In `runs/2026-10-25_8d754f4` the fourth Marauder went to the second, plain Barracks; the game rejected it and the action timed out after 30 s. A Tech Lab on a Factory still under construction was likewise counted as unissuable.~~ *Fixed: Marauders and Tanks are trained only at buildings with a Tech Lab, Marines prefer plain Barracks, and an action whose building is still under construction waits up to 120 s instead of forcing a replan. Snapshots now count Marauders and Tanks.*
+23. **Stage 3 floated resources** (`runs/2026-10-25_8d754f4`, `runs/2026-10-25_d8a042d`): with the army above the attack threshold, "one more attack" was a one-action plan, nothing was built and thousands of minerals piled up — the stagnation Orava reports after minute 16. *Fix pending a game run:* the stage-3 goal now also caps the bank (≤ 400 minerals, ≤ 300 gas), so the planner itself decides how to spend it; domain v2 bounds what it may build.
 
 ---
 

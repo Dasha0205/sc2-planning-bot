@@ -6,7 +6,8 @@ from pathlib import Path
 # Resolved from this file, not the working directory, so the bot can be
 # started from anywhere (a batch runner, the dashboard, a test).
 PLANNING_DIR = Path(__file__).resolve().parent
-DOMAIN_PATH = PLANNING_DIR / "domain_numeric.pddl"
+# The active domain. Older versions stay in planning/ for comparison.
+DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v2.pddl"
 
 def generate_plan_from_file(domain_path, problem_path):
     reader = PDDLReader()
