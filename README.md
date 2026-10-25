@@ -88,10 +88,10 @@ Thirteen actions model the Terran macro tech tree with real in-game costs — fo
 
 Prerequisites:
 
-- **Python 3.14** — the version the experiments were run with.
+- **Python 3.14** — the version the project is developed and tested with.
 - **Java 17 or newer** on `PATH` — ENHSP is a Java program; `up-enhsp` calls it through the JVM. Check with `java -version`.
 - **StarCraft II** (the free Starter Edition is enough), installed in the default location or pointed to by the `SC2PATH` environment variable.
-- **Maps** — the ladder map packs from [Blizzard's s2client-proto](https://github.com/Blizzard/s2client-proto#map-packs), unzipped into `StarCraft II/Maps/`. The code asks for `AcropolisLE`.
+- **Maps** — the code asks for `AcropolisLE`, which is in the *Ladder 2019 Season 3* pack from [Blizzard's s2client-proto](https://github.com/Blizzard/s2client-proto#map-packs). The archives are password-protected; the password is `iagreetotheeula` (accepting the AI and Machine Learning License). Unzip into `StarCraft II/Maps/`, creating the `Maps` folder if a fresh install does not have one.
 
 Install the pinned runtime dependencies with one command:
 
@@ -160,7 +160,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 9. **`_attack_with_all()` and `_defend_base()` only command Marines**, ignoring the Marauders and Siege Tanks that stages 1 and 2 exist to build.
 10. **`planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable** against the numeric domain — 7 of 17 fluents initialised; ENHSP returns `UNSOLVABLE_PROVEN`. Dead files; the `goal` argument to `PlanningBot` is likewise ignored since `STAGE_GOALS` is hard-coded.
 11. **`test_plan.py` imports `generate_plan`**, renamed to `generate_plan_from_file`.
-12. **`requirements.txt` is stale**: lists `up-fast-downward` (unused), omits `flask` and `up-enhsp`.
+12. ~~**`requirements.txt` is stale**: lists `up-fast-downward` (unused), omits `flask` and `up-enhsp`.~~ *Fixed: runtime dependencies are pinned in `requirements.txt`; Fast Downward moved to `requirements-dev.txt`.*
 13. **`web/templates/index.html`** still offers Fast Downward as the only planner and names `domain.pddl` in the architecture panel.
 
 ---
