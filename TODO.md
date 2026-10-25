@@ -113,12 +113,12 @@ current work.
 - [ ] `MetricsCollector.set_plan()` is never called, so `"plan"` in
       `metrics.json` is always `[]` and the dashboard reconstructs the plan
       from `plan_issued` events instead.
-- [ ] `run.py` passes only `goal` to `PlanningBot`, but `web/app.py:40`
+- [x] `run.py` passes only `goal` to `PlanningBot`, but `web/app.py:40`
       spawns it with two arguments; the second is silently ignored. `goal`
       itself is dead — `STAGE_GOALS` is hardcoded and `self.goal` is never
-      read.
+      read. *Removed from `PlanningBot`, `run.py` and `web/app.py`.*
 - [ ] `web/templates/index.html` still advertises Fast Downward as the only
       planner and names `domain.pddl` in the architecture panel.
-- [ ] `.gitignore` does not cover `.vs/`.
+- [x] `.gitignore` does not cover `.vs/`. *Covered.*
 - [ ] Several files lack a trailing newline (`planner.py`,
       `utils/metrics.py`, `executor.py`), which makes diffs noisier.
