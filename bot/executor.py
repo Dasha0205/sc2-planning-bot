@@ -1,163 +1,38 @@
+"""
+Translates PDDL actions into StarCraft II commands.
+
+execute_action only *issues* an order and reports whether it went out; whether
+it worked is judged later by COMPLETION_CONDITIONS in planning_bot.py. When an
+order cannot be issued, the reason is left in bot.last_issue_failure.
+"""
+
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2
 
+from bot.placement import addon_blockers, addon_spot, find_spot, reserve
 from planning.dynamic_problem import ARMY_WEIGHTS
 
 
-# A Tech Lab occupies a 2x2 footprint immediately to the right of its 3x3
-# production building. A Supply Depot has the same footprint, which is how
-# burnysc2's own find_placement tests for add-on room, so the same probe
-# answers whether an already-standing building can still take an add-on.
-ADDON_OFFSET = (2.5, -0.5)
-
-# Production buildings that take an add-on. Nothing else may be placed on
-# their add-on footprint, or the Tech Lab the planner asks for can never go up.
-ADDON_PRODUCERS = (UnitTypeId.BARRACKS, UnitTypeId.FACTORY, UnitTypeId.STARPORT)
-
-# Side length of the buildings placed through build_clear_of_addons.
-FOOTPRINT_SIZE = {
-    UnitTypeId.SUPPLYDEPOT: 2,
-    UnitTypeId.ENGINEERINGBAY: 3,
-}
-
-# How far from the Command Center, in cells, such a building may be placed.
-PLACEMENT_RADIUS = 10
-
-
 def _refuse(bot, reason):
-    """
-    Record why an action could not be issued, and report failure.
-
-    The planning bot copies the reason into its action_unissuable event, so a
-    stalled plan says *what* the game refused rather than only *that* it did.
-    The last game logged ten unissuable Barracks Tech Labs with no cause, and
-    the cause assumed for them (a Barracks that is never idle) does not match
-    the timeline.
-    """
-
     bot.last_issue_failure = reason
     return False
 
 
 async def _has_addon_room(bot, structure):
-    """
-    Whether an add-on would physically fit beside this building.
-
-    Without this check the executor reports success for a Tech Lab that the
-    game silently refuses to place. That is what happened to the Barracks
-    Tech Lab: the order was issued twice, reported as issued both times, and
-    no add-on ever appeared -- while the Factory Tech Lab, whose building
-    happened to land with clearance, went up first try.
-    """
-
+    # The game silently drops a Tech Lab order without room, so probe first.
     return await bot.can_place_single(
-        AbilityId.TERRANBUILD_SUPPLYDEPOT,
-        structure.position.offset(ADDON_OFFSET),
+        AbilityId.TERRANBUILD_SUPPLYDEPOT, addon_spot(structure.position)
     )
 
 
-async def _build_leaving_addon_room(bot, unit_id):
-    """
-    Place a production building somewhere its add-on will still fit.
+async def build_near_base(bot, unit_id):
+    """Order a building at the next free spot by the main base (see placement.py)."""
 
-    bot.build() does not reserve add-on space -- BotAI.build() never passes
-    addon_place through to find_placement -- so a Barracks can land flush
-    against terrain and reject every Tech Lab order for the rest of the game.
-    """
-
-    position = await bot.find_placement(
-        unit_id,
-        near=bot.townhalls.first.position,
-        addon_place=True,
-    )
+    position = await find_spot(bot, unit_id)
 
     if position is None:
-        return False
-
-    worker = bot.select_build_worker(position)
-
-    if worker is None:
-        return False
-
-    worker.build(unit_id, position)
-    return True
-
-
-def _addon_spots(bot):
-    """Centres of the 2x2 add-on footprints of every production building."""
-
-    return [
-        structure.position.offset(ADDON_OFFSET)
-        for unit_id in ADDON_PRODUCERS
-        for structure in bot.structures(unit_id)
-    ]
-
-
-def _blocks_addon(position, size, spots):
-    """Whether a size x size building centred on position overlaps a footprint."""
-
-    reach = (size + 2) / 2
-
-    return any(
-        abs(position.x - spot.x) < reach and abs(position.y - spot.y) < reach
-        for spot in spots
-    )
-
-
-async def placement_clear_of_addons(bot, unit_id, near):
-    """
-    The valid position closest to `near` that leaves every add-on footprint
-    free, or None.
-
-    bot.build(near=...) takes the first spot the game accepts, and nothing
-    stops that spot from being the one beside a Barracks. In the last game
-    five Supply Depots went up next to the Command Center -- the last one just
-    before the first Tech Lab attempt -- and from then on the Barracks Tech Lab
-    could not be placed for the rest of the game.
-    """
-
-    size = FOOTPRINT_SIZE[unit_id]
-
-    # An even-sized building is centred on a grid point, an odd one on the
-    # centre of a cell.
-    centre = 0.0 if size % 2 == 0 else 0.5
-    base = Point2((int(near.x) + centre, int(near.y) + centre))
-
-    spots = _addon_spots(bot)
-
-    candidates = [
-        base.offset((dx, dy))
-        for dx in range(-PLACEMENT_RADIUS, PLACEMENT_RADIUS + 1)
-        for dy in range(-PLACEMENT_RADIUS, PLACEMENT_RADIUS + 1)
-    ]
-    candidates = [p for p in candidates if not _blocks_addon(p, size, spots)]
-    candidates.sort(key=lambda p: p.distance_to(near))
-
-    placeable = await bot.can_place(unit_id, candidates)
-
-    for position, ok in zip(candidates, placeable):
-        if ok:
-            return position
-
-    return None
-
-
-async def build_clear_of_addons(bot, unit_id):
-    """
-    Build next to the Command Center without covering an add-on footprint.
-
-    Shared by the planned build actions and the reactive supply depot, so no
-    path through the agent can wall off a Tech Lab.
-    """
-
-    position = await placement_clear_of_addons(
-        bot, unit_id, bot.townhalls.first.position
-    )
-
-    if position is None:
-        return _refuse(bot, f"no place for {unit_id.name} clear of add-on footprints")
+        return _refuse(bot, f"no free spot for {unit_id.name}")
 
     worker = bot.select_build_worker(position)
 
@@ -165,20 +40,14 @@ async def build_clear_of_addons(bot, unit_id):
         return _refuse(bot, f"no worker to build {unit_id.name}")
 
     worker.build(unit_id, position)
+    reserve(bot, unit_id, position)
     return True
 
 
 async def _build_techlab(bot, producer_id, techlab_id):
     """
-    Order a Tech Lab on a ready production building that has none yet, is
-    idle, and has room for one.
-
-    A busy building is waited for, not interrupted. The game takes an add-on
-    order only from an idle building, and cancelling the unit it is training
-    would throw away something the planner chose to build. Training never
-    queues more than one unit per building -- the next train_* action needs an
-    idle building too -- so the building frees up within one unit's build time,
-    well inside the 30 s issue window.
+    Tech Lab on an idle production building without one. A busy building is
+    waited for, not interrupted, so no planned unit is cancelled.
     """
 
     if not bot.can_afford(techlab_id):
@@ -201,7 +70,13 @@ async def _build_techlab(bot, producer_id, techlab_id):
             structure.build(techlab_id)
             return True
 
-    return _refuse(bot, f"no add-on room beside any idle {producer_id.name}")
+    blocked = idle[0]
+    return _refuse(
+        bot,
+        f"no add-on room beside {producer_id.name} at "
+        f"({blocked.position.x:.1f}, {blocked.position.y:.1f}): "
+        f"{addon_blockers(bot, blocked)}",
+    )
 
 
 async def execute_action(bot, action):
@@ -220,12 +95,12 @@ async def execute_action(bot, action):
         if not bot.can_afford(UnitTypeId.SUPPLYDEPOT):
             return _refuse(bot, "cannot afford SUPPLYDEPOT")
         if bot.workers.exists and bot.townhalls.exists:
-            return await build_clear_of_addons(bot, UnitTypeId.SUPPLYDEPOT)
+            return await build_near_base(bot, UnitTypeId.SUPPLYDEPOT)
         return False
 
     if "build_barracks" in action:
         if bot.can_afford(UnitTypeId.BARRACKS) and bot.workers.exists and bot.townhalls.exists:
-            return await _build_leaving_addon_room(bot, UnitTypeId.BARRACKS)
+            return await build_near_base(bot, UnitTypeId.BARRACKS)
         return False
 
     if "train_marine" in action:
@@ -275,7 +150,7 @@ async def execute_action(bot, action):
 
     if "build_factory" in action:
         if bot.can_afford(UnitTypeId.FACTORY) and bot.workers.exists and bot.townhalls.exists:
-            return await _build_leaving_addon_room(bot, UnitTypeId.FACTORY)
+            return await build_near_base(bot, UnitTypeId.FACTORY)
         return False
 
     # Add-ons attach to a specific production building, so the target is a
@@ -307,7 +182,7 @@ async def execute_action(bot, action):
 
     if "build_engineeringbay" in action:
         if bot.can_afford(UnitTypeId.ENGINEERINGBAY) and bot.workers.exists and bot.townhalls.exists:
-            return await build_clear_of_addons(bot, UnitTypeId.ENGINEERINGBAY)
+            return await build_near_base(bot, UnitTypeId.ENGINEERINGBAY)
         return False
 
     if "research_weapons" in action:

@@ -10,7 +10,7 @@ from planning.dynamic_problem import (
     harvest_rates,
     army_value,
 )
-from bot.executor import execute_action, build_clear_of_addons
+from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 
 
@@ -338,6 +338,9 @@ class PlanningBot(BotAI):
         # Why execute_action last refused an action, if the executor said.
         self.last_issue_failure = None
 
+        # Ground promised to ordered buildings (see bot/placement.py).
+        self.reservations = []
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -360,6 +363,7 @@ class PlanningBot(BotAI):
         self.issue_baseline = {}
         self.issue_deadline = None
         self.forced_replans = 0
+        self.reservations = []
 
         self._advance_plan()
 
@@ -747,9 +751,7 @@ class PlanningBot(BotAI):
         supply blocks are safety-critical and should not wait
         for a new planning cycle.
 
-        The depot goes through the executor's placement, which keeps add-on
-        footprints free: an emergency depot dropped beside a Barracks would
-        otherwise block the Tech Lab the planner builds next.
+        Placed like planned buildings, so it never covers an add-on spot.
         """
 
         if (
@@ -760,7 +762,7 @@ class PlanningBot(BotAI):
             and self.townhalls.exists
         ):
 
-            if await build_clear_of_addons(self, UnitTypeId.SUPPLYDEPOT):
+            if await build_near_base(self, UnitTypeId.SUPPLYDEPOT):
                 self.metrics.log_event(
                     "reactive_override",
                     "Emergency Supply Depot built"
