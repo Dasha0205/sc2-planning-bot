@@ -29,6 +29,12 @@ async def _has_addon_room(bot, structure):
 async def build_near_base(bot, unit_id):
     """Order a building at the next free spot by the main base (see placement.py)."""
 
+    if not bot.can_afford(unit_id):
+        return _refuse(bot, f"cannot afford {unit_id.name}")
+
+    if not (bot.workers.exists and bot.townhalls.exists):
+        return _refuse(bot, "no worker or Command Center")
+
     position = await find_spot(bot, unit_id)
 
     if position is None:
@@ -70,13 +76,11 @@ async def _build_techlab(bot, producer_id, techlab_id):
             structure.build(techlab_id)
             return True
 
-    blocked = idle[0]
-    return _refuse(
-        bot,
+    return _refuse(bot, "; ".join(
         f"no add-on room beside {producer_id.name} at "
-        f"({blocked.position.x:.1f}, {blocked.position.y:.1f}): "
-        f"{addon_blockers(bot, blocked)}",
-    )
+        f"({s.position.x:.1f}, {s.position.y:.1f}): {addon_blockers(bot, s)}"
+        for s in idle
+    ))
 
 
 async def execute_action(bot, action):
@@ -92,16 +96,10 @@ async def execute_action(bot, action):
         # No "we have spare supply, skip it" shortcut here. If the domain
         # planned a depot for supply-cap, skipping it silently is exactly the
         # model/execution divergence the completion conditions exist to stop.
-        if not bot.can_afford(UnitTypeId.SUPPLYDEPOT):
-            return _refuse(bot, "cannot afford SUPPLYDEPOT")
-        if bot.workers.exists and bot.townhalls.exists:
-            return await build_near_base(bot, UnitTypeId.SUPPLYDEPOT)
-        return False
+        return await build_near_base(bot, UnitTypeId.SUPPLYDEPOT)
 
     if "build_barracks" in action:
-        if bot.can_afford(UnitTypeId.BARRACKS) and bot.workers.exists and bot.townhalls.exists:
-            return await build_near_base(bot, UnitTypeId.BARRACKS)
-        return False
+        return await build_near_base(bot, UnitTypeId.BARRACKS)
 
     if "train_marine" in action:
         # Find an idle barracks to train a single marine
@@ -109,7 +107,7 @@ async def execute_action(bot, action):
             if bot.can_afford(UnitTypeId.MARINE):
                 rax.train(UnitTypeId.MARINE)
                 return True # Successfully issued training command
-        return False
+        return _refuse(bot, "no idle BARRACKS or cannot afford MARINE")
 
     if "attack" in action:
         # Every combat unit the domain weighs in the attack precondition, not
@@ -149,9 +147,7 @@ async def execute_action(bot, action):
         return False
 
     if "build_factory" in action:
-        if bot.can_afford(UnitTypeId.FACTORY) and bot.workers.exists and bot.townhalls.exists:
-            return await build_near_base(bot, UnitTypeId.FACTORY)
-        return False
+        return await build_near_base(bot, UnitTypeId.FACTORY)
 
     # Add-ons attach to a specific production building, so the target is a
     # ready one that has no add-on yet AND has room for one. Reporting
@@ -171,19 +167,17 @@ async def execute_action(bot, action):
             if bot.can_afford(UnitTypeId.MARAUDER):
                 rax.train(UnitTypeId.MARAUDER)
                 return True
-        return False
+        return _refuse(bot, "no idle BARRACKS or cannot afford MARAUDER")
 
     if "train_siegetank" in action:
         for fac in bot.structures(UnitTypeId.FACTORY).ready.idle:
             if bot.can_afford(UnitTypeId.SIEGETANK):
                 fac.train(UnitTypeId.SIEGETANK)
                 return True
-        return False
+        return _refuse(bot, "no idle FACTORY or cannot afford SIEGETANK")
 
     if "build_engineeringbay" in action:
-        if bot.can_afford(UnitTypeId.ENGINEERINGBAY) and bot.workers.exists and bot.townhalls.exists:
-            return await build_near_base(bot, UnitTypeId.ENGINEERINGBAY)
-        return False
+        return await build_near_base(bot, UnitTypeId.ENGINEERINGBAY)
 
     if "research_weapons" in action:
         ebay = bot.structures(UnitTypeId.ENGINEERINGBAY).ready.idle

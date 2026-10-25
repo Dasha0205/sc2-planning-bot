@@ -89,6 +89,9 @@ ISSUE_TIMEOUT_SECONDS = 30.0
 # so a stubbornly impossible action degrades the plan instead of ending it.
 MAX_FORCED_REPLANS = 3
 
+# Pause before retrying an emergency depot that could not be placed.
+SUPPLY_RETRY_SECONDS = 5.0
+
 # How long a committed attack is given to resolve before the plan moves on.
 # An attack is not a stall, so it gets its own window rather than the generic
 # action timeout: the army may spend a long time walking across the map.
@@ -341,6 +344,9 @@ class PlanningBot(BotAI):
         # Ground promised to ordered buildings (see bot/placement.py).
         self.reservations = []
 
+        # A failed emergency depot is retried after a pause, not every frame.
+        self.next_supply_attempt = 0.0
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -364,6 +370,7 @@ class PlanningBot(BotAI):
         self.issue_deadline = None
         self.forced_replans = 0
         self.reservations = []
+        self.next_supply_attempt = 0.0
 
         self._advance_plan()
 
@@ -760,12 +767,19 @@ class PlanningBot(BotAI):
             and self.can_afford(UnitTypeId.SUPPLYDEPOT)
             and self.workers.exists
             and self.townhalls.exists
+            and self.time >= self.next_supply_attempt
         ):
 
             if await build_near_base(self, UnitTypeId.SUPPLYDEPOT):
                 self.metrics.log_event(
                     "reactive_override",
                     "Emergency Supply Depot built"
+                )
+            else:
+                self.next_supply_attempt = self.time + SUPPLY_RETRY_SECONDS
+                self.metrics.log_event(
+                    "reactive_failed",
+                    f"Emergency Supply Depot not placed: {self.last_issue_failure}"
                 )
 
     # ========================================================

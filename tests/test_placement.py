@@ -90,7 +90,8 @@ def test_buildings_stay_off_the_mineral_side():
     for _ in range(4):
         assert run(build_near_base(bot, UnitTypeId.SUPPLYDEPOT))
 
-    assert all(p.x <= CC_AT.x for p in bot.built())
+    # The whole 2x2 depot, not just its centre, stays off the mineral side.
+    assert all(p.x + 1 <= CC_AT.x for p in bot.built())
 
 
 def test_mineral_side_is_used_when_nothing_else_is_free():
