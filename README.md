@@ -86,13 +86,25 @@ Thirteen actions model the Terran macro tech tree with real in-game costs — fo
 
 ## 4. Setup and usage
 
-Requires a StarCraft II installation with the standard ladder maps (the code asks for `AcropolisLE`). Python 3.14 is what the checked-in `.venv` uses.
+Prerequisites:
+
+- **Python 3.14** — the version the experiments were run with.
+- **Java 17 or newer** on `PATH` — ENHSP is a Java program; `up-enhsp` calls it through the JVM. Check with `java -version`.
+- **StarCraft II** (the free Starter Edition is enough), installed in the default location or pointed to by the `SC2PATH` environment variable.
+- **Maps** — the ladder map packs from [Blizzard's s2client-proto](https://github.com/Blizzard/s2client-proto#map-packs), unzipped into `StarCraft II/Maps/`. The code asks for `AcropolisLE`.
+
+Install the pinned runtime dependencies with one command:
 
 ```bash
 python -m venv .venv
-.venv/Scripts/activate          # Windows
+.venv/Scripts/activate          # Windows; source .venv/bin/activate elsewhere
 pip install -r requirements.txt
-pip install flask up-enhsp      # not yet listed in requirements.txt
+```
+
+`requirements-dev.txt` adds Fast Downward (`up-fast-downward`), which is needed only for the classical-planning baseline, not for running the numeric agent:
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
 Run a game headlessly against the built-in AI:
