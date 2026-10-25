@@ -1,5 +1,11 @@
+from pathlib import Path
+
 from sc2.ids.unit_typeid import UnitTypeId
 
+
+# Regenerated before every planning call. Anchored to this file rather than
+# the working directory so the bot does not depend on where it was started.
+PROBLEM_PATH = Path(__file__).resolve().parent / "problem_dynamic.pddl"
 
 # One wait_for_minerals / wait_for_vespene action represents this many
 # seconds of mining. The domain has no notion of time, so this constant is
@@ -87,7 +93,7 @@ def harvest_rates(bot):
 def write_dynamic_problem(
     bot,
     goal_expr: str,
-    path="planning/problem_dynamic.pddl"
+    path=PROBLEM_PATH
 ):
     """
     Creates a PDDL problem from the current game state.

@@ -1,5 +1,10 @@
 import time
 import json
+from pathlib import Path
+
+# The repository root, where web/app.py looks for metrics.json regardless of
+# the directory the bot was started from.
+METRICS_PATH = Path(__file__).resolve().parent.parent / "metrics.json"
 
 class MetricsCollector:
     def __init__(self):
@@ -30,7 +35,7 @@ class MetricsCollector:
             "scvs": bot.workers.amount,
         })
 
-    def save(self, path="metrics.json"):
+    def save(self, path=METRICS_PATH):
         with open(path, "w") as f:
             json.dump({
                 "plan": self.plan,

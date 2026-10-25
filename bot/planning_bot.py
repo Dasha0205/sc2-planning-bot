@@ -4,7 +4,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-from planning.planner import generate_plan_from_file
+from planning.planner import generate_plan_from_file, DOMAIN_PATH
 from planning.dynamic_problem import (
     write_dynamic_problem,
     harvest_rates,
@@ -414,7 +414,7 @@ class PlanningBot(BotAI):
             )
 
             generated_plan = generate_plan_from_file(
-                "planning/domain_numeric.pddl",
+                DOMAIN_PATH,
                 path
             )
 
