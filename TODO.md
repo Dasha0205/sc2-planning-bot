@@ -99,16 +99,17 @@ current work.
 
 ## 5. Known defects and cleanup
 
-- [ ] `planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable
+- [x] `planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable
       against the numeric domain (they initialise 7 of 21 fluents; ENHSP
-      returns `UNSOLVABLE_PROVEN`). Dead files — problems are generated
-      dynamically now. Delete or fix.
-- [ ] `test_plan.py` is a broken 4-line scratch script importing
-      `generate_plan`, which was renamed to `generate_plan_from_file`.
-      Replace with a real test — the offline ENHSP check and the issue/verify
-      replay used to validate this change are both good candidates.
-- [ ] `requirements.txt` is stale: it lists `up-fast-downward` and omits
-      `flask` and `up-enhsp`.
+      returns `UNSOLVABLE_PROVEN`). *Deleted — problems are generated
+      dynamically.*
+- [x] `test_plan.py` is a broken 4-line scratch script importing the
+      planner function under its old name (now `generate_plan_from_file`).
+      *Deleted; `python -m bot.smoke` is the offline ENHSP check for now,
+      real tests come with E3.*
+- [x] `requirements.txt` is stale: it lists `up-fast-downward` and omits
+      `flask` and `up-enhsp`. *Pinned; Fast Downward is in
+      `requirements-dev.txt`.*
 - [ ] `MetricsCollector.set_plan()` is never called, so `"plan"` in
       `metrics.json` is always `[]` and the dashboard reconstructs the plan
       from `plan_issued` events instead.

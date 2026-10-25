@@ -110,7 +110,13 @@ pip install -r requirements-dev.txt
 Run a game headlessly against the built-in AI:
 
 ```bash
-python run.py rush              # or: python run.py economy
+python run.py
+```
+
+Check the planning pipeline offline, without StarCraft II (renders the opening position into a PDDL problem and solves stage 0 with ENHSP):
+
+```bash
+python -m bot.smoke
 ```
 
 Run the dashboard (starts the bot as a subprocess, then polls `metrics.json`):
@@ -158,8 +164,8 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 
 8. **Unit training completes without producing anything.** `train_marine`, `train_marauder` and `train_siegetank` all use `lambda b: True`, so they report success whether or not a unit appears. This is the same bug class as 6 and is the likely reason a run finishes with no army. **Deliberately deferred pending a design discussion** — Marauders and Siege Tanks require Tech Lab addons that exist nowhere in the domain, executor or problem generator, so fixing the condition alone would deadlock stages 1 and 2 rather than fix them.
 9. **`_attack_with_all()` and `_defend_base()` only command Marines**, ignoring the Marauders and Siege Tanks that stages 1 and 2 exist to build.
-10. **`planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable** against the numeric domain — 7 of 17 fluents initialised; ENHSP returns `UNSOLVABLE_PROVEN`. Dead files; the `goal` argument to `PlanningBot` is likewise ignored since `STAGE_GOALS` is hard-coded.
-11. **`test_plan.py` imports `generate_plan`**, renamed to `generate_plan_from_file`.
+10. ~~**`planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable** against the numeric domain — 7 of 17 fluents initialised; ENHSP returns `UNSOLVABLE_PROVEN`. Dead files; the `goal` argument to `PlanningBot` is likewise ignored since `STAGE_GOALS` is hard-coded.~~ *Fixed: both files, the `goal` argument and the extra arguments `web/app.py` passed to `run.py` were removed.*
+11. ~~**`test_plan.py` imports a planner function under its old name**, since renamed to `generate_plan_from_file`.~~ *Fixed: deleted; `python -m bot.smoke` is the offline check until the test suite exists.*
 12. ~~**`requirements.txt` is stale**: lists `up-fast-downward` (unused), omits `flask` and `up-enhsp`.~~ *Fixed: runtime dependencies are pinned in `requirements.txt`; Fast Downward moved to `requirements-dev.txt`.*
 13. **`web/templates/index.html`** still offers Fast Downward as the only planner and names `domain.pddl` in the architecture panel.
 

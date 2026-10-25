@@ -313,10 +313,8 @@ COMPLETION_CONDITIONS = {
 
 class PlanningBot(BotAI):
 
-    def __init__(self, goal: str = "economy"):
+    def __init__(self):
         super().__init__()
-
-        self.goal = goal
 
         self.metrics = None
 
@@ -403,14 +401,14 @@ class PlanningBot(BotAI):
         state before every planning call.
         """
 
-        goal = STAGE_GOALS[
+        stage_goal = STAGE_GOALS[
             min(self.stage, len(STAGE_GOALS) - 1)
         ]
 
         try:
             path = write_dynamic_problem(
                 self,
-                goal
+                stage_goal
             )
 
             generated_plan = generate_plan_from_file(
