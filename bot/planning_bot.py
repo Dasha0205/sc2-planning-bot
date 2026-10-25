@@ -83,6 +83,10 @@ ACTION_TIMEOUT_SECONDS = 30.0
 # end of the match holding 8 820 minerals. This is the issue-phase deadline.
 ISSUE_TIMEOUT_SECONDS = 30.0
 
+# An action waiting only for its building to finish construction is progress,
+# not a stall, so it may wait this long before counting as unissuable.
+CONSTRUCTION_WAIT_SECONDS = 120.0
+
 # When an action cannot be issued, the current stage is replanned: the
 # planner reads live state and routes around whatever is missing. If that
 # does not help after this many consecutive attempts the action is skipped,
@@ -338,8 +342,11 @@ class PlanningBot(BotAI):
         self.issue_deadline = None
         self.forced_replans = 0
 
-        # Why execute_action last refused an action, if the executor said.
+        # Why execute_action last refused an action, if the executor said,
+        # and whether it was only waiting for a building to finish.
         self.last_issue_failure = None
+        self.last_issue_waiting = False
+        self.issue_started = None
 
         # Ground promised to ordered buildings (see bot/placement.py).
         self.reservations = []
@@ -538,6 +545,12 @@ class PlanningBot(BotAI):
     # Recovery from an action that cannot be issued
     # ========================================================
 
+    def _waiting_on_construction(self):
+        return (
+            self.last_issue_waiting
+            and self.time < self.issue_started + CONSTRUCTION_WAIT_SECONDS
+        )
+
     async def _handle_unissuable(self, action):
         """
         Release an action that execute_action has refused for too long.
@@ -669,6 +682,7 @@ class PlanningBot(BotAI):
 
             # Start the issue clock the first frame this action is attempted.
             if self.issue_deadline is None:
+                self.issue_started = self.time
                 self.issue_deadline = self.time + ISSUE_TIMEOUT_SECONDS
 
             # Captured before issuing -- see _snapshot_baseline.
@@ -690,7 +704,7 @@ class PlanningBot(BotAI):
                     action
                 )
 
-            elif self.time >= self.issue_deadline:
+            elif self.time >= self.issue_deadline and not self._waiting_on_construction():
                 await self._handle_unissuable(action)
 
         else:

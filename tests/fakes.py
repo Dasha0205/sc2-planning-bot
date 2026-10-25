@@ -47,17 +47,25 @@ class Group(list):
 
 class FakeUnit:
 
-    def __init__(self, type_id, position, idle=True, add_on=False, ready=True):
+    def __init__(self, type_id, position, idle=True, add_on=False, ready=True,
+                 techlab=False):
         self.type_id = type_id
         self.position = position
         self.is_idle = idle
-        self.has_add_on = add_on
+        self.has_add_on = add_on or techlab
+        self.has_techlab = techlab
         self.is_ready = ready
         self.footprint_radius = FOOTPRINT_RADIUS.get(type_id, 1.5)
         self.orders = []
 
     def build(self, unit_id, position=None):
         self.orders.append((unit_id, position))
+
+    def train(self, unit_id):
+        self.orders.append(unit_id)
+
+    def research(self, upgrade_id):
+        self.orders.append(upgrade_id)
 
 
 class Structures:

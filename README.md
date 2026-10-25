@@ -184,6 +184,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 19. **No experiment harness.** `run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path or repeated games.
 20. **Dead model parts.** `armor-upgrades` is always 0, and `expand` is in the domain but in no stage goal, so it is never planned.
 21. ~~**Relative paths.** The problem file and `metrics.json` were resolved from the working directory, so the bot only ran from the repository root.~~ *Fixed: paths are anchored to the source files.*
+22. ~~**Marauders and Siege Tanks ordered from buildings without a Tech Lab.** In `runs/2026-10-25_8d754f4` the fourth Marauder went to the second, plain Barracks; the game rejected it and the action timed out after 30 s. A Tech Lab on a Factory still under construction was likewise counted as unissuable.~~ *Fixed: Marauders and Tanks are trained only at buildings with a Tech Lab, Marines prefer plain Barracks, and an action whose building is still under construction waits up to 120 s instead of forcing a replan. Snapshots now count Marauders and Tanks.*
 
 ---
 

@@ -2,6 +2,8 @@ import time
 import json
 from pathlib import Path
 
+from sc2.ids.unit_typeid import UnitTypeId
+
 # The repository root, where web/app.py looks for metrics.json regardless of
 # the directory the bot was started from.
 METRICS_PATH = Path(__file__).resolve().parent.parent / "metrics.json"
@@ -32,6 +34,8 @@ class MetricsCollector:
             "supply_used": bot.supply_used,
             "supply_cap": bot.supply_cap,
             "marines": bot.units.filter(lambda u: u.name == "Marine").amount,
+            "marauders": bot.units(UnitTypeId.MARAUDER).amount,
+            "tanks": bot.units({UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED}).amount,
             "scvs": bot.workers.amount,
         })
 
