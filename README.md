@@ -120,6 +120,12 @@ Check the planning pipeline offline, without StarCraft II (renders the opening p
 python -m bot.smoke
 ```
 
+Run the offline tests (needs `requirements-dev.txt`):
+
+```bash
+pytest -q
+```
+
 Run the dashboard (starts the bot as a subprocess, then polls `metrics.json`):
 
 ```bash
@@ -169,7 +175,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 11. ~~**`test_plan.py` imports a planner function under its old name**, since renamed to `generate_plan_from_file`.~~ *Fixed: deleted; `python -m bot.smoke` is the offline check until the test suite exists.*
 12. ~~**`requirements.txt` is stale**: lists `up-fast-downward` (unused), omits `flask` and `up-enhsp`.~~ *Fixed: runtime dependencies are pinned in `requirements.txt`; Fast Downward moved to `requirements-dev.txt`.*
 13. **`web/templates/index.html`** still offers Fast Downward as the only planner, keeps the dead "Strategy goal" selector and names `domain.pddl` in the architecture panel.
-14. **The Barracks Tech Lab is never built.** `build_techlab_barracks` asks for an *idle* Barracks, but from stage 1 on the Barracks is always training Marines, so the action is unissuable, Marauders and Siege Tanks never come, and stage 3 is unreachable. The main cause of the defeat in §5.
+14. **The Barracks Tech Lab is never built** — Marauders and Siege Tanks never come and stage 3 is unreachable; the main cause of the defeat in §5. The first explanation, a Barracks that is never idle, does not fit the timeline: no Marine was queued during the failed attempts, and one Marine takes 18 s against a 30 s issue window. The likelier cause is a Supply Depot placed on the add-on footprint — five depots went up beside the Command Center through `bot.build(near=CC)`, which reserves no add-on space, the last one just before the first Tech Lab attempt. *Fix pending a game run:* depots and the Engineering Bay are now placed clear of every add-on footprint (`build_clear_of_addons`, also used by the emergency depot), and every refused action records its reason (`cannot afford`, `busy`, `no add-on room`, …) in `action_unissuable`, so the next game confirms or refutes the cause.
 15. **No planning-time measurement.** `plan_generated` does not record how long ENHSP took — the thesis's key overhead metric.
 16. **Metric times are wall-clock**, while event details use game seconds; with `realtime=False` the two are not comparable.
 17. **Snapshots count only Marines and SCVs** — no Marauders, Tanks, army value or structures.

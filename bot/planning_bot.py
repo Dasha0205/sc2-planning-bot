@@ -10,7 +10,7 @@ from planning.dynamic_problem import (
     harvest_rates,
     army_value,
 )
-from bot.executor import execute_action
+from bot.executor import execute_action, build_clear_of_addons
 from utils.metrics import MetricsCollector
 
 
@@ -335,6 +335,9 @@ class PlanningBot(BotAI):
         self.issue_deadline = None
         self.forced_replans = 0
 
+        # Why execute_action last refused an action, if the executor said.
+        self.last_issue_failure = None
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -546,11 +549,14 @@ class PlanningBot(BotAI):
 
         self.forced_replans += 1
 
+        reason = self.last_issue_failure or "no reason recorded"
+
         if self.forced_replans <= MAX_FORCED_REPLANS:
 
             self.metrics.log_event(
                 "action_unissuable",
-                f"{action} could not be issued at {int(self.time)}s; "
+                f"{action} could not be issued at {int(self.time)}s "
+                f"({reason}); "
                 f"replanning stage {self.stage} "
                 f"(attempt {self.forced_replans})"
             )
@@ -566,7 +572,7 @@ class PlanningBot(BotAI):
             self.metrics.log_event(
                 "action_skipped",
                 f"{action} still unissuable after {MAX_FORCED_REPLANS} "
-                f"replans; skipping it at {int(self.time)}s"
+                f"replans ({reason}); skipping it at {int(self.time)}s"
             )
 
             self.index += 1
@@ -740,6 +746,10 @@ class PlanningBot(BotAI):
         This is deliberately outside the planner because
         supply blocks are safety-critical and should not wait
         for a new planning cycle.
+
+        The depot goes through the executor's placement, which keeps add-on
+        footprints free: an emergency depot dropped beside a Barracks would
+        otherwise block the Tech Lab the planner builds next.
         """
 
         if (
@@ -750,15 +760,11 @@ class PlanningBot(BotAI):
             and self.townhalls.exists
         ):
 
-            await self.build(
-                UnitTypeId.SUPPLYDEPOT,
-                near=self.townhalls.first
-            )
-
-            self.metrics.log_event(
-                "reactive_override",
-                "Emergency Supply Depot built"
-            )
+            if await build_clear_of_addons(self, UnitTypeId.SUPPLYDEPOT):
+                self.metrics.log_event(
+                    "reactive_override",
+                    "Emergency Supply Depot built"
+                )
 
     # ========================================================
     # Reactive defense
