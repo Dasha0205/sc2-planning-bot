@@ -24,19 +24,19 @@ Tasks set by the assignment:
 
 ## 2. Where the project stands
 
-The repository is a **working prototype in mid-refactor**. It has already passed through two generations:
+The repository is a **working prototype**. It has passed through two generations:
 
 **Generation 1 — classical STRIPS (committed, worked).** A propositional domain (`planning/domain_logic.pddl`, formerly `domain.pddl`) with five boolean predicates, solved once at game start by **Fast Downward**, executed as a fixed linear script. This version reportedly beat the *Very Easy* built-in AI (commit `2677270`).
 
-**Generation 2 — numeric PDDL + staged replanning (uncommitted working tree).** The current, in-progress design:
+**Generation 2 — numeric PDDL + staged replanning (current).** The current design:
 
-- A numeric domain (`planning/domain_numeric.pddl`) with 17 numeric fluents modelling minerals, vespene, supply, mining/gas rates, and unit/structure counts.
+- A numeric domain (`planning/domain_numeric.pddl`) with 21 numeric fluents and 16 actions, modelling minerals, vespene, supply, mining/gas rates, structure, add-on, unit and upgrade counts, and committed attacks.
 - The problem file is **generated from the live game state before every planning call** (`planning/dynamic_problem.py`), so the planner always sees fresh numbers.
-- Macro play is split into **three staged goals** (`STAGE_GOALS` in `bot/planning_bot.py`); each stage triggers a fresh call to the planner.
+- Macro play is split into **four staged goals** (`STAGE_GOALS` in `bot/planning_bot.py`); each stage triggers a fresh call to the planner, and the last stage repeats.
 - The planner was switched from Fast Downward to **ENHSP**, which supports numeric fluents.
 - Safety-critical reactive behaviours (worker production, supply-block avoidance, base defence) run **outside** the planner every game step.
 
-**Generation 2 now runs, and its numeric model is honoured at execution time.** Four defects that stopped it importing or running were fixed, and the plan/execution mismatch that made the numeric domain decorative was closed: waits now block until the game has actually banked the resources the domain assumed, repeated structures must actually be built, and `mining-rate` is derived from the live harvester count instead of a hardcoded constant. ENHSP solves all three stage goals in well under a second. The agent has been run in a live game once and lost; that run predates these fixes.
+**Generation 2 now runs, and its numeric model is honoured at execution time.** Four defects that stopped it importing or running were fixed, and the plan/execution mismatch that made the numeric domain decorative was closed: waits now block until the game has actually banked the resources the domain assumed, repeated structures must actually be built, and `mining-rate` is derived from the live harvester count instead of a hardcoded constant. Tech Lab add-ons, a planned `attack` action and deadlock recovery (replan → skip → abandon stage) followed. ENHSP solves every stage goal offline in well under a second. In the last live game (commit `d7e829e`) the agent still lost to *Very Easy*: the Barracks Tech Lab was never built because the executor waits for an idle Barracks that is always training Marines, so no Marauder or Siege Tank was ever produced (see §5).
 
 ---
 
@@ -62,23 +62,24 @@ Each stage of the game runs a **plan → execute → verify → replan** cycle:
 2. `generate_plan_from_file()` parses domain + problem via `unified-planning` and solves with ENHSP.
 3. Actions are normalised from `build_barracks()` to `build_barracks` and executed one at a time by `execute_action()`.
 4. An action is only advanced past once its entry in `COMPLETION_CONDITIONS` reports the effect is visible in the game. Conditions are judged against a baseline captured *before* the action was issued (`_snapshot_baseline`), so a second `build_supply_depot` must add a second depot and a `wait_for_minerals` must actually bank `mining-rate` more minerals. A gated action that cannot progress is released after 30 s and logged as `action_timeout`.
-5. When the plan is exhausted the stage counter advances and a new plan is generated. After the last stage the bot falls back to continuous Marine production plus an all-in attack.
+5. When the plan is exhausted the stage counter advances and a new plan is generated. The last stage is never left: its goal asks for one more `attack`, so replanning it gives a planner-driven mass → commit → rebuild cycle. An action that cannot even be *issued* for 30 s forces a replan; after three such replans it is skipped, after six the stage is abandoned. Only if the planner itself fails does `_emergency_fallback()` train Marines and attack.
 
 Running in parallel every step, independent of the plan: `distribute_workers()`, `_train_scvs()` (cap 22), `_manage_supply()` (emergency Supply Depot when `supply_left < 2`), `_defend_base()` (Marines engage anything within 35 units of the start location).
 
 ### Macro stages
 
-| Stage | Goal |
+| Stage | Goal (`STAGE_GOALS[i]`) |
 |---|---|
 | 0 | ≥ 1 Barracks, ≥ 6 Marines |
-| 1 | ≥ 1 Refinery, ≥ 1 Factory, ≥ 4 Marauders |
-| 2 | ≥ 1 weapon upgrade, ≥ 2 Siege Tanks, weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) |
+| 1 | ≥ 1 Refinery, ≥ 1 Barracks Tech Lab, ≥ 4 Marauders, ≥ 8 Marines |
+| 2 | ≥ 1 Factory, ≥ 1 Factory Tech Lab, ≥ 2 Siege Tanks, ≥ 1 weapon upgrade, Stimpack, ≥ 14 Marines |
+| 3 (repeats) | ≥ 1 attack launched — the `attack` action requires weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) |
 
 ### The numeric domain
 
-`planning/domain_numeric.pddl` declares `:requirements :typing :numeric-fluents` and 17 functions: `minerals`, `vespene`, `mining-rate`, `gas-rate`, `supply-used`, `supply-cap`, `depot-count`, `barracks-count`, `refinery-count`, `factory-count`, `engineeringbay-count`, `cc-count`, `marine-count`, `marauder-count`, `tank-count`, `weapon-upgrades`, `armor-upgrades`.
+`planning/domain_numeric.pddl` declares `:requirements :typing :numeric-fluents` and 21 functions: `minerals`, `vespene`, `mining-rate`, `gas-rate`, `supply-used`, `supply-cap`, `depot-count`, `barracks-count`, `refinery-count`, `factory-count`, `engineeringbay-count`, `cc-count`, `marine-count`, `marauder-count`, `tank-count`, `weapon-upgrades`, `armor-upgrades`, `techlab-barracks-count`, `techlab-factory-count`, `stimpack`, `attacks-launched`.
 
-Thirteen actions model the Terran macro tech tree with real in-game costs — for example `train_siegetank` requires `factory-count ≥ 1`, 150 minerals, 125 vespene and 3 free supply. Resource accumulation is modelled by two explicit "clock" actions, `wait_for_minerals` (`increase (minerals) (mining-rate)`) and `wait_for_vespene`, which is what makes the numeric formulation express *timing* rather than just *ordering*.
+Sixteen actions model the Terran macro tech tree with real in-game costs: `wait_for_minerals`, `wait_for_vespene`, `build_supply_depot`, `build_barracks`, `build_refinery`, `build_factory`, `build_engineeringbay`, `build_techlab_barracks`, `build_techlab_factory`, `expand`, `train_marine`, `train_marauder`, `train_siegetank`, `research_weapons`, `research_stimpack`, `attack`. Costs are the game's own — for example `train_siegetank` requires a Factory with a Tech Lab, 150 minerals, 125 vespene and 3 free supply. Resource accumulation is modelled by two explicit "clock" actions, `wait_for_minerals` (`increase (minerals) (mining-rate)`) and `wait_for_vespene`, which is what makes the numeric formulation express *timing* rather than just *ordering*.
 
 **One wait action means 5 seconds of mining.** The domain itself has no notion of time, so that constant (`WAIT_SECONDS` in `planning/dynamic_problem.py`) is what gives `mining-rate` a physical unit: it is the amount actually harvested in that slice, computed from the workers currently assigned to minerals and gas. The same `harvest_rates()` function feeds both the PDDL problem and the executor's completion check, so what the domain assumes and what the game is tested for cannot drift apart. At 12 SCVs the rate is 55 minerals per wait; it rises with the worker count and saturates at 16 mineral harvesters per base.
 
@@ -125,19 +126,19 @@ Run the dashboard (starts the bot as a subprocess, then polls `metrics.json`):
 python web/app.py               # http://localhost:5000
 ```
 
-The bot writes `metrics.json` on game end — a `plan` list, a timestamped `events` log (`plan_generated`, `plan_issued`, `plan_completed`, `reactive_override`, `planner_error`, `game_end`) and periodic `snapshots` of minerals, gas, supply, Marine count and SCV count.
+The bot writes `metrics.json` on game end — a `plan` list, a timestamped `events` log (`plan_generated`, `plan_issued`, `plan_completed`, `action_unissuable`, `action_skipped`, `action_timeout`, `reactive_override`, `planner_error`, `game_end`) and periodic `snapshots` of minerals, gas, supply, Marine count and SCV count.
 
 ---
 
 ## 5. Experimental results so far
 
-The committed `metrics.json` is from a **Generation 1.5 run that ended in defeat**, and it is a useful diagnostic:
+The committed `metrics.json` is from one game of the current version (commit `d7e829e`) against *Very Easy* on `AcropolisLE`, **lost**:
 
-- 427 events: 26 `plan_issued` / 26 `plan_completed`, 374 `reactive_override`, 1 `game_end` = `Result.Defeat`.
-- The first ~20 events are `wait_for_minerals` issued and completed within the same ~0.2 s — the planner's waiting actions were consumed instantly instead of actually waiting.
-- Final snapshot: **7 755 minerals banked, 0 Marines, 22 SCVs**. The agent mined heavily and built nothing.
+- 1 653 events: 21 `plan_generated`, 44 `plan_issued` / 44 `plan_completed`, 18 `action_unissuable`, 6 `action_skipped`, 4 `action_timeout`, 1 515 `reactive_override` (1 512 of them "base under attack"), 0 `planner_error`, `game_end` = `Result.Defeat`.
+- Final snapshot: **7 470 minerals and 3 556 gas banked, 14/16 supply, 14 SCVs, 0 Marines**.
+- `build_techlab_barracks` alone accounts for 10 of the 18 `action_unissuable` and 4 of the 6 `action_skipped`; all 4 `action_timeout` are `train_marauder`. No Marauder or Siege Tank was produced and stage 3 (`attack`) was never reached (defect 14).
 
-That single number — minerals banked with no army — is the clearest statement of the open semantic problem described below.
+The economy works; the army does not. Waits are now honoured, so the money is not lost to the old instant-wait bug — it is stuck behind one unissuable action.
 
 No systematic comparison against the built-in AI or against Orava's results [1] has been run yet. That is task 3 of the assignment and remains entirely open.
 
@@ -162,12 +163,20 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 
 ### Open
 
-8. **Unit training completes without producing anything.** `train_marine`, `train_marauder` and `train_siegetank` all use `lambda b: True`, so they report success whether or not a unit appears. This is the same bug class as 6 and is the likely reason a run finishes with no army. **Deliberately deferred pending a design discussion** — Marauders and Siege Tanks require Tech Lab addons that exist nowhere in the domain, executor or problem generator, so fixing the condition alone would deadlock stages 1 and 2 rather than fix them.
+8. ~~**Unit training completes without producing anything.** `train_marine`, `train_marauder` and `train_siegetank` all use `lambda b: True`, so they report success whether or not a unit appears. This is the same bug class as 6 and is the likely reason a run finishes with no army. **Deliberately deferred pending a design discussion** — Marauders and Siege Tanks require Tech Lab addons that exist nowhere in the domain, executor or problem generator, so fixing the condition alone would deadlock stages 1 and 2 rather than fix them.~~ *Fixed: Tech Labs are in the domain, the executor and the problem generator, and `_unit_added()` requires the unit count to rise.*
 9. **`_attack_with_all()` and `_defend_base()` only command Marines**, ignoring the Marauders and Siege Tanks that stages 1 and 2 exist to build.
 10. ~~**`planning/problem_rush.pddl` and `problem_economy.pddl` are unsolvable** against the numeric domain — 7 of 17 fluents initialised; ENHSP returns `UNSOLVABLE_PROVEN`. Dead files; the `goal` argument to `PlanningBot` is likewise ignored since `STAGE_GOALS` is hard-coded.~~ *Fixed: both files, the `goal` argument and the extra arguments `web/app.py` passed to `run.py` were removed.*
 11. ~~**`test_plan.py` imports a planner function under its old name**, since renamed to `generate_plan_from_file`.~~ *Fixed: deleted; `python -m bot.smoke` is the offline check until the test suite exists.*
 12. ~~**`requirements.txt` is stale**: lists `up-fast-downward` (unused), omits `flask` and `up-enhsp`.~~ *Fixed: runtime dependencies are pinned in `requirements.txt`; Fast Downward moved to `requirements-dev.txt`.*
-13. **`web/templates/index.html`** still offers Fast Downward as the only planner and names `domain.pddl` in the architecture panel.
+13. **`web/templates/index.html`** still offers Fast Downward as the only planner, keeps the dead "Strategy goal" selector and names `domain.pddl` in the architecture panel.
+14. **The Barracks Tech Lab is never built.** `build_techlab_barracks` asks for an *idle* Barracks, but from stage 1 on the Barracks is always training Marines, so the action is unissuable, Marauders and Siege Tanks never come, and stage 3 is unreachable. The main cause of the defeat in §5.
+15. **No planning-time measurement.** `plan_generated` does not record how long ENHSP took — the thesis's key overhead metric.
+16. **Metric times are wall-clock**, while event details use game seconds; with `realtime=False` the two are not comparable.
+17. **Snapshots count only Marines and SCVs** — no Marauders, Tanks, army value or structures.
+18. **`MetricsCollector.set_plan()` is never called**, so `metrics.json` always has `"plan": []`.
+19. **No experiment harness.** `run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path or repeated games.
+20. **Dead model parts.** `armor-upgrades` is always 0, and `expand` is in the domain but in no stage goal, so it is never planned.
+21. ~~**Relative paths.** The problem file and `metrics.json` were resolved from the working directory, so the bot only ran from the repository root.~~ *Fixed: paths are anchored to the source files.*
 
 ---
 
@@ -181,8 +190,9 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 - [x] Honour the wait actions, so the numeric plan's timing survives execution (defect 5).
 - [x] Gate repeated structures on a count captured at issue time (defect 6).
 - [x] Derive `mining-rate` and `gas-rate` from the live harvester count (defect 7).
-- [ ] Decide how unit training should be verified, and how Tech Lab addons enter the domain (defects 8 and 9). **Next up, pending discussion.**
-- [ ] Delete the dead static problem files and the unused `goal` parameter, or repurpose them as planner regression fixtures.
+- [x] Decide how unit training should be verified, and how Tech Lab addons enter the domain (defect 8).
+- [ ] Build the Barracks Tech Lab while the Barracks is busy (defect 14), and let defence and attack use the whole army (defect 9). **Next up.**
+- [x] Delete the dead static problem files and the unused `goal` parameter.
 - [ ] Add a test suite around the planning layer — it is fully testable without the game.
 
 **Phase 3 — make it measurable (assignment task 3, entirely open).**
