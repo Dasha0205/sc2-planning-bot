@@ -23,9 +23,17 @@ FOOTPRINT_RADIUS = {
 }
 
 
+# burnysc2 reports add-on orders under a generic id; only exact_id is precise.
+GENERIC_ID = {
+    AbilityId.BUILD_TECHLAB_BARRACKS: AbilityId.BUILD_TECHLAB,
+    AbilityId.BUILD_TECHLAB_FACTORY: AbilityId.BUILD_TECHLAB,
+}
+
+
 def order(ability_id):
     """An order as the game reports it in Unit.orders."""
-    return SimpleNamespace(ability=SimpleNamespace(id=ability_id))
+    generic = GENERIC_ID.get(ability_id, ability_id)
+    return SimpleNamespace(ability=SimpleNamespace(id=generic, exact_id=ability_id))
 
 
 TRAINING = order(AbilityId.BARRACKSTRAIN_MARINE)

@@ -93,13 +93,25 @@ def test_production_limits_hold(tmp_path):
     assert counts["build_engineeringbay"] == 0
 
 
-def test_maxed_supply_is_still_solvable(tmp_path):
+def test_maxed_supply_waives_the_bank_ceiling(tmp_path):
     maxed = dict(STAGE_3_FLOATING, minerals=9000, vespene=5000, **{
         "supply-used": 196, "supply-cap": 200, "depot-count": 24,
         "barracks-count": 6, "cc-count": 2, "factory-count": 2,
         "marine-count": 60,
     })
-    assert solve(maxed, final_goal(maxed), tmp_path)[0] == "attack"
+    assert solve(maxed, final_goal(maxed), tmp_path) == ["attack"]
+
+
+def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):
+    # runs/2026-10-26_8f239e5: 77/79 supply and a full bank at the last replan.
+    blocked = dict(STAGE_3_FLOATING, minerals=5350, vespene=1115, **{
+        "supply-used": 77, "supply-cap": 79, "depot-count": 8, "barracks-count": 3,
+        "marine-count": 16, "marauder-count": 8, "tank-count": 7,
+    })
+    plan = solve(blocked, final_goal(blocked), tmp_path)
+
+    first_unit = min(i for i, a in enumerate(plan) if a.startswith("train_"))
+    assert "build_supply_depot" in plan[:first_unit]
 
 
 def test_small_bank_needs_only_the_attack(tmp_path):

@@ -24,6 +24,9 @@ from utils.metrics import MetricsCollector
 SPEND_PER_PLAN = {"minerals": 1500, "vespene": 600}
 BANK_FLOOR = {"minerals": 400, "vespene": 300}
 
+# Above this supply no more units fit, so the bank cannot be spent on them.
+MAXED_SUPPLY = 190
+
 STAGE_GOALS = [
     # Stage 0:
     # Basic Terran production infrastructure
@@ -72,8 +75,8 @@ STAGE_GOALS = [
     # The bank ceilings are filled in by goal_for_stage from the live bank.
     "(and "
     "(>= (attacks-launched) 1) "
-    "(<= (minerals) {minerals_ceiling}) "
-    "(<= (vespene) {vespene_ceiling})"
+    f"(or (>= (supply-used) {MAXED_SUPPLY}) "
+    "(and (<= (minerals) {minerals_ceiling}) (<= (vespene) {vespene_ceiling})))"
     ")",
 ]
 

@@ -74,13 +74,13 @@ def test_a_training_building_takes_one_more_unit_into_its_queue():
     assert rax.issued == [UnitTypeId.MARINE]
 
 
-def test_a_full_queue_is_a_failure_not_a_wait():
+def test_a_full_queue_is_waited_for():
     rax = barracks(30.5, orders=[TRAINING, TRAINING])
     bot = FakeBot(structures=[rax])
 
     assert not run(execute_action(bot, "train_marine"))
-    assert not bot.last_issue_waiting
-    assert bot.last_issue_failure == "every BARRACKS queue is full"
+    assert bot.last_issue_waiting
+    assert bot.last_issue_failure == "waiting: every BARRACKS queue is full"
 
 
 def test_the_emptiest_queue_is_used_first():

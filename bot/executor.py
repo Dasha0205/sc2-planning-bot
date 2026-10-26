@@ -34,14 +34,15 @@ ADDON_ABILITIES = {AbilityId.BUILD_TECHLAB_BARRACKS, AbilityId.BUILD_TECHLAB_FAC
 
 
 def _free_slots(producer):
-    # A building constructing its add-on cannot train at all.
-    if any(order.ability.id in ADDON_ABILITIES for order in producer.orders):
+    # A building constructing its add-on cannot train at all. burnysc2 remaps
+    # ability.id to the generic BUILD_TECHLAB, so the exact id is compared.
+    if any(order.ability.exact_id in ADDON_ABILITIES for order in producer.orders):
         return 0
     return QUEUE_LIMIT - len(producer.orders)
 
 
 def _train(bot, producer_id, unit_id, needs_techlab=False):
-    """Queue one unit at the emptiest producer; plain buildings first, so Tech Labs stay free."""
+    """Queue one unit at the emptiest producer, preferring buildings without an add-on."""
 
     if not bot.can_afford(unit_id):
         return _refuse(bot, f"cannot afford {unit_id.name}")
@@ -62,8 +63,9 @@ def _train(bot, producer_id, unit_id, needs_techlab=False):
 
     open_queues = [p for p in ready if _free_slots(p) > 0]
 
+    # A full queue drains on its own, so it is progress to wait for.
     if not open_queues:
-        return _refuse(bot, f"every {producer_id.name} queue is full")
+        return _wait(bot, f"every {producer_id.name} queue is full")
 
     producer = min(open_queues, key=lambda p: (-_free_slots(p), p.has_add_on))
     producer.train(unit_id)
