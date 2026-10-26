@@ -62,6 +62,16 @@ class Group(list):
     def first(self):
         return self[0]
 
+    @property
+    def idle(self):
+        return Group(u for u in self if u.is_idle)
+
+    def closer_than(self, distance, point):
+        return Group(u for u in self if u.position.distance_to(point) < distance)
+
+    def closest_to(self, point):
+        return min(self, key=lambda u: u.position.distance_to(point))
+
 
 class FakeUnit:
 
@@ -94,6 +104,12 @@ class FakeUnit:
     def research(self, upgrade_id):
         self.issued.append(upgrade_id)
 
+    def attack(self, target):
+        self.issued.append(("attack", target))
+
+    def __call__(self, ability_id):
+        self.issued.append(ability_id)
+
 
 class Structures:
     """Callable by type like bot.structures(...), iterable like bot.structures."""
@@ -107,6 +123,9 @@ class Structures:
     def __iter__(self):
         return iter(self.units)
 
+    def of_type(self, unit_ids):
+        return Group(u for u in self.units if u.type_id in unit_ids)
+
 
 class FakeBot:
     """
@@ -116,7 +135,8 @@ class FakeBot:
     """
 
     def __init__(self, structures=(), placeable=None, addon_room=True,
-                 affordable=True, minerals_at=None, geysers_at=()):
+                 affordable=True, minerals_at=None, geysers_at=(), units=(),
+                 enemy_structures=(), enemy_units=(), expansions=()):
         self.time = 100.0
         self.cc = FakeUnit(UnitTypeId.COMMANDCENTER, CC_AT)
         self.townhalls = Group([self.cc])
@@ -134,6 +154,13 @@ class FakeBot:
         self.affordable = affordable
         self.reservations = []
         self.last_issue_failure = None
+        self.units = Structures(units)
+        self.enemy_structures = Group(enemy_structures)
+        self.enemy_units = Group(enemy_units)
+        self.start_location = CC_AT
+        self.enemy_start_locations = [Point2((150.5, 150.5))]
+        self.expansion_locations_list = list(expansions)
+        self.scouted = set()
 
     def can_afford(self, _unit_id):
         return self.affordable

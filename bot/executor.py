@@ -12,8 +12,8 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
+from bot.combat import launch_attack
 from bot.placement import addon_blockers, addon_spot, find_spot, reserve
-from planning.dynamic_problem import ARMY_WEIGHTS
 
 
 def _refuse(bot, reason):
@@ -187,23 +187,8 @@ async def execute_action(bot, action):
         return _train(bot, UnitTypeId.BARRACKS, UnitTypeId.MARINE)
 
     if "attack" in action:
-        # Every combat unit the domain weighs in the attack precondition, not
-        # just Marines. Sending only part of the army the planner decided to
-        # commit is the same class of divergence as an action that reports
-        # success without doing anything.
-        forces = bot.units.of_type(list(ARMY_WEIGHTS))
-        if forces.exists:
-            # Prioritize enemy structures, fallback to their starting location
-            targets = bot.enemy_structures
-            target = (
-                targets.closest_to(bot.start_location).position
-                if targets
-                else bot.enemy_start_locations[0]
-            )
-            for unit in forces:
-                unit.attack(target)
-            return True
-        return _refuse(bot, "no army")
+        # The whole army the domain weighs in the attack precondition.
+        return launch_attack(bot) or _refuse(bot, "no army")
 
     if "build_refinery" in action:
         if bot.can_afford(UnitTypeId.REFINERY) and bot.townhalls.exists:

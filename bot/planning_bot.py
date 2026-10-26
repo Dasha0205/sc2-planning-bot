@@ -1,4 +1,3 @@
-import random
 import time
 
 from sc2.bot_ai import BotAI
@@ -11,6 +10,7 @@ from planning.dynamic_problem import (
     harvest_rates,
     army_value,
 )
+from bot.combat import advance_attack, army, defend, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 
@@ -122,6 +122,12 @@ MAX_FORCED_REPLANS = 3
 
 # Pause before retrying an emergency depot that could not be placed.
 SUPPLY_RETRY_SECONDS = 5.0
+
+# A committed attack re-sends its idle units this often.
+ATTACK_ORDER_SECONDS = 2.0
+
+# Enemies this close to the start location count as an attack on the base.
+DEFENCE_RADIUS = 35
 
 # How long a committed attack is given to resolve before the plan moves on.
 # An attack is not a stall, so it gets its own window rather than the generic
@@ -381,6 +387,12 @@ class PlanningBot(BotAI):
         # A failed emergency depot is retried after a pause, not every frame.
         self.next_supply_attempt = 0.0
 
+        # Attack and defence state (see bot/combat.py).
+        self.scouted = set()
+        self.attack_target = None
+        self.next_attack_order = 0.0
+        self.defending = False
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -405,6 +417,10 @@ class PlanningBot(BotAI):
         self.forced_replans = 0
         self.reservations = []
         self.next_supply_attempt = 0.0
+        self.scouted = set()
+        self.attack_target = None
+        self.next_attack_order = 0.0
+        self.defending = False
 
         self._advance_plan()
 
@@ -568,6 +584,29 @@ class PlanningBot(BotAI):
             }
 
         return {"deadline": deadline}
+
+    # ========================================================
+    # Carrying out a committed attack
+    # ========================================================
+
+    def _keep_attacking(self):
+        """
+        Execution of the planned attack, not a new decision: idle units are
+        sent on, and empty targets give way to the next unscouted expansion.
+        """
+
+        if self.time < self.next_attack_order:
+            return
+
+        self.next_attack_order = self.time + ATTACK_ORDER_SECONDS
+        target = advance_attack(self)
+
+        if target != self.attack_target:
+            self.attack_target = target
+            self.metrics.log_event(
+                "attack_retarget",
+                f"army heads to ({target.x:.0f}, {target.y:.0f}) at {int(self.time)}s"
+            )
 
     # ========================================================
     # Recovery from an action that cannot be issued
@@ -737,6 +776,9 @@ class PlanningBot(BotAI):
 
         else:
 
+            if action == "attack":
+                self._keep_attacking()
+
             condition = COMPLETION_CONDITIONS.get(
                 action,
                 lambda b: True
@@ -830,36 +872,24 @@ class PlanningBot(BotAI):
 
     async def _defend_base(self):
         """
-        Emergency defensive behavior.
-
-        The planner controls macro strategy, but the bot
-        should still react immediately to nearby threats.
+        Emergency defensive behavior: the whole army answers enemies near the
+        base at once, without waiting for a planning cycle. Logged once per
+        fight, so the event count is the number of attacks on the base.
         """
 
-        if not self.enemy_units.exists:
-            return
+        threats = self.enemy_units.closer_than(DEFENCE_RADIUS, self.start_location)
 
-        threats = self.enemy_units.closer_than(
-            35,
-            self.start_location
-        )
+        if threats:
+            if not self.defending:
+                self.metrics.log_event(
+                    "reactive_override",
+                    f"Base under attack - {threats.amount} enemy units"
+                )
+            defend(self, threats)
+        elif self.defending:
+            stand_down(self)
 
-        if not threats.exists:
-            return
-
-        forces = self.units(
-            UnitTypeId.MARINE
-        ).idle
-
-        for unit in forces:
-            unit.attack(
-                threats.closest_to(unit)
-            )
-
-        self.metrics.log_event(
-            "reactive_override",
-            "Base under attack - auto-defending"
-        )
+        self.defending = bool(threats)
 
     # ========================================================
     # Continuous production
@@ -917,42 +947,5 @@ class PlanningBot(BotAI):
         This exists so a planner failure does not leave the bot idle forever.
         """
 
-        forces = self.units(
-            UnitTypeId.MARINE
-        ).idle
-
-        if not forces:
-            return
-
-        # 1. Attack visible enemy structures.
-        if self.enemy_structures.exists:
-
-            target = (
-                self.enemy_structures
-                .closest_to(self.start_location)
-                .position
-            )
-
-        # 2. Otherwise attack visible enemy units.
-        elif self.enemy_units.exists:
-
-            target = (
-                self.enemy_units
-                .closest_to(self.start_location)
-                .position
-            )
-
-        # 3. Otherwise move towards a random expansion.
-        else:
-
-            expansions = list(
-                self.expansion_locations.keys()
-            )
-
-            if not expansions:
-                return
-
-            target = random.choice(expansions)
-
-        for unit in forces:
-            unit.attack(target)
+        if army(self):
+            advance_attack(self)
