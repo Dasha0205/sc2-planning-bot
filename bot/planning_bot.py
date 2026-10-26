@@ -27,8 +27,9 @@ BANK_FLOOR = {"minerals": 400, "vespene": 300}
 # Above this supply no more units fit, so the bank cannot be spent on them.
 MAXED_SUPPLY = 190
 
-# A plan is stale once the bank has grown this far past what it was made to
-# spend; the stage is then replanned, at most once per MIN_PLAN_AGE_SECONDS.
+# A plan is stale once the bank has grown this far since the plan was made
+# (from the floor up); the stage is then replanned, at most once per
+# MIN_PLAN_AGE_SECONDS.
 STALE_BANK_SURPLUS = 500
 MIN_PLAN_AGE_SECONDS = 20.0
 
@@ -392,9 +393,9 @@ class PlanningBot(BotAI):
         # A failed emergency depot is retried after a pause, not every frame.
         self.next_supply_attempt = 0.0
 
-        # When the current plan was made and the bank it was made to leave.
+        # When the current plan was made and the bank it started from.
         self.plan_made_at = 0.0
-        self.plan_mineral_ceiling = 0
+        self.plan_bank = 0
 
         # Attack and defence state (see bot/combat.py).
         self.scouted = set()
@@ -508,7 +509,7 @@ class PlanningBot(BotAI):
             self.action_issued = False
             self.issue_deadline = None
             self.plan_made_at = self.time
-            self.plan_mineral_ceiling = bank_ceiling("minerals", self.minerals)
+            self.plan_bank = max(self.minerals, BANK_FLOOR["minerals"])
 
             print(
                 f"[PLAN STAGE {self.stage}] "
@@ -624,9 +625,9 @@ class PlanningBot(BotAI):
     # ========================================================
 
     def _plan_is_stale(self):
-        """The bank has outgrown what the current plan was made to spend."""
+        """The bank has grown well past where the current plan started."""
         return (
-            self.minerals > self.plan_mineral_ceiling + STALE_BANK_SURPLUS
+            self.minerals > self.plan_bank + STALE_BANK_SURPLUS
             and self.time >= self.plan_made_at + MIN_PLAN_AGE_SECONDS
         )
 
@@ -769,7 +770,7 @@ class PlanningBot(BotAI):
             self.metrics.log_event(
                 "plan_stale",
                 f"stage={self.stage}, bank {self.minerals} > "
-                f"{self.plan_mineral_ceiling} + {STALE_BANK_SURPLUS}"
+                f"{self.plan_bank} + {STALE_BANK_SURPLUS}"
             )
             self._advance_plan()
             return

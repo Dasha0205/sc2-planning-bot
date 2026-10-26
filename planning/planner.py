@@ -7,7 +7,7 @@ from pathlib import Path
 # started from anywhere (a batch runner, the dashboard, a test).
 PLANNING_DIR = Path(__file__).resolve().parent
 # The active domain. Older versions stay in planning/ for comparison.
-DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v4.pddl"
+DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v5.pddl"
 
 # An unsolvable numeric goal can keep ENHSP searching until the JVM runs out of
 # memory; a bounded search fails fast into the bot's planner_error path.
