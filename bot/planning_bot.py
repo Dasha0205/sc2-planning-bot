@@ -763,7 +763,9 @@ class PlanningBot(BotAI):
 
         action = self.plan[self.index]
 
-        if not self.action_issued and self._plan_is_stale():
+        # Checked only before an action's first attempt, so a replan never
+        # cuts off an action that is still trying to be issued.
+        if not self.action_issued and self.issue_deadline is None and self._plan_is_stale():
             self.metrics.log_event(
                 "plan_stale",
                 f"stage={self.stage}, bank {self.minerals} > "
