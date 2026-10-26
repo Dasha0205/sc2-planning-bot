@@ -7,7 +7,7 @@ from pathlib import Path
 # started from anywhere (a batch runner, the dashboard, a test).
 PLANNING_DIR = Path(__file__).resolve().parent
 # The active domain. Older versions stay in planning/ for comparison.
-DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v2.pddl"
+DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v3.pddl"
 
 def generate_plan_from_file(domain_path, problem_path):
     reader = PDDLReader()

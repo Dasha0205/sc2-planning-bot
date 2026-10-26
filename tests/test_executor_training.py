@@ -5,7 +5,9 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 
 from bot.executor import execute_action
-from fakes import FakeBot, FakeUnit, run
+from sc2.ids.ability_id import AbilityId
+
+from fakes import TRAINING, FakeBot, FakeUnit, order, run
 
 
 def barracks(x, **kwargs):
@@ -17,7 +19,7 @@ def test_marauder_goes_only_to_a_barracks_with_a_techlab():
     bot = FakeBot(structures=[plain, lab])
 
     assert run(execute_action(bot, "train_marauder"))
-    assert plain.orders == [] and lab.orders == [UnitTypeId.MARAUDER]
+    assert plain.issued == [] and lab.issued == [UnitTypeId.MARAUDER]
 
 
 def test_marauder_without_any_techlab_is_refused_not_misplaced():
@@ -25,7 +27,7 @@ def test_marauder_without_any_techlab_is_refused_not_misplaced():
     bot = FakeBot(structures=[plain])
 
     assert not run(execute_action(bot, "train_marauder"))
-    assert plain.orders == []
+    assert plain.issued == []
     assert bot.last_issue_failure == "no BARRACKS with a Tech Lab"
     assert not bot.last_issue_waiting
 
@@ -35,7 +37,7 @@ def test_marine_prefers_a_plain_barracks_to_keep_the_techlab_free():
     bot = FakeBot(structures=[lab, plain])
 
     assert run(execute_action(bot, "train_marine"))
-    assert plain.orders == [UnitTypeId.MARINE] and lab.orders == []
+    assert plain.issued == [UnitTypeId.MARINE] and lab.issued == []
 
 
 def test_marine_still_uses_the_techlab_barracks_when_it_is_the_only_one_idle():
@@ -43,7 +45,7 @@ def test_marine_still_uses_the_techlab_barracks_when_it_is_the_only_one_idle():
     bot = FakeBot(structures=[lab, plain])
 
     assert run(execute_action(bot, "train_marine"))
-    assert lab.orders == [UnitTypeId.MARINE]
+    assert lab.issued == [UnitTypeId.MARINE]
 
 
 def test_tank_goes_only_to_a_factory_with_a_techlab():
@@ -52,7 +54,7 @@ def test_tank_goes_only_to_a_factory_with_a_techlab():
     bot = FakeBot(structures=[plain, lab])
 
     assert run(execute_action(bot, "train_siegetank"))
-    assert plain.orders == [] and lab.orders == [UnitTypeId.SIEGETANK]
+    assert plain.issued == [] and lab.issued == [UnitTypeId.SIEGETANK]
 
 
 def test_factory_under_construction_is_waited_for():
@@ -64,12 +66,37 @@ def test_factory_under_construction_is_waited_for():
     assert bot.last_issue_failure == "waiting: FACTORY under construction"
 
 
-def test_busy_building_is_a_failure_not_a_wait():
-    bot = FakeBot(structures=[barracks(30.5, idle=False)])
+def test_a_training_building_takes_one_more_unit_into_its_queue():
+    rax = barracks(30.5, idle=False)
+    bot = FakeBot(structures=[rax])
+
+    assert run(execute_action(bot, "train_marine"))
+    assert rax.issued == [UnitTypeId.MARINE]
+
+
+def test_a_full_queue_is_a_failure_not_a_wait():
+    rax = barracks(30.5, orders=[TRAINING, TRAINING])
+    bot = FakeBot(structures=[rax])
 
     assert not run(execute_action(bot, "train_marine"))
     assert not bot.last_issue_waiting
-    assert "busy" in bot.last_issue_failure
+    assert bot.last_issue_failure == "every BARRACKS queue is full"
+
+
+def test_the_emptiest_queue_is_used_first():
+    busy, idle = barracks(30.5, idle=False), barracks(36.5)
+    bot = FakeBot(structures=[busy, idle])
+
+    assert run(execute_action(bot, "train_marine"))
+    assert idle.issued == [UnitTypeId.MARINE] and busy.issued == []
+
+
+def test_no_unit_is_queued_behind_an_addon_under_construction():
+    rax = barracks(30.5, techlab=True, orders=[order(AbilityId.BUILD_TECHLAB_BARRACKS)])
+    bot = FakeBot(structures=[rax])
+
+    assert not run(execute_action(bot, "train_marauder"))
+    assert rax.issued == []
 
 
 def test_stimpack_waits_for_the_techlab_to_finish():
@@ -85,4 +112,4 @@ def test_weapons_research_is_issued_at_an_idle_engineering_bay():
     bot = FakeBot(structures=[ebay])
 
     assert run(execute_action(bot, "research_weapons"))
-    assert ebay.orders == [UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]
+    assert ebay.issued == [UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]

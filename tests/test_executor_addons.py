@@ -19,7 +19,7 @@ def test_techlab_is_issued_to_an_idle_barracks_with_room():
     bot = FakeBot(structures=[rax])
 
     assert run(execute_action(bot, "build_techlab_barracks"))
-    assert rax.orders == [(UnitTypeId.BARRACKSTECHLAB, None)]
+    assert rax.issued == [(UnitTypeId.BARRACKSTECHLAB, None)]
     assert bot.last_issue_failure is None
 
 
@@ -28,7 +28,7 @@ def test_busy_barracks_is_waited_for_not_interrupted():
     bot = FakeBot(structures=[rax])
 
     assert not run(execute_action(bot, "build_techlab_barracks"))
-    assert rax.orders == []
+    assert rax.issued == []
     assert "busy" in bot.last_issue_failure
 
 

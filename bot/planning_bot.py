@@ -1,4 +1,5 @@
 import random
+import time
 
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -18,10 +19,10 @@ from utils.metrics import MetricsCollector
 # High-level macro stages
 # ============================================================
 
-# Final-stage bank ceiling: the most each resource may float after a plan.
-BANK_CEILING_MINERALS = 400
-BANK_CEILING_VESPENE = 300
-MAXED_SUPPLY = 190
+# Final stage (T1.7): each plan spends up to this much of the bank, never
+# below the floor, so the planner decides what floating resources become.
+SPEND_PER_PLAN = {"minerals": 1500, "vespene": 600}
+BANK_FLOOR = {"minerals": 400, "vespene": 300}
 
 STAGE_GOALS = [
     # Stage 0:
@@ -68,15 +69,25 @@ STAGE_GOALS = [
     # which makes the late game a planner-driven build-commit-rebuild cycle
     # instead of the hardcoded Marine all-in it used to be.
     #
-    # The bank ceiling (T1.7) makes the planner spend what it floats; it is
-    # waived once supply is nearly maxed and nothing more can be trained.
+    # The bank ceilings are filled in by goal_for_stage from the live bank.
     "(and "
     "(>= (attacks-launched) 1) "
-    f"(or (>= (supply-used) {MAXED_SUPPLY}) "
-    f"(and (<= (minerals) {BANK_CEILING_MINERALS}) "
-    f"(<= (vespene) {BANK_CEILING_VESPENE})))"
+    "(<= (minerals) {minerals_ceiling}) "
+    "(<= (vespene) {vespene_ceiling})"
     ")",
 ]
+
+
+def goal_for_stage(stage, minerals, vespene):
+    """The PDDL goal of a stage; the final one asks to spend part of the bank."""
+
+    def ceiling(resource, banked):
+        return max(BANK_FLOOR[resource], int(banked) - SPEND_PER_PLAN[resource])
+
+    return STAGE_GOALS[min(stage, len(STAGE_GOALS) - 1)].format(
+        minerals_ceiling=ceiling("minerals", minerals),
+        vespene_ceiling=ceiling("vespene", vespene),
+    )
 
 
 # ============================================================
@@ -435,9 +446,7 @@ class PlanningBot(BotAI):
         state before every planning call.
         """
 
-        stage_goal = STAGE_GOALS[
-            min(self.stage, len(STAGE_GOALS) - 1)
-        ]
+        stage_goal = goal_for_stage(self.stage, self.minerals, self.vespene)
 
         try:
             path = write_dynamic_problem(
@@ -445,10 +454,12 @@ class PlanningBot(BotAI):
                 stage_goal
             )
 
+            started = time.perf_counter()
             generated_plan = generate_plan_from_file(
                 DOMAIN_PATH,
                 path
             )
+            solve_time = time.perf_counter() - started
 
             # IMPORTANT:
             # Normalize planner actions:
@@ -476,7 +487,8 @@ class PlanningBot(BotAI):
 
             self.metrics.log_event(
                 "plan_generated",
-                f"stage={self.stage}, plan={self.plan}"
+                f"stage={self.stage}, solve_time={solve_time:.2f}s, "
+                f"plan={self.plan}"
             )
 
             return True

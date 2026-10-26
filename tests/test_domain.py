@@ -1,5 +1,5 @@
 """
-Offline ENHSP checks of the active domain (v2) and the stage goals (T1.7).
+Offline ENHSP checks of the active domain and the stage goals (T1.7).
 Each test solves a real problem, so the suite needs Java.
 """
 
@@ -10,7 +10,7 @@ from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.io import PDDLReader
 from unified_planning.shortcuts import OneshotPlanner, get_environment
 
-from bot.planning_bot import BANK_CEILING_MINERALS, STAGE_GOALS
+from bot.planning_bot import BANK_FLOOR, STAGE_GOALS, goal_for_stage
 from planning.planner import DOMAIN_PATH
 
 get_environment().credits_stream = None
@@ -51,24 +51,41 @@ def solve(init, goal, tmp_path):
     return [str(a).split("(")[0] for a in result.plan.actions]
 
 
+def final_goal(init):
+    return goal_for_stage(3, init["minerals"], init["vespene"])
+
+
 @pytest.mark.parametrize("stage", range(len(STAGE_GOALS)))
 def test_every_stage_is_solvable_from_the_opening(stage, tmp_path):
-    assert solve(OPENING, STAGE_GOALS[stage], tmp_path)
+    goal = goal_for_stage(stage, OPENING["minerals"], OPENING["vespene"])
+    assert solve(OPENING, goal, tmp_path)
 
 
-def test_floating_bank_is_spent_after_the_attack(tmp_path):
-    plan = solve(STAGE_3_FLOATING, STAGE_GOALS[3], tmp_path)
+def test_floating_bank_is_spent_on_units_after_a_short_build_up(tmp_path):
+    plan = solve(STAGE_3_FLOATING, final_goal(STAGE_3_FLOATING), tmp_path)
     counts = Counter(plan)
 
     assert counts["attack"] == 1
-    # Spending the bank means training and building, not one bare attack.
-    assert len(plan) > 10
     assert counts["train_marine"] + counts["train_marauder"] + counts["train_siegetank"] > 0
+    # The budget keeps one planning cycle short.
+    assert len(plan) <= 20
+
+
+def test_spending_is_never_phantom_depots_or_upgrades(tmp_path):
+    counts = Counter(solve(STAGE_3_FLOATING, final_goal(STAGE_3_FLOATING), tmp_path))
+
+    assert counts["build_supply_depot"] <= 2
+    assert counts["research_weapons"] == 0
+
+
+def test_a_huge_bank_is_spent_over_several_plans_not_one(tmp_path):
+    rich = dict(STAGE_3_FLOATING, minerals=20000, vespene=8000)
+    assert len(solve(rich, final_goal(rich), tmp_path)) <= 20
 
 
 def test_production_limits_hold(tmp_path):
     rich = dict(STAGE_3_FLOATING, minerals=20000, vespene=8000)
-    counts = Counter(solve(rich, STAGE_GOALS[3], tmp_path))
+    counts = Counter(solve(rich, final_goal(rich), tmp_path))
 
     cc = 1 + counts["expand"]
     assert 2 + counts["build_barracks"] <= 3 * cc
@@ -76,15 +93,15 @@ def test_production_limits_hold(tmp_path):
     assert counts["build_engineeringbay"] == 0
 
 
-def test_maxed_supply_waives_the_bank_ceiling(tmp_path):
+def test_maxed_supply_is_still_solvable(tmp_path):
     maxed = dict(STAGE_3_FLOATING, minerals=9000, vespene=5000, **{
         "supply-used": 196, "supply-cap": 200, "depot-count": 24,
         "barracks-count": 6, "cc-count": 2, "factory-count": 2,
-        "marine-count": 60, "weapon-upgrades": 3,
+        "marine-count": 60,
     })
-    assert solve(maxed, STAGE_GOALS[3], tmp_path) == ["attack"]
+    assert solve(maxed, final_goal(maxed), tmp_path)[0] == "attack"
 
 
 def test_small_bank_needs_only_the_attack(tmp_path):
-    lean = dict(STAGE_3_FLOATING, minerals=BANK_CEILING_MINERALS - 100, vespene=100)
-    assert solve(lean, STAGE_GOALS[3], tmp_path) == ["attack"]
+    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100)
+    assert solve(lean, final_goal(lean), tmp_path) == ["attack"]

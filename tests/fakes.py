@@ -4,7 +4,9 @@ placement module make, so they can be tested without StarCraft II.
 """
 
 import asyncio
+from types import SimpleNamespace
 
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -19,6 +21,14 @@ FOOTPRINT_RADIUS = {
     UnitTypeId.SCV: None,
     UnitTypeId.MINERALFIELD: None,
 }
+
+
+def order(ability_id):
+    """An order as the game reports it in Unit.orders."""
+    return SimpleNamespace(ability=SimpleNamespace(id=ability_id))
+
+
+TRAINING = order(AbilityId.BARRACKSTRAIN_MARINE)
 
 
 def run(coroutine):
@@ -47,25 +57,34 @@ class Group(list):
 
 class FakeUnit:
 
+    """
+    `orders` is the unit's queue as the game reports it (`idle=False` puts one
+    training order in it); `issued` records the commands the code under test gave.
+    """
+
     def __init__(self, type_id, position, idle=True, add_on=False, ready=True,
-                 techlab=False):
+                 techlab=False, orders=None):
         self.type_id = type_id
         self.position = position
-        self.is_idle = idle
+        self.orders = list(orders) if orders is not None else ([] if idle else [TRAINING])
         self.has_add_on = add_on or techlab
         self.has_techlab = techlab
         self.is_ready = ready
         self.footprint_radius = FOOTPRINT_RADIUS.get(type_id, 1.5)
-        self.orders = []
+        self.issued = []
+
+    @property
+    def is_idle(self):
+        return not self.orders
 
     def build(self, unit_id, position=None):
-        self.orders.append((unit_id, position))
+        self.issued.append((unit_id, position))
 
     def train(self, unit_id):
-        self.orders.append(unit_id)
+        self.issued.append(unit_id)
 
     def research(self, upgrade_id):
-        self.orders.append(upgrade_id)
+        self.issued.append(upgrade_id)
 
 
 class Structures:
@@ -130,4 +149,4 @@ class FakeBot:
 
     def built(self):
         """Positions of every building the worker was ordered to place."""
-        return [position for _, position in self.worker.orders]
+        return [position for _, position in self.worker.issued]

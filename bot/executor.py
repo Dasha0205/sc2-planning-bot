@@ -26,8 +26,22 @@ def _wait(bot, reason):
     return _refuse(bot, f"waiting: {reason}")
 
 
+# Units a producer may hold in its queue. Queuing spends the money at once, so
+# the bank follows the plan instead of waiting for each building to free up.
+QUEUE_LIMIT = 2
+
+ADDON_ABILITIES = {AbilityId.BUILD_TECHLAB_BARRACKS, AbilityId.BUILD_TECHLAB_FACTORY}
+
+
+def _free_slots(producer):
+    # A building constructing its add-on cannot train at all.
+    if any(order.ability.id in ADDON_ABILITIES for order in producer.orders):
+        return 0
+    return QUEUE_LIMIT - len(producer.orders)
+
+
 def _train(bot, producer_id, unit_id, needs_techlab=False):
-    """Train one unit at an idle producer; plain buildings first, so Tech Labs stay free."""
+    """Queue one unit at the emptiest producer; plain buildings first, so Tech Labs stay free."""
 
     if not bot.can_afford(unit_id):
         return _refuse(bot, f"cannot afford {unit_id.name}")
@@ -46,12 +60,13 @@ def _train(bot, producer_id, unit_id, needs_techlab=False):
     if not ready:
         return _wait(bot, f"{producer_id.name} under construction")
 
-    idle = sorted((p for p in ready if p.is_idle), key=lambda p: p.has_add_on)
+    open_queues = [p for p in ready if _free_slots(p) > 0]
 
-    if not idle:
-        return _refuse(bot, f"every {producer_id.name} is busy")
+    if not open_queues:
+        return _refuse(bot, f"every {producer_id.name} queue is full")
 
-    idle[0].train(unit_id)
+    producer = min(open_queues, key=lambda p: (-_free_slots(p), p.has_add_on))
+    producer.train(unit_id)
     return True
 
 
