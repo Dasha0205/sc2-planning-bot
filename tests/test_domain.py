@@ -61,6 +61,27 @@ def test_every_stage_is_solvable_from_the_opening(stage, tmp_path):
     assert solve(OPENING, goal, tmp_path)
 
 
+# Bank at the start of stages 1 and 2 in runs/2026-10-26_9248687.
+STAGE_1_FLOATING = dict(OPENING, minerals=1475, **{
+    "supply-used": 27, "supply-cap": 31, "mining-rate": 80,
+    "depot-count": 2, "barracks-count": 1, "marine-count": 4,
+})
+STAGE_2_FLOATING = dict(STAGE_1_FLOATING, minerals=3560, vespene=207, **{
+    "supply-used": 39, "supply-cap": 47, "gas-rate": 18, "depot-count": 4,
+    "refinery-count": 2, "techlab-barracks-count": 1,
+    "marine-count": 10, "marauder-count": 2,
+})
+PRODUCTION = ("build_barracks", "build_factory", "expand")
+
+
+@pytest.mark.parametrize("stage, state", [(1, STAGE_1_FLOATING), (2, STAGE_2_FLOATING)])
+def test_early_stages_spend_a_floating_bank_on_production(stage, state, tmp_path):
+    goal = goal_for_stage(stage, state["minerals"], state["vespene"])
+    counts = Counter(solve(state, goal, tmp_path))
+
+    assert sum(counts[a] for a in PRODUCTION) > 0
+
+
 def test_floating_bank_is_spent_on_units_after_a_short_build_up(tmp_path):
     plan = solve(STAGE_3_FLOATING, final_goal(STAGE_3_FLOATING), tmp_path)
     counts = Counter(plan)

@@ -19,13 +19,18 @@ from utils.metrics import MetricsCollector
 # High-level macro stages
 # ============================================================
 
-# Final stage (T1.7): each plan spends up to this much of the bank, never
-# below the floor, so the planner decides what floating resources become.
+# Every plan spends up to this much of the bank, never below the floor, so the
+# planner decides what floating resources become (T1.7, T1.8).
 SPEND_PER_PLAN = {"minerals": 1500, "vespene": 600}
 BANK_FLOOR = {"minerals": 400, "vespene": 300}
 
 # Above this supply no more units fit, so the bank cannot be spent on them.
 MAXED_SUPPLY = 190
+
+# A plan is stale once the bank has grown this far past what it was made to
+# spend; the stage is then replanned, at most once per MIN_PLAN_AGE_SECONDS.
+STALE_BANK_SURPLUS = 500
+MIN_PLAN_AGE_SECONDS = 20.0
 
 STAGE_GOALS = [
     # Stage 0:
@@ -71,25 +76,25 @@ STAGE_GOALS = [
     # Once the plan is exhausted the stage is replanned rather than advanced,
     # which makes the late game a planner-driven build-commit-rebuild cycle
     # instead of the hardcoded Marine all-in it used to be.
-    #
-    # The bank ceilings are filled in by goal_for_stage from the live bank.
-    "(and "
-    "(>= (attacks-launched) 1) "
-    f"(or (>= (supply-used) {MAXED_SUPPLY}) "
-    "(and (<= (minerals) {minerals_ceiling}) (<= (vespene) {vespene_ceiling})))"
-    ")",
+    "(>= (attacks-launched) 1)",
 ]
 
 
+def bank_ceiling(resource, banked):
+    """The most of a resource a plan may leave in the bank."""
+    return max(BANK_FLOOR[resource], int(banked) - SPEND_PER_PLAN[resource])
+
+
 def goal_for_stage(stage, minerals, vespene):
-    """The PDDL goal of a stage; the final one asks to spend part of the bank."""
+    """The stage's objective plus spending part of the bank (waived at max supply)."""
 
-    def ceiling(resource, banked):
-        return max(BANK_FLOOR[resource], int(banked) - SPEND_PER_PLAN[resource])
+    objective = STAGE_GOALS[min(stage, len(STAGE_GOALS) - 1)]
 
-    return STAGE_GOALS[min(stage, len(STAGE_GOALS) - 1)].format(
-        minerals_ceiling=ceiling("minerals", minerals),
-        vespene_ceiling=ceiling("vespene", vespene),
+    return (
+        f"(and {objective} "
+        f"(or (>= (supply-used) {MAXED_SUPPLY}) "
+        f"(and (<= (minerals) {bank_ceiling('minerals', minerals)}) "
+        f"(<= (vespene) {bank_ceiling('vespene', vespene)}))))"
     )
 
 
@@ -387,6 +392,10 @@ class PlanningBot(BotAI):
         # A failed emergency depot is retried after a pause, not every frame.
         self.next_supply_attempt = 0.0
 
+        # When the current plan was made and the bank it was made to leave.
+        self.plan_made_at = 0.0
+        self.plan_mineral_ceiling = 0
+
         # Attack and defence state (see bot/combat.py).
         self.scouted = set()
         self.attack_target = None
@@ -498,6 +507,8 @@ class PlanningBot(BotAI):
             self.index = 0
             self.action_issued = False
             self.issue_deadline = None
+            self.plan_made_at = self.time
+            self.plan_mineral_ceiling = bank_ceiling("minerals", self.minerals)
 
             print(
                 f"[PLAN STAGE {self.stage}] "
@@ -611,6 +622,13 @@ class PlanningBot(BotAI):
     # ========================================================
     # Recovery from an action that cannot be issued
     # ========================================================
+
+    def _plan_is_stale(self):
+        """The bank has outgrown what the current plan was made to spend."""
+        return (
+            self.minerals > self.plan_mineral_ceiling + STALE_BANK_SURPLUS
+            and self.time >= self.plan_made_at + MIN_PLAN_AGE_SECONDS
+        )
 
     def _waiting_on_construction(self):
         return (
@@ -744,6 +762,15 @@ class PlanningBot(BotAI):
         # ----------------------------------------------------
 
         action = self.plan[self.index]
+
+        if not self.action_issued and self._plan_is_stale():
+            self.metrics.log_event(
+                "plan_stale",
+                f"stage={self.stage}, bank {self.minerals} > "
+                f"{self.plan_mineral_ceiling} + {STALE_BANK_SURPLUS}"
+            )
+            self._advance_plan()
+            return
 
         if not self.action_issued:
 
