@@ -114,7 +114,8 @@ pip install -r requirements-dev.txt
 Run a game headlessly against the built-in AI:
 
 ```bash
-python run.py
+python run.py                     # VeryEasy
+python run.py --difficulty Easy
 ```
 
 Check the planning pipeline offline, without StarCraft II (renders the opening position into a PDDL problem and solves stage 0 with ENHSP):
