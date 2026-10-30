@@ -86,6 +86,15 @@ def test_defence_uses_the_whole_army_and_sieges_tanks_in_range():
     assert far_tank.issued == [("attack", enemy)]
 
 
+def test_an_army_attacking_across_the_map_is_not_recalled():
+    scout = unit(UnitTypeId.SCV, CC_AT.offset((5, 0)))
+    away = unit(UnitTypeId.MARINE, NEAR_ENEMY)
+    bot = FakeBot(units=[away])
+
+    defend(bot, Group([scout]))
+    assert away.issued == []
+
+
 def test_standing_down_unsieges_tanks():
     tank = unit(UnitTypeId.SIEGETANKSIEGED)
     bot = FakeBot(units=[tank])

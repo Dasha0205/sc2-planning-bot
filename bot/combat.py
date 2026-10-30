@@ -17,6 +17,10 @@ ARMY_TYPES = set(ARMY_WEIGHTS)
 # An expansion counts as scouted once a unit of the army is this close to it.
 SCOUT_RADIUS = 6
 
+# Enemies this close to the start location count as an attack on the base;
+# only units within it defend, so an attack across the map is not recalled.
+DEFENCE_RADIUS = 35
+
 # A Siege Tank deploys when an enemy is within its sieged range (13).
 SIEGE_RANGE = 13
 
@@ -91,9 +95,9 @@ def advance_attack(bot):
 
 
 def defend(bot, threats):
-    """Whole army engages threats near the base; tanks siege up in range."""
+    """The army at home engages threats near the base; tanks siege up in range."""
 
-    for unit in army(bot):
+    for unit in army(bot).closer_than(DEFENCE_RADIUS, bot.start_location):
         if unit.type_id == UnitTypeId.SIEGETANK and threats.closer_than(SIEGE_RANGE, unit):
             unit(AbilityId.SIEGEMODE_SIEGEMODE)
         elif unit.type_id != UnitTypeId.SIEGETANKSIEGED and unit.is_idle:

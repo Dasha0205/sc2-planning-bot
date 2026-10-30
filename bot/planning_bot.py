@@ -10,7 +10,7 @@ from planning.dynamic_problem import (
     harvest_rates,
     army_value,
 )
-from bot.combat import advance_attack, army, defend, stand_down
+from bot.combat import DEFENCE_RADIUS, advance_attack, army, defend, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 
@@ -26,12 +26,6 @@ BANK_FLOOR = {"minerals": 400, "vespene": 300}
 
 # Above this supply no more units fit, so the bank cannot be spent on them.
 MAXED_SUPPLY = 190
-
-# A plan is stale once the bank has grown this far since the plan was made
-# (from the floor up); the stage is then replanned, at most once per
-# MIN_PLAN_AGE_SECONDS.
-STALE_BANK_SURPLUS = 500
-MIN_PLAN_AGE_SECONDS = 20.0
 
 STAGE_GOALS = [
     # Stage 0:
@@ -131,9 +125,6 @@ SUPPLY_RETRY_SECONDS = 5.0
 
 # A committed attack re-sends its idle units this often.
 ATTACK_ORDER_SECONDS = 2.0
-
-# Enemies this close to the start location count as an attack on the base.
-DEFENCE_RADIUS = 35
 
 # How long a committed attack is given to resolve before the plan moves on.
 # An attack is not a stall, so it gets its own window rather than the generic
@@ -393,10 +384,6 @@ class PlanningBot(BotAI):
         # A failed emergency depot is retried after a pause, not every frame.
         self.next_supply_attempt = 0.0
 
-        # When the current plan was made and the bank it started from.
-        self.plan_made_at = 0.0
-        self.plan_bank = 0
-
         # Attack and defence state (see bot/combat.py).
         self.scouted = set()
         self.attack_target = None
@@ -508,8 +495,6 @@ class PlanningBot(BotAI):
             self.index = 0
             self.action_issued = False
             self.issue_deadline = None
-            self.plan_made_at = self.time
-            self.plan_bank = max(self.minerals, BANK_FLOOR["minerals"])
 
             print(
                 f"[PLAN STAGE {self.stage}] "
@@ -623,13 +608,6 @@ class PlanningBot(BotAI):
     # ========================================================
     # Recovery from an action that cannot be issued
     # ========================================================
-
-    def _plan_is_stale(self):
-        """The bank has grown well past where the current plan started."""
-        return (
-            self.minerals > self.plan_bank + STALE_BANK_SURPLUS
-            and self.time >= self.plan_made_at + MIN_PLAN_AGE_SECONDS
-        )
 
     def _waiting_on_construction(self):
         return (
@@ -763,17 +741,6 @@ class PlanningBot(BotAI):
         # ----------------------------------------------------
 
         action = self.plan[self.index]
-
-        # Checked only before an action's first attempt, so a replan never
-        # cuts off an action that is still trying to be issued.
-        if not self.action_issued and self.issue_deadline is None and self._plan_is_stale():
-            self.metrics.log_event(
-                "plan_stale",
-                f"stage={self.stage}, bank {self.minerals} > "
-                f"{self.plan_bank} + {STALE_BANK_SURPLUS}"
-            )
-            self._advance_plan()
-            return
 
         if not self.action_issued:
 

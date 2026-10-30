@@ -65,7 +65,7 @@ Each stage of the game runs a **plan → execute → verify → replan** cycle:
 4. An action is only advanced past once its entry in `COMPLETION_CONDITIONS` reports the effect is visible in the game. Conditions are judged against a baseline captured *before* the action was issued (`_snapshot_baseline`), so a second `build_supply_depot` must add a second depot and a `wait_for_minerals` must actually bank `mining-rate` more minerals. A gated action that cannot progress is released after 30 s and logged as `action_timeout`.
 5. When the plan is exhausted the stage counter advances and a new plan is generated. The last stage is never left: its goal asks for one more `attack`, so replanning it gives a planner-driven mass → commit → rebuild cycle. An action that cannot even be *issued* for 30 s forces a replan; after three such replans it is skipped, after six the stage is abandoned. Only if the planner itself fails does `_emergency_fallback()` train Marines and attack.
 
-Running in parallel every step, independent of the plan: `distribute_workers()`, `_train_scvs()` (cap 22), `_manage_supply()` (emergency Supply Depot when `supply_left < 2`), `_defend_base()` (the whole army engages anything within 35 units of the start location; tanks siege in range).
+Running in parallel every step, independent of the plan: `distribute_workers()`, `_train_scvs()` (cap 22), `_manage_supply()` (emergency Supply Depot when `supply_left < 2`), `_defend_base()` (army units within 35 of the start location engage anything there; tanks siege in range; units attacking elsewhere are not recalled).
 
 ### Macro stages
 
@@ -76,7 +76,7 @@ Running in parallel every step, independent of the plan: `distribute_workers()`,
 | 2 | ≥ 1 Factory, ≥ 1 Factory Tech Lab, ≥ 2 Siege Tanks, ≥ 1 weapon upgrade, Stimpack, ≥ 14 Marines |
 | 3 (repeats) | ≥ 1 attack launched — the `attack` action requires weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) |
 
-Every stage goal also asks the plan to spend the bank down by up to 1 500 minerals / 600 gas (never below 400 / 300), unless supply is ≥ 190 and no more units fit (`goal_for_stage`). If the bank grows more than 500 minerals past what the current plan was made to spend, the stage is replanned (`plan_stale`, at most every 20 s), so the planner itself decides to add production when income outruns it.
+Every stage goal also asks the plan to spend the bank down by up to 1 500 minerals / 600 gas (never below 400 / 300), unless supply is ≥ 190 and no more units fit (`goal_for_stage`). Replanning on a growing bank (`plan_stale`) was tried and removed: it replaced plans before they finished, and a stage only ends when its plan does (`runs/2026-10-30_T1.6_2b58c7d`).
 
 ### The numeric domain
 
