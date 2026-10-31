@@ -1,5 +1,3 @@
-import time
-
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -318,6 +316,9 @@ def _resource_banked(resource):
     return condition
 
 
+# The domain's clock actions (see dynamic_problem.WAIT_SECONDS).
+WAIT_ACTIONS = ("wait_for_minerals", "wait_for_vespene")
+
 COMPLETION_CONDITIONS = {
     # Structures: must add one beyond the count captured at issue time.
     "build_supply_depot":     _structure_added("build_supply_depot"),
@@ -464,68 +465,86 @@ class PlanningBot(BotAI):
 
         stage_goal = goal_for_stage(self.stage, self.minerals, self.vespene)
 
+        # Fields every planning event carries, for the experiment aggregation.
+        # attempt is the consecutive forced replan (0 = a regular plan).
+        fields = {"stage": self.stage, "attempt": self.forced_replans}
+
         try:
             path = write_dynamic_problem(
                 self,
                 stage_goal
             )
 
-            started = time.perf_counter()
-            generated_plan = generate_plan_from_file(
+            generated_plan, solve_time, status = generate_plan_from_file(
                 DOMAIN_PATH,
                 path
             )
-            solve_time = time.perf_counter() - started
-
-            # IMPORTANT:
-            # Normalize planner actions:
-            #
-            # build_supply_depot()
-            #
-            # becomes:
-            #
-            # build_supply_depot
-            #
-            # This makes COMPLETION_CONDITIONS lookup work.
-            self.plan = [
-                str(action).split("(")[0]
-                for action in generated_plan.actions
-            ]
-
-            self.index = 0
-            self.action_issued = False
-            self.issue_deadline = None
-
-            print(
-                f"[PLAN STAGE {self.stage}] "
-                f"{self.plan}"
-            )
-
-            self.metrics.log_event(
-                "plan_generated",
-                f"stage={self.stage}, solve_time={solve_time:.2f}s, "
-                f"plan={self.plan}"
-            )
-
-            return True
 
         except Exception as exc:
-            print(
-                f"[PLANNER ERROR] "
-                f"Stage {self.stage}: {exc}"
+            return self._planner_failed(f"error={exc}", fields)
+
+        fields.update(solve_time=round(solve_time, 3), status=status)
+
+        if generated_plan is None:
+            return self._planner_failed(
+                f"status={status}, solve_time={solve_time:.2f}s", fields
             )
 
-            self.plan = []
-            self.index = 0
-            self.action_issued = False
-            self.issue_deadline = None
+        # IMPORTANT:
+        # Normalize planner actions:
+        #
+        # build_supply_depot()
+        #
+        # becomes:
+        #
+        # build_supply_depot
+        #
+        # This makes COMPLETION_CONDITIONS lookup work.
+        self.plan = [
+            str(action).split("(")[0]
+            for action in generated_plan.actions
+        ]
 
-            self.metrics.log_event(
-                "planner_error",
-                f"stage={self.stage}, error={exc}"
-            )
+        self.index = 0
+        self.action_issued = False
+        self.issue_deadline = None
 
-            return False
+        print(
+            f"[PLAN STAGE {self.stage}] "
+            f"{self.plan}"
+        )
+
+        self.metrics.log_event(
+            "plan_generated",
+            f"stage={self.stage}, solve_time={solve_time:.2f}s, "
+            f"plan={self.plan}",
+            **fields,
+            plan_length=len(self.plan),
+            n_waits=sum(action in WAIT_ACTIONS for action in self.plan),
+        )
+
+        return True
+
+    def _planner_failed(self, detail, fields):
+        """Clear the plan and record why none was made; returns False."""
+
+        print(
+            f"[PLANNER ERROR] "
+            f"Stage {self.stage}: {detail}"
+        )
+
+        self.plan = []
+        self.index = 0
+        self.action_issued = False
+        self.issue_deadline = None
+
+        self.metrics.log_event(
+            "planner_error",
+            f"stage={self.stage}, {detail}",
+            **fields,
+        )
+
+        return False
 
     # ========================================================
     # Issue-time state capture
@@ -567,7 +586,7 @@ class PlanningBot(BotAI):
                 "deadline": deadline,
             }
 
-        if action in ("wait_for_minerals", "wait_for_vespene"):
+        if action in WAIT_ACTIONS:
             mining_rate, gas_rate = harvest_rates(self)
 
             if action == "wait_for_minerals":

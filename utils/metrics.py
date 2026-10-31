@@ -19,11 +19,13 @@ class MetricsCollector:
         """Call once after planner returns, before game starts."""
         self.plan = plan
 
-    def log_event(self, kind: str, detail: str):
+    def log_event(self, kind: str, detail: str, **fields):
+        """`detail` is for reading; `fields` become JSON keys for aggregation."""
         self.events.append({
             "time": round(time.time() - self.start_time, 2),
             "kind": kind,
             "detail": detail,
+            **fields,
         })
 
     def snapshot(self, bot):
