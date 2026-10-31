@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "metrics.json of one game (utils/metrics.py)",
+  "type": "object",
+  "required": ["plan", "events", "snapshots"],
+  "properties": {
+    "plan": {"type": "array", "items": {"type": "string"}},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "snapshots": {"type": "array", "items": {"$ref": "#/$defs/snapshot"}}
+  },
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "seconds": {"type": "number", "minimum": 0},
+    "clock": {
+      "type": "object",
+      "required": ["game_time", "game_loop", "wall_time"],
+      "properties": {
+        "game_time": {"$ref": "#/$defs/seconds"},
+        "game_loop": {"$ref": "#/$defs/count"},
+        "wall_time": {"$ref": "#/$defs/seconds"}
+      }
+    },
+    "planning": {
+      "type": "object",
+      "required": ["stage", "attempt"],
+      "properties": {
+        "stage": {"$ref": "#/$defs/count"},
+        "attempt": {"$ref": "#/$defs/count"},
+        "solve_time": {"$ref": "#/$defs/seconds"},
+        "enhsp_time": {"oneOf": [{"$ref": "#/$defs/seconds"}, {"type": "null"}]},
+        "status": {"type": "string"},
+        "plan_length": {"$ref": "#/$defs/count"},
+        "n_waits": {"$ref": "#/$defs/count"}
+      }
+    },
+    "event": {
+      "allOf": [
+        {"$ref": "#/$defs/clock"},
+        {
+          "type": "object",
+          "required": ["kind", "detail"],
+          "properties": {
+            "kind": {"type": "string"},
+            "detail": {"type": "string"}
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "plan_generated"}}},
+          "then": {
+            "allOf": [
+              {"$ref": "#/$defs/planning"},
+              {"required": ["solve_time", "enhsp_time", "status", "plan_length", "n_waits"]}
+            ]
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "planner_error"}}},
+          "then": {"$ref": "#/$defs/planning"}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "game_end"}}},
+          "then": {
+            "required": ["result", "minerals_floated"],
+            "properties": {
+              "result": {"enum": ["Victory", "Defeat", "Tie", "Undecided"]},
+              "minerals_floated": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          }
+        }
+      ]
+    },
+    "snapshot": {
+      "allOf": [
+        {"$ref": "#/$defs/clock"},
+        {
+          "type": "object",
+          "required": [
+            "minerals", "gas", "minerals_floated", "supply_used", "supply_cap",
+            "scvs", "marines", "marauders", "tanks", "army_value", "structures"
+          ],
+          "properties": {
+            "minerals": {"$ref": "#/$defs/count"},
+            "gas": {"$ref": "#/$defs/count"},
+            "minerals_floated": {"type": "number", "minimum": 0, "maximum": 1},
+            "supply_used": {"$ref": "#/$defs/count"},
+            "supply_cap": {"$ref": "#/$defs/count"},
+            "scvs": {"$ref": "#/$defs/count"},
+            "marines": {"$ref": "#/$defs/count"},
+            "marauders": {"$ref": "#/$defs/count"},
+            "tanks": {"$ref": "#/$defs/count"},
+            "army_value": {"$ref": "#/$defs/count"},
+            "structures": {
+              "type": "object",
+              "propertyNames": {"pattern": "^[A-Z0-9_]+$"},
+              "additionalProperties": {"$ref": "#/$defs/count"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

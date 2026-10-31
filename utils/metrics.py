@@ -1,12 +1,16 @@
 import time
 import json
+from collections import Counter
 from pathlib import Path
 
-from sc2.ids.unit_typeid import UnitTypeId
+from planning.dynamic_problem import army_counts, army_value
 
 # The repository root, where web/app.py looks for metrics.json regardless of
 # the directory the bot was started from.
 METRICS_PATH = Path(__file__).resolve().parent.parent / "metrics.json"
+
+# A bank above this many minerals counts as floating (unspent) money.
+FLOAT_THRESHOLD = 500
 
 class MetricsCollector:
     """
@@ -20,6 +24,11 @@ class MetricsCollector:
         self.plan = []        # full plan list, set once at start
         self.events = []
         self.snapshots = []
+
+        # Game seconds spent with a floating bank, and the bank at the last step.
+        self.floated_seconds = 0.0
+        self.last_step_time = 0.0
+        self.floating = False
 
     def set_plan(self, plan: list):
         """Call once after planner returns, before game starts."""
@@ -41,18 +50,37 @@ class MetricsCollector:
             "wall_time": round(time.time() - self.start_time, 2),
         }
 
+    def track_bank(self):
+        """Called every step: the time since the last step counts as floating
+        if the bank was above FLOAT_THRESHOLD over it."""
+        now = self.bot.time
+        if self.floating:
+            self.floated_seconds += now - self.last_step_time
+        self.last_step_time = now
+        self.floating = self.bot.minerals > FLOAT_THRESHOLD
+
+    def minerals_floated(self):
+        """Share of the game so far spent with a floating bank."""
+        if self.last_step_time <= 0:
+            return 0.0
+        return round(self.floated_seconds / self.last_step_time, 3)
+
     def snapshot(self):
         bot = self.bot
+        marines, marauders, tanks = army_counts(bot)
         self.snapshots.append({
             **self._clock(),
             "minerals": bot.minerals,
             "gas": bot.vespene,
+            "minerals_floated": self.minerals_floated(),
             "supply_used": bot.supply_used,
             "supply_cap": bot.supply_cap,
-            "marines": bot.units.filter(lambda u: u.name == "Marine").amount,
-            "marauders": bot.units(UnitTypeId.MARAUDER).amount,
-            "tanks": bot.units({UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED}).amount,
             "scvs": bot.workers.amount,
+            "marines": marines,
+            "marauders": marauders,
+            "tanks": tanks,
+            "army_value": army_value(bot),
+            "structures": dict(Counter(s.type_id.name for s in bot.structures.ready)),
         })
 
     def save(self, path=METRICS_PATH):

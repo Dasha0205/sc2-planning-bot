@@ -732,6 +732,7 @@ class PlanningBot(BotAI):
         # Metrics
         # ----------------------------------------------------
 
+        self.metrics.track_bank()
         self._snapshot_if_due()
 
         # ----------------------------------------------------
@@ -842,7 +843,9 @@ class PlanningBot(BotAI):
         if self.metrics:
             self.metrics.log_event(
                 "game_end",
-                str(result)
+                str(result),
+                result=result.name,
+                minerals_floated=self.metrics.minerals_floated(),
             )
 
             self.metrics.save()
