@@ -129,6 +129,9 @@ ATTACK_ORDER_SECONDS = 2.0
 # action timeout: the army may spend a long time walking across the map.
 ATTACK_ENGAGE_SECONDS = 45.0
 
+# Metrics snapshots are taken on the game clock, not per iteration.
+SNAPSHOT_SECONDS = 10.0
+
 
 # Build actions and the structure each one produces.
 STRUCTURE_OF_ACTION = {
@@ -391,6 +394,9 @@ class PlanningBot(BotAI):
         self.next_attack_order = 0.0
         self.defending = False
 
+        # Game time of the next metrics snapshot.
+        self.next_snapshot = 0.0
+
     # ========================================================
     # Initialization
     # ========================================================
@@ -404,7 +410,7 @@ class PlanningBot(BotAI):
         stage is completed.
         """
 
-        self.metrics = MetricsCollector()
+        self.metrics = MetricsCollector(self)
 
         self.stage = 0
         self.plan = []
@@ -419,6 +425,7 @@ class PlanningBot(BotAI):
         self.attack_target = None
         self.next_attack_order = 0.0
         self.defending = False
+        self.next_snapshot = 0.0
 
         self._advance_plan()
 
@@ -725,8 +732,7 @@ class PlanningBot(BotAI):
         # Metrics
         # ----------------------------------------------------
 
-        if iteration % 500 == 0:
-            self.metrics.snapshot(self)
+        self._snapshot_if_due()
 
         # ----------------------------------------------------
         # High-level planning layer
@@ -813,6 +819,19 @@ class PlanningBot(BotAI):
                 self.action_issued = False
                 self.issue_deadline = None
                 self.forced_replans = 0
+
+    def _snapshot_if_due(self):
+        """
+        One snapshot every SNAPSHOT_SECONDS of game time. The next one is
+        scheduled from the last due time, so step granularity does not drift.
+        """
+
+        if self.time < self.next_snapshot:
+            return
+
+        self.metrics.snapshot()
+        while self.next_snapshot <= self.time:
+            self.next_snapshot += SNAPSHOT_SECONDS
 
     # ========================================================
     # Game end

@@ -9,7 +9,13 @@ from sc2.ids.unit_typeid import UnitTypeId
 METRICS_PATH = Path(__file__).resolve().parent.parent / "metrics.json"
 
 class MetricsCollector:
-    def __init__(self):
+    """
+    Events and snapshots stamped with the game clock (game_time, game_loop);
+    wall_time is kept apart, since with realtime=False the two differ.
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
         self.start_time = time.time()
         self.plan = []        # full plan list, set once at start
         self.events = []
@@ -22,15 +28,23 @@ class MetricsCollector:
     def log_event(self, kind: str, detail: str, **fields):
         """`detail` is for reading; `fields` become JSON keys for aggregation."""
         self.events.append({
-            "time": round(time.time() - self.start_time, 2),
+            **self._clock(),
             "kind": kind,
             "detail": detail,
             **fields,
         })
 
-    def snapshot(self, bot):
+    def _clock(self):
+        return {
+            "game_time": round(self.bot.time, 2),
+            "game_loop": self.bot.state.game_loop,
+            "wall_time": round(time.time() - self.start_time, 2),
+        }
+
+    def snapshot(self):
+        bot = self.bot
         self.snapshots.append({
-            "time": round(time.time() - self.start_time, 2),
+            **self._clock(),
             "minerals": bot.minerals,
             "gas": bot.vespene,
             "supply_used": bot.supply_used,

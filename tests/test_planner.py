@@ -3,6 +3,8 @@ Planning measurements (T2.1): the planner reports its search time and status,
 and every planning event carries them as JSON fields. Runs ENHSP, needs Java.
 """
 
+from types import SimpleNamespace
+
 import pytest
 from unified_planning.shortcuts import get_environment
 
@@ -31,7 +33,9 @@ class _Bot(_OpeningBot):
         super().__init__()
         self.stage = stage
         self.forced_replans = forced_replans
-        self.metrics = MetricsCollector()
+        self.time = 0.0
+        self.state = SimpleNamespace(game_loop=0)
+        self.metrics = MetricsCollector(self)
 
 
 @pytest.fixture(autouse=True)
