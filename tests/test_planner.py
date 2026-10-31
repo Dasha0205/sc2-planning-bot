@@ -15,7 +15,7 @@ from utils.metrics import MetricsCollector
 
 get_environment().credits_stream = None
 
-PLANNING_FIELDS = {"stage", "attempt", "solve_time", "status"}
+PLANNING_FIELDS = {"stage", "attempt", "solve_time", "enhsp_time", "status"}
 
 # cc-count never decreases, so ENHSP proves this unsolvable at once.
 IMPOSSIBLE_GOAL = "(< (cc-count) 0)"
@@ -42,19 +42,20 @@ def problem_in_tmp(monkeypatch, tmp_path):
     )
 
 
-def test_planner_returns_plan_time_and_status(tmp_path):
+def test_planner_returns_plan_times_and_status(tmp_path):
     path = write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0], tmp_path / "p.pddl")
-    plan, solve_time, status = generate_plan_from_file(DOMAIN_PATH, path)
+    plan, solve_time, enhsp_time, status = generate_plan_from_file(DOMAIN_PATH, path)
     assert plan.actions
-    assert solve_time > 0
+    assert 0 < enhsp_time < solve_time
     assert status == "SOLVED_SATISFICING"
 
 
 def test_planner_returns_no_plan_when_unsolvable(tmp_path):
     path = write_dynamic_problem(_OpeningBot(), IMPOSSIBLE_GOAL, tmp_path / "p.pddl")
-    plan, solve_time, status = generate_plan_from_file(DOMAIN_PATH, path)
+    plan, solve_time, enhsp_time, status = generate_plan_from_file(DOMAIN_PATH, path)
     assert plan is None
     assert solve_time > 0
+    assert enhsp_time is None
     assert status == "UNSOLVABLE_PROVEN"
 
 

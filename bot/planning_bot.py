@@ -475,7 +475,7 @@ class PlanningBot(BotAI):
                 stage_goal
             )
 
-            generated_plan, solve_time, status = generate_plan_from_file(
+            generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
                 DOMAIN_PATH,
                 path
             )
@@ -483,7 +483,9 @@ class PlanningBot(BotAI):
         except Exception as exc:
             return self._planner_failed(f"error={exc}", fields)
 
-        fields.update(solve_time=round(solve_time, 3), status=status)
+        fields.update(
+            solve_time=round(solve_time, 3), enhsp_time=enhsp_time, status=status
+        )
 
         if generated_plan is None:
             return self._planner_failed(

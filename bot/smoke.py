@@ -59,7 +59,7 @@ class _OpeningBot:
 def main():
     get_environment().credits_stream = None
     problem_path = write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0])
-    plan, solve_time, status = generate_plan_from_file(DOMAIN_PATH, problem_path)
+    plan, solve_time, enhsp_time, status = generate_plan_from_file(DOMAIN_PATH, problem_path)
     if plan is None:
         print(f"[SMOKE] FAILED: {status} after {solve_time:.2f}s")
         return 1
@@ -67,7 +67,7 @@ def main():
     actions = [str(a).split("(")[0] for a in plan.actions]
     print(f"[SMOKE] domain:  {DOMAIN_PATH}")
     print(f"[SMOKE] problem: {problem_path}")
-    print(f"[SMOKE] {status} in {solve_time:.2f}s")
+    print(f"[SMOKE] {status} in {solve_time:.2f}s (ENHSP itself {enhsp_time:.3f}s)")
     print(f"[SMOKE] stage 0 plan, {len(actions)} actions: {actions}")
     return 0
 
