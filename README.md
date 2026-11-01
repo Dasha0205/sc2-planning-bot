@@ -138,6 +138,14 @@ python experiments/aggregate.py runs/T8.1_medium [more folders or files] [--out 
 
 It writes `games.csv` (one row per game: config, result, planning time, plan length, share of waits, planned vs reactive actions with defence and supply apart, refusals, time to the first `attack`, floating bank, peak army) and `summary.csv` / `summary.md` (one row per grid point: win rate with its 95 % Wilson interval, median game length, `solve_time` median / p90 / p95 over all plans, waits, planned vs reactive actions per game, time to the first attack, mean `minerals_floated`, army value at 3 / 6 / 9 / 12 / 15 game minutes as mean and IQR over the games still running). Files from before E2 are read as far as their events go.
 
+Thesis figures, as PDF into `thesis/figures/` (A4 text width, fonts ≥ 9 pt, no titles):
+
+```bash
+python experiments/plots.py runs/T8.1_medium runs/T2.5_check [--compare numeric=runs/a classical=runs/b]
+```
+
+`win_rate_by_difficulty.pdf` (bars with Wilson 95 % CI and n), `solve_time_by_stage.pdf` (box plot of the whole planning call per stage, with the median ENHSP search time), `army_value_over_time.pdf` (mean army value and IQR band per difficulty, over the games still running) and, with two or more `--compare` series, `classical_vs_numeric.pdf` (win rates side by side). The current figures come from four games only; rerun the script on new series.
+
 Check the planning pipeline offline, without StarCraft II (renders the opening position into a PDDL problem and solves stage 0 with ENHSP):
 
 ```bash
