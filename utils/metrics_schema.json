@@ -2,13 +2,34 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "metrics.json of one game (utils/metrics.py)",
   "type": "object",
-  "required": ["plan", "events", "snapshots"],
+  "required": ["config", "plan", "events", "snapshots"],
   "properties": {
+    "config": {"$ref": "#/$defs/config"},
     "plan": {"type": "array", "items": {"type": "string"}},
     "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
     "snapshots": {"type": "array", "items": {"$ref": "#/$defs/snapshot"}}
   },
   "$defs": {
+    "config": {
+      "type": "object",
+      "required": [
+        "difficulty", "map", "race", "domain", "planner", "planner_config",
+        "seed", "run_id", "out", "commit", "started_at"
+      ],
+      "properties": {
+        "difficulty": {"type": "string"},
+        "map": {"type": "string"},
+        "race": {"enum": ["Terran", "Zerg", "Protoss", "Random"]},
+        "domain": {"type": "string"},
+        "planner": {"type": "string"},
+        "planner_config": {"type": ["string", "null"]},
+        "seed": {"type": ["integer", "null"]},
+        "run_id": {"type": "string"},
+        "out": {"type": "string"},
+        "commit": {"type": "string"},
+        "started_at": {"type": "string"}
+      }
+    },
     "count": {"type": "integer", "minimum": 0},
     "seconds": {"type": "number", "minimum": 0},
     "clock": {

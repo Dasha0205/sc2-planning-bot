@@ -18,6 +18,7 @@ from sc2.position import Point2
 from bot.planning_bot import SNAPSHOT_SECONDS, PlanningBot
 from fakes import FakeUnit, Group, run
 from utils.metrics import FLOAT_THRESHOLD, MetricsCollector
+from utils.run_config import RunConfig
 
 SCHEMA = json.loads(
     (Path(__file__).resolve().parent.parent / "utils" / "metrics_schema.json").read_text()
@@ -60,6 +61,7 @@ class _Bot:
             FakeUnit(UnitTypeId.BARRACKS, Point2((9, 0)), ready=False),
         ])
         self.next_snapshot = 0.0
+        self.config = RunConfig(run_id="test", seed=1)
         self.metrics = MetricsCollector(self)
 
     @property
@@ -145,6 +147,7 @@ def test_a_whole_game_matches_the_schema(tmp_path):
     metrics = json.loads(saved.read_text())
     jsonschema.validate(metrics, SCHEMA)
     assert metrics["events"][-1]["result"] == "Victory"
+    assert metrics["config"]["run_id"] == "test"
 
 
 CLOCK = {"game_time": 0, "game_loop": 0, "wall_time": 0}
@@ -156,5 +159,8 @@ CLOCK = {"game_time": 0, "game_loop": 0, "wall_time": 0}
     {**CLOCK, "kind": "game_end", "detail": "Result.Victory"},
 ])
 def test_schema_rejects_events_missing_their_fields(event):
+    config = RunConfig(run_id="test", seed=1).to_dict()
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate({"plan": [], "events": [event], "snapshots": []}, SCHEMA)
+        jsonschema.validate(
+            {"config": config, "plan": [], "events": [event], "snapshots": []}, SCHEMA
+        )

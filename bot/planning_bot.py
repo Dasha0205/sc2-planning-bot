@@ -2,7 +2,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-from planning.planner import generate_plan_from_file, DOMAIN_PATH
+from planning.planner import generate_plan_from_file
 from planning.dynamic_problem import (
     write_dynamic_problem,
     harvest_rates,
@@ -11,6 +11,7 @@ from planning.dynamic_problem import (
 from bot.combat import DEFENCE_RADIUS, advance_attack, army, defend, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
+from utils.run_config import RunConfig
 
 
 # ============================================================
@@ -354,9 +355,11 @@ COMPLETION_CONDITIONS = {
 
 class PlanningBot(BotAI):
 
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
 
+        # Domain and planner settings of this game (run.py); saved with the metrics.
+        self.config = config or RunConfig()
         self.metrics = None
 
         # Current high-level macro stage
@@ -483,8 +486,9 @@ class PlanningBot(BotAI):
             )
 
             generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
-                DOMAIN_PATH,
-                path
+                self.config.domain,
+                path,
+                self.config.planner_config,
             )
 
         except Exception as exc:

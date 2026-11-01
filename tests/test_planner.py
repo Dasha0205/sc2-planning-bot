@@ -14,6 +14,7 @@ from bot.smoke import _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
 from planning.planner import DOMAIN_PATH, generate_plan_from_file
 from utils.metrics import MetricsCollector
+from utils.run_config import RunConfig
 
 get_environment().credits_stream = None
 
@@ -35,6 +36,7 @@ class _Bot(_OpeningBot):
         self.forced_replans = forced_replans
         self.time = 0.0
         self.state = SimpleNamespace(game_loop=0)
+        self.config = RunConfig()
         self.metrics = MetricsCollector(self)
 
 

@@ -19,16 +19,17 @@ PLAN_TIMEOUT_SECONDS = 10
 ENHSP_PLANNING_TIME = re.compile(r"Planning Time \(msec\): (\d+)")
 
 
-def generate_plan_from_file(domain_path, problem_path):
+def generate_plan_from_file(domain_path, problem_path, params=None):
     """
-    Solve the problem with ENHSP. Returns (plan, solve_time_s, enhsp_time_s,
-    status): plan is None if none was found; solve_time_s is the whole call
-    (PDDL parsing, JVM, ENHSP), enhsp_time_s ENHSP's own reported planning time.
+    Solve the problem with ENHSP, run with the command-line flags `params`
+    (None = its default). Returns (plan, solve_time_s, enhsp_time_s, status):
+    plan is None if none was found; solve_time_s is the whole call (PDDL
+    parsing, JVM, ENHSP), enhsp_time_s ENHSP's own reported planning time.
     """
     started = time.perf_counter()
     reader = PDDLReader()
     problem = reader.parse_problem(str(domain_path), str(problem_path))
-    with OneshotPlanner(name="enhsp") as planner:
+    with OneshotPlanner(name="enhsp", params={"params": params}) as planner:
         result = planner.solve(problem, timeout=PLAN_TIMEOUT_SECONDS)
     solve_time = time.perf_counter() - started
 

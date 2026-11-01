@@ -86,6 +86,7 @@ class MetricsCollector:
     def save(self, path=METRICS_PATH):
         with open(path, "w") as f:
             json.dump({
+                "config": self.bot.config.to_dict(),
                 "plan": self.plan,
                 "events": self.events,
                 "snapshots": self.snapshots,

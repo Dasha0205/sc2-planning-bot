@@ -1,20 +1,86 @@
-"""One game of the planning bot against the built-in AI: python run.py [--difficulty Easy]"""
+"""
+One game of the planning bot against the built-in AI. Every option is saved
+with the result in <out>/<run-id>.json, e.g.
+
+    python run.py --difficulty Medium --run-id 7
+"""
 
 import argparse
+import random
+from datetime import date
+from pathlib import Path
 
 from sc2 import maps
-from sc2.player import Bot, Computer
+from sc2.data import Difficulty, Race
 from sc2.main import run_game
-from sc2.data import Race, Difficulty
+from sc2.player import Bot, Computer
 
 from bot.planning_bot import PlanningBot
+from planning.planner import PLANNING_DIR
+from utils.run_config import REPO_ROOT, RunConfig, current_commit
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--difficulty", default="VeryEasy", choices=[d.name for d in Difficulty])
-args = parser.parse_args()
+PLANNERS = ["enhsp"]   # Fast Downward joins with the classical domain (E4)
+RACES = [race.name for race in Race if race != Race.NoRace]
 
-run_game(
-    maps.get("AcropolisLE"),
-    [Bot(Race.Terran, PlanningBot()), Computer(Race.Terran, Difficulty[args.difficulty])],
-    realtime=False,
-)
+
+def parse_config(argv=None):
+    parser = argparse.ArgumentParser(description="One game of the planning bot against the built-in AI.")
+    parser.add_argument("--difficulty", default="VeryEasy", choices=[d.name for d in Difficulty])
+    parser.add_argument("--map", default="AcropolisLE")
+    parser.add_argument("--race", default="Terran", choices=RACES, help="the opponent's race")
+    parser.add_argument("--domain", help="PDDL domain, a path or a file name in planning/")
+    parser.add_argument("--planner", default="enhsp", choices=PLANNERS)
+    parser.add_argument("--planner-config", help='planner flags, e.g. "-h hmrp -s gbfs"')
+    parser.add_argument("--seed", type=int, help="game seed (default: random, always recorded)")
+    parser.add_argument("--run-id", help="result file name (default: <difficulty>_<n>)")
+    parser.add_argument("--out", type=Path, help="experiment folder (default: runs/<date>_<commit>)")
+    args = parser.parse_args(argv)
+
+    commit = current_commit()
+    out = args.out or REPO_ROOT / "runs" / f"{date.today()}_{commit}"
+    config = RunConfig(
+        difficulty=args.difficulty,
+        map=args.map,
+        race=args.race,
+        planner=args.planner,
+        planner_config=args.planner_config,
+        seed=args.seed if args.seed is not None else random.randrange(2**31),
+        run_id=args.run_id or next_run_id(out, args.difficulty),
+        out=out,
+        commit=commit,
+    )
+    if args.domain:
+        config.domain = resolve_domain(parser, args.domain)
+    return config
+
+
+def resolve_domain(parser, name):
+    for path in (Path(name), PLANNING_DIR / name):
+        if path.is_file():
+            return path.resolve()
+    parser.error(f"domain not found: {name}")
+
+
+def next_run_id(out, difficulty):
+    n = 1
+    while (out / f"{difficulty}_{n}.json").exists():
+        n += 1
+    return f"{difficulty}_{n}"
+
+
+def main(argv=None):
+    config = parse_config(argv)
+    bot = PlanningBot(config)
+    run_game(
+        maps.get(config.map),
+        [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
+        realtime=False,
+        random_seed=config.seed,
+    )
+    if bot.metrics:   # None if the game never started
+        config.out.mkdir(parents=True, exist_ok=True)
+        bot.metrics.save(config.result_path)
+
+
+if __name__ == "__main__":
+    main()
