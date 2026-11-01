@@ -130,6 +130,14 @@ python experiments/run_batch.py --name grid --difficulty Easy Medium --race Zerg
 
 Every combination is played `--games` times, with consecutive seeds from `--seed` (random if omitted). `runs/<name>/` gets `<run-id>.json` and `.log` per game (run ids name what varies, e.g. `Easy_Zerg_3`), `config.json` for the series and `progress.csv` with a row per finished game (`status` ok / crashed / timeout, `result`, game and wall time). A game ends as a Tie after `--time-limit` game seconds (default 1 800); a hung one is killed with its StarCraft II after `--wall-timeout` real seconds (default 1 200). A crash or timeout is recorded and the series goes on; rerunning the same command plays only games without a result, with the same seeds. The runner refuses to start on uncommitted tracked changes unless `--allow-dirty`.
 
+Summarise one or more series (or single metrics files):
+
+```bash
+python experiments/aggregate.py runs/T8.1_medium [more folders or files] [--out folder]
+```
+
+It writes `games.csv` (one row per game: config, result, planning time, plan length, share of waits, planned vs reactive actions with defence and supply apart, refusals, time to the first `attack`, floating bank, peak army) and `summary.csv` / `summary.md` (one row per grid point: win rate with its 95 % Wilson interval, median game length, `solve_time` median / p90 / p95 over all plans, waits, planned vs reactive actions per game, time to the first attack, mean `minerals_floated`, army value at 3 / 6 / 9 / 12 / 15 game minutes as mean and IQR over the games still running). Files from before E2 are read as far as their events go.
+
 Check the planning pipeline offline, without StarCraft II (renders the opening position into a PDDL problem and solves stage 0 with ENHSP):
 
 ```bash
@@ -196,7 +204,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 16. ~~**Metric times are wall-clock**, while event details use game seconds; with `realtime=False` the two are not comparable.~~ *Fixed (T2.2): events and snapshots carry `game_time` and `game_loop`; the wall clock is the separate `wall_time` field (it was `time` in earlier runs). Snapshots are taken every 10 game seconds instead of every 500 iterations (~90 game seconds).*
 17. ~~**Snapshots count only Marines and SCVs** — no Marauders, Tanks, army value or structures.~~ *Fixed (T2.3): full snapshot and floating-bank share, format pinned by `utils/metrics_schema.json`.*
 18. **`MetricsCollector.set_plan()` is never called**, so `metrics.json` always has `"plan": []`.
-19. ~~**No experiment harness.** `run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path or repeated games.~~ *Fixed: every option is a flag saved with the result (T2.4); `experiments/run_batch.py` plays series over a grid (T2.5). Aggregation is T2.6.*
+19. ~~**No experiment harness.** `run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path or repeated games.~~ *Fixed: every option is a flag saved with the result (T2.4); `experiments/run_batch.py` plays series over a grid (T2.5); `experiments/aggregate.py` summarises them (T2.6).*
 20. **Dead model parts.** `armor-upgrades` is always 0, and `expand` is in the domain but in no stage goal, so it is never planned.
 21. ~~**Relative paths.** The problem file and `metrics.json` were resolved from the working directory, so the bot only ran from the repository root.~~ *Fixed: paths are anchored to the source files.*
 22. ~~**Marauders and Siege Tanks ordered from buildings without a Tech Lab.** In `runs/2026-10-25_8d754f4` the fourth Marauder went to the second, plain Barracks; the game rejected it and the action timed out after 30 s. A Tech Lab on a Factory still under construction was likewise counted as unissuable.~~ *Fixed: Marauders and Tanks are trained only at buildings with a Tech Lab, Marines prefer plain Barracks, and an action whose building is still under construction waits up to 120 s instead of forcing a replan. Snapshots now count Marauders and Tanks.*
