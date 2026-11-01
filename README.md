@@ -119,7 +119,7 @@ python run.py --difficulty Medium --run-id 7    # -> runs/<date>_<commit>/7.json
 python run.py --race Zerg --domain domain_numeric_v4.pddl --planner-config="-h hmrp -s gbfs" --seed 42
 ```
 
-Options: `--difficulty`, `--map`, `--race` (the opponent's; the bot is always Terran), `--domain` (a path or a file name in `planning/`), `--planner` (`enhsp`; Fast Downward comes with the classical domain), `--planner-config` (ENHSP flags, default `-h hadd -s gbfs`), `--seed` (random if omitted, always recorded), `--time-limit` (game seconds until the game ends as a Tie), `--run-id` (default `<difficulty>_<n>`), `--out` (default `runs/<date>_<commit>`, `-dirty` if tracked files have local changes). The result file is the game's `metrics.json` with the whole configuration under `config`; the repo-root `metrics.json` holds the latest game for the dashboard. Write ENHSP flags with `=`, since argparse takes a separate value starting with `-` for an option.
+Options: `--difficulty`, `--map`, `--race` (the opponent's; the bot is always Terran), `--domain` (a path or a file name in `planning/`), `--planner` (`enhsp`; Fast Downward comes with the classical domain), `--planner-config` (ENHSP flags, default `-h hadd -s gbfs`), `--seed` (random if omitted, always recorded), `--time-limit` (game seconds until the game ends as a Tie), `--run-id` (default `<difficulty>_<n>`), `--out` (default `runs/<date>_<commit>`, `-dirty` if tracked files have local changes). The result file is the game's `metrics.json` with the whole configuration under `config`; the repo-root `metrics.json` holds the latest game for the dashboard and is not tracked (results live in `runs/`). Write ENHSP flags with `=`, since argparse takes a separate value starting with `-` for an option.
 
 A series of games over a grid of these options, each game in its own process:
 
@@ -154,7 +154,7 @@ The bot writes `metrics.json` on game end — a `plan` list, a timestamped `even
 
 ## 5. Experimental results so far
 
-The committed `metrics.json` is from one game of the current version (commit `d7e829e`) against *Very Easy* on `AcropolisLE`, **lost**:
+The game below (commit `d7e829e`, `git show d7e829e:metrics.json`) against *Very Easy* on `AcropolisLE` was **lost**; every later game is in `runs/` and `experiments/LOG.md`:
 
 - 1 653 events: 21 `plan_generated`, 44 `plan_issued` / 44 `plan_completed`, 18 `action_unissuable`, 6 `action_skipped`, 4 `action_timeout`, 1 515 `reactive_override` (1 512 of them "base under attack"), 0 `planner_error`, `game_end` = `Result.Defeat`.
 - Final snapshot: **7 470 minerals and 3 556 gas banked, 14/16 supply, 14 SCVs, 0 Marines**.
