@@ -116,10 +116,19 @@ Run a game headlessly against the built-in AI:
 ```bash
 python run.py                                   # VeryEasy, AcropolisLE, Terran opponent
 python run.py --difficulty Medium --run-id 7    # -> runs/<date>_<commit>/7.json
-python run.py --race Zerg --domain domain_numeric_v4.pddl --planner-config "-h hmrp -s gbfs" --seed 42
+python run.py --race Zerg --domain domain_numeric_v4.pddl --planner-config="-h hmrp -s gbfs" --seed 42
 ```
 
-Options: `--difficulty`, `--map`, `--race` (the opponent's; the bot is always Terran), `--domain` (a path or a file name in `planning/`), `--planner` (`enhsp`; Fast Downward comes with the classical domain), `--planner-config` (ENHSP flags, default `-h hadd -s gbfs`), `--seed` (random if omitted, always recorded), `--run-id` (default `<difficulty>_<n>`), `--out` (default `runs/<date>_<commit>`, `-dirty` if tracked files have local changes). The result file is the game's `metrics.json` with the whole configuration under `config`; the repo-root `metrics.json` holds the latest game for the dashboard.
+Options: `--difficulty`, `--map`, `--race` (the opponent's; the bot is always Terran), `--domain` (a path or a file name in `planning/`), `--planner` (`enhsp`; Fast Downward comes with the classical domain), `--planner-config` (ENHSP flags, default `-h hadd -s gbfs`), `--seed` (random if omitted, always recorded), `--time-limit` (game seconds until the game ends as a Tie), `--run-id` (default `<difficulty>_<n>`), `--out` (default `runs/<date>_<commit>`, `-dirty` if tracked files have local changes). The result file is the game's `metrics.json` with the whole configuration under `config`; the repo-root `metrics.json` holds the latest game for the dashboard. Write ENHSP flags with `=`, since argparse takes a separate value starting with `-` for an option.
+
+A series of games over a grid of these options, each game in its own process:
+
+```bash
+python experiments/run_batch.py --name T8.1_medium --difficulty Medium --games 10
+python experiments/run_batch.py --name grid --difficulty Easy Medium --race Zerg Protoss --games 5     --planner-config="-h hadd -s gbfs" --planner-config="-h hmrp -s gbfs"
+```
+
+Every combination is played `--games` times, with consecutive seeds from `--seed` (random if omitted). `runs/<name>/` gets `<run-id>.json` and `.log` per game (run ids name what varies, e.g. `Easy_Zerg_3`), `config.json` for the series and `progress.csv` with a row per finished game (`status` ok / crashed / timeout, `result`, game and wall time). A game ends as a Tie after `--time-limit` game seconds (default 1 800); a hung one is killed with its StarCraft II after `--wall-timeout` real seconds (default 1 200). A crash or timeout is recorded and the series goes on; rerunning the same command plays only games without a result, with the same seeds. The runner refuses to start on uncommitted tracked changes unless `--allow-dirty`.
 
 Check the planning pipeline offline, without StarCraft II (renders the opening position into a PDDL problem and solves stage 0 with ENHSP):
 
@@ -187,7 +196,7 @@ A safety valve was added alongside 5 and 6: a gated action that cannot make prog
 16. ~~**Metric times are wall-clock**, while event details use game seconds; with `realtime=False` the two are not comparable.~~ *Fixed (T2.2): events and snapshots carry `game_time` and `game_loop`; the wall clock is the separate `wall_time` field (it was `time` in earlier runs). Snapshots are taken every 10 game seconds instead of every 500 iterations (~90 game seconds).*
 17. ~~**Snapshots count only Marines and SCVs** — no Marauders, Tanks, army value or structures.~~ *Fixed (T2.3): full snapshot and floating-bank share, format pinned by `utils/metrics_schema.json`.*
 18. **`MetricsCollector.set_plan()` is never called**, so `metrics.json` always has `"plan": []`.
-19. **No experiment harness.** ~~`run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path~~ *(T2.4: every option is a flag and saved with the result)* or repeated games.
+19. ~~**No experiment harness.** `run.py` is fixed to `AcropolisLE`, *Very Easy* and Terran, with no run id, output path or repeated games.~~ *Fixed: every option is a flag saved with the result (T2.4); `experiments/run_batch.py` plays series over a grid (T2.5). Aggregation is T2.6.*
 20. **Dead model parts.** `armor-upgrades` is always 0, and `expand` is in the domain but in no stage goal, so it is never planned.
 21. ~~**Relative paths.** The problem file and `metrics.json` were resolved from the working directory, so the bot only ran from the repository root.~~ *Fixed: paths are anchored to the source files.*
 22. ~~**Marauders and Siege Tanks ordered from buildings without a Tech Lab.** In `runs/2026-10-25_8d754f4` the fourth Marauder went to the second, plain Barracks; the game rejected it and the action timed out after 30 s. A Tech Lab on a Factory still under construction was likewise counted as unissuable.~~ *Fixed: Marauders and Tanks are trained only at buildings with a Tech Lab, Marines prefer plain Barracks, and an action whose building is still under construction waits up to 120 s instead of forcing a replan. Snapshots now count Marauders and Tanks.*

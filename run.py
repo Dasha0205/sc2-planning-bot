@@ -30,8 +30,9 @@ def parse_config(argv=None):
     parser.add_argument("--race", default="Terran", choices=RACES, help="the opponent's race")
     parser.add_argument("--domain", help="PDDL domain, a path or a file name in planning/")
     parser.add_argument("--planner", default="enhsp", choices=PLANNERS)
-    parser.add_argument("--planner-config", help='planner flags, e.g. "-h hmrp -s gbfs"')
+    parser.add_argument("--planner-config", help='ENHSP flags, written with "=": --planner-config="-h hmrp -s gbfs"')
     parser.add_argument("--seed", type=int, help="game seed (default: random, always recorded)")
+    parser.add_argument("--time-limit", type=int, help="game seconds until the game ends as a Tie")
     parser.add_argument("--run-id", help="result file name (default: <difficulty>_<n>)")
     parser.add_argument("--out", type=Path, help="experiment folder (default: runs/<date>_<commit>)")
     args = parser.parse_args(argv)
@@ -45,6 +46,7 @@ def parse_config(argv=None):
         planner=args.planner,
         planner_config=args.planner_config,
         seed=args.seed if args.seed is not None else random.randrange(2**31),
+        time_limit=args.time_limit,
         run_id=args.run_id or next_run_id(out, args.difficulty),
         out=out,
         commit=commit,
@@ -76,6 +78,7 @@ def main(argv=None):
         [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
         realtime=False,
         random_seed=config.seed,
+        game_time_limit=config.time_limit,
     )
     if bot.metrics:   # None if the game never started
         config.out.mkdir(parents=True, exist_ok=True)
