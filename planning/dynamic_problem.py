@@ -17,8 +17,9 @@ PROBLEM_PATH = Path(__file__).resolve().parent / "problem_dynamic.pddl"
 WAIT_SECONDS = 5.0
 
 # Steady-state StarCraft II harvest rates, per assigned worker per second.
+# Gas measured in T8.1-T8.2 games: at 0.63 a 5 s gas wait completed in 3.75 s.
 MINERALS_PER_SCV_PER_SEC = 0.93
-VESPENE_PER_SCV_PER_SEC = 0.63
+VESPENE_PER_SCV_PER_SEC = 0.84
 
 # Past two workers per mineral patch (8 patches per base) extra SCVs add
 # almost nothing, so surplus workers do not raise the rate.
@@ -98,7 +99,8 @@ def harvest_rates(bot):
     gas_rate = int(gas_harvesters * VESPENE_PER_SCV_PER_SEC * WAIT_SECONDS)
 
     # A rate of zero turns the wait action into a no-op, which ENHSP reports
-    # as UNSOLVABLE rather than as a slow plan.
+    # as UNSOLVABLE rather than as a slow plan. A gas rate of 0 also makes ENHSP
+    # time out on v7, so without a Refinery each wait banks 1 phantom gas.
     return max(mining_rate, 1), max(gas_rate, 1)
 
 

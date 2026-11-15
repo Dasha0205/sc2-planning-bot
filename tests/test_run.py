@@ -60,5 +60,5 @@ def test_planner_flags_reach_enhsp(tmp_path):
 
     plan, *_ = generate_plan_from_file(DOMAIN_PATH, path, "-h hmrp -s gbfs")
     assert plan.actions
-    plan, *_ = generate_plan_from_file(DOMAIN_PATH, path, "-h nosuchheuristic -s gbfs")
-    assert plan is None
+    plan, *_, status = generate_plan_from_file(DOMAIN_PATH, path, "-h hadd -s gbfs -nosuchflag")
+    assert (plan, status) == (None, "INTERNAL_ERROR")

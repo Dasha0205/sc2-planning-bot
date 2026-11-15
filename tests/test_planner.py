@@ -3,15 +3,19 @@ Planning measurements (T2.1): the planner reports its search time and status,
 and every planning event carries them as JSON fields. Runs ENHSP, needs Java.
 """
 
+import subprocess
+import sys
+import time
 from types import SimpleNamespace
 
 import pytest
 from unified_planning.shortcuts import get_environment
 
 import bot.planning_bot as planning_bot
-from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot
+from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot, goal_for_stage
 from bot.smoke import _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
+from planning import planner
 from planning.planner import DOMAIN_PATH, generate_plan_from_file
 from utils.metrics import MetricsCollector
 from utils.run_config import RunConfig
@@ -87,3 +91,24 @@ def test_planner_error_carries_planning_fields(monkeypatch):
     assert PLANNING_FIELDS <= event.keys()
     assert event["status"] == "UNSOLVABLE_PROVEN"
     assert bot.plan == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="counts java.exe with tasklist")
+def test_a_timed_out_planner_leaves_no_jvm_behind(tmp_path, monkeypatch):
+    # v7 with no gas income cannot be solved quickly; see dynamic_problem.harvest_rates.
+    problem = tmp_path / "slow.pddl"
+    write_dynamic_problem(_OpeningBot(), goal_for_stage(1, 50, 0), problem)
+    problem.write_text(problem.read_text().replace("(= (gas-rate) 1)", "(= (gas-rate) 0)"))
+    monkeypatch.setattr(planner, "PLAN_TIMEOUT_SECONDS", 2)
+
+    before = _jvms()
+    plan, _, _, status = generate_plan_from_file(DOMAIN_PATH, problem)
+    time.sleep(1)
+
+    assert (plan, status) == (None, "TIMEOUT")
+    assert _jvms() <= before
+
+
+def _jvms():
+    listing = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
+    return listing.lower().count("java.exe")

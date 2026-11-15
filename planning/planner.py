@@ -1,6 +1,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.io import PDDLReader
 from unified_planning.engines import PlanGenerationResultStatus
+from unified_planning.engines import pddl_planner
 from pathlib import Path
 import re
 import time
@@ -9,11 +10,23 @@ import time
 # started from anywhere (a batch runner, the dashboard, a test).
 PLANNING_DIR = Path(__file__).resolve().parent
 # The active domain. Older versions stay in planning/ for comparison.
-DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v6.pddl"
+DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v7.pddl"
 
 # An unsolvable numeric goal can keep ENHSP searching until the JVM runs out of
 # memory; a bounded search fails fast into the bot's planner_error path.
 PLAN_TIMEOUT_SECONDS = 10
+
+
+def _kill(process):
+    # unified-planning stops a timed-out planner with CTRL_BREAK on Windows, which
+    # a JVM answers with a thread dump and keeps searching at full CPU.
+    try:
+        process.kill()
+    except ProcessLookupError:
+        pass
+
+
+pddl_planner.terminate_process = _kill
 
 # ENHSP prints its own timing; it is absent when no plan was found.
 ENHSP_PLANNING_TIME = re.compile(r"Planning Time \(msec\): (\d+)")
