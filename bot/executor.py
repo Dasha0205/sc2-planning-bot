@@ -32,6 +32,8 @@ QUEUE_LIMIT = 2
 
 ADDON_ABILITIES = {AbilityId.BUILD_TECHLAB_BARRACKS, AbilityId.BUILD_TECHLAB_FACTORY}
 
+ARMY_UNITS = (UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.SIEGETANK)
+
 
 def _free_slots(producer):
     # A building constructing its add-on cannot train at all. burnysc2 remaps
@@ -187,7 +189,10 @@ async def execute_action(bot, action):
         return _train(bot, UnitTypeId.BARRACKS, UnitTypeId.MARINE)
 
     if "attack" in action:
-        # The whole army the domain weighs in the attack precondition.
+        # A train action completes once the unit is queued, so the last units of
+        # the plan may not exist yet; the army the domain weighed includes them.
+        if any(bot.already_pending(unit_id) for unit_id in ARMY_UNITS):
+            return _wait(bot, "army still in production")
         return launch_attack(bot) or _refuse(bot, "no army")
 
     if "build_refinery" in action:

@@ -142,7 +142,7 @@ class FakeBot:
 
     def __init__(self, structures=(), placeable=None, addon_room=True,
                  affordable=True, minerals_at=None, geysers_at=(), units=(),
-                 enemy_structures=(), enemy_units=(), expansions=()):
+                 enemy_structures=(), enemy_units=(), expansions=(), pending=None):
         self.time = 100.0
         self.cc = FakeUnit(UnitTypeId.COMMANDCENTER, CC_AT)
         self.townhalls = Group([self.cc])
@@ -167,6 +167,10 @@ class FakeBot:
         self.enemy_start_locations = [Point2((150.5, 150.5))]
         self.expansion_locations_list = list(expansions)
         self.scouted = set()
+        self.pending = pending or {}
+
+    def already_pending(self, unit_id):
+        return self.pending.get(unit_id, 0)
 
     def can_afford(self, _unit_id):
         return self.affordable

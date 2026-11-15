@@ -7,7 +7,8 @@ from sc2.position import Point2
 from bot.combat import (
     advance_attack, attack_target, defend, launch_attack, near_bases, retreat, stand_down,
 )
-from fakes import CC_AT, FakeBot, FakeUnit, Group, TRAINING
+from bot.executor import execute_action
+from fakes import CC_AT, FakeBot, FakeUnit, Group, TRAINING, run
 
 
 ENEMY_START = Point2((150.5, 150.5))
@@ -133,3 +134,16 @@ def test_a_beaten_attack_walks_home_and_leaves_defenders_alone():
     assert away.issued == [("move", CC_AT)]
     assert sieged_away.issued == [AbilityId.UNSIEGE_UNSIEGE]
     assert home.issued == []
+
+
+def test_the_attack_waits_for_the_planned_army_to_leave_production():
+    marine = unit(UnitTypeId.MARINE)
+    bot = FakeBot(units=[marine], expansions=[ENEMY_START], pending={UnitTypeId.SIEGETANK: 1})
+    bot.last_issue_waiting = False
+
+    assert not run(execute_action(bot, "attack"))
+    assert bot.last_issue_waiting and marine.issued == []
+
+    bot.pending = {}
+    assert run(execute_action(bot, "attack"))
+    assert marine.issued == [("attack", ENEMY_START)]
