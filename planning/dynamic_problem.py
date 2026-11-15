@@ -1,6 +1,9 @@
+import re
 from pathlib import Path
 
 from sc2.ids.unit_typeid import UnitTypeId
+
+from planning.planner import DOMAIN_PATH
 
 
 # Regenerated before every planning call. Anchored to this file rather than
@@ -31,6 +34,15 @@ ARMY_WEIGHTS = {
     UnitTypeId.MARAUDER: 2,
     UnitTypeId.SIEGETANK: 3,
     UnitTypeId.SIEGETANKSIEGED: 3,
+}
+
+
+# Production time per unit in game seconds (LotV, faster speed); domain v6
+# charges it from (rax-time) / (factory-time).
+BUILD_SECONDS = {
+    UnitTypeId.MARINE: 18,
+    UnitTypeId.MARAUDER: 21,
+    UnitTypeId.SIEGETANK: 32,
 }
 
 
@@ -90,79 +102,71 @@ def harvest_rates(bot):
     return max(mining_rate, 1), max(gas_rate, 1)
 
 
-def write_dynamic_problem(
-    bot,
-    goal_expr: str,
-    path=PROBLEM_PATH
-):
+def production_time(bot):
     """
-    Creates a PDDL problem from the current game state.
+    Production seconds available right now, as domain v6 counts them: every idle
+    finished Barracks / Factory can start a unit at once (Marine / Siege Tank).
+    """
 
-    The problem is regenerated before every macro planning
-    stage, so the planner always receives fresh game-state
-    information.
-    """
+    idle = lambda unit_id: sum(1 for s in bot.structures(unit_id).ready if s.is_idle)
+    return (
+        idle(UnitTypeId.BARRACKS) * BUILD_SECONDS[UnitTypeId.MARINE],
+        idle(UnitTypeId.FACTORY) * BUILD_SECONDS[UnitTypeId.SIEGETANK],
+    )
+
+
+def domain_fluents(domain_path):
+    """Names of the numeric fluents a domain declares."""
+
+    functions = re.search(r"\(:functions(.*?)\n\s*\)", Path(domain_path).read_text(), re.S)
+    return re.findall(r"\(([a-z-]+)\)", functions.group(1))
+
+
+def game_state(bot):
+    """Every fluent any domain version uses, read from the game."""
 
     mining_rate, gas_rate = harvest_rates(bot)
     marines, marauders, tanks = army_counts(bot)
+    rax_time, factory_time = production_time(bot)
 
-    init = f"""
-(= (minerals) {int(bot.minerals)})
-(= (vespene) {int(bot.vespene)})
-(= (supply-used) {int(bot.supply_used)})
-(= (supply-cap) {int(bot.supply_cap)})
+    return {
+        "minerals": int(bot.minerals),
+        "vespene": int(bot.vespene),
+        "supply-used": int(bot.supply_used),
+        "supply-cap": int(bot.supply_cap),
+        "mining-rate": mining_rate,
+        "gas-rate": gas_rate,
+        "depot-count": bot.structures(UnitTypeId.SUPPLYDEPOT).amount,
+        "barracks-count": bot.structures(UnitTypeId.BARRACKS).amount,
+        "refinery-count": bot.gas_buildings.amount,
+        "factory-count": bot.structures(UnitTypeId.FACTORY).amount,
+        "engineeringbay-count": bot.structures(UnitTypeId.ENGINEERINGBAY).amount,
+        "cc-count": bot.townhalls.amount,
+        "techlab-barracks-count": bot.structures(UnitTypeId.BARRACKSTECHLAB).ready.amount,
+        "techlab-factory-count": bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount,
+        "marine-count": marines,
+        "marauder-count": marauders,
+        "tank-count": tanks,
+        "weapon-upgrades": bot.weapon_upgrades_done,
+        "stimpack": bot.stimpack_done,
+        "armor-upgrades": 0,
+        # Always zero: the counter measures waves launched since this plan began,
+        # so a goal of (>= (attacks-launched) 1) asks for one more commitment.
+        "attacks-launched": 0,
+        "rax-time": rax_time,
+        "factory-time": factory_time,
+    }
 
-(= (mining-rate) {mining_rate})
-(= (gas-rate) {gas_rate})
 
-(= (depot-count)
-   {bot.structures(UnitTypeId.SUPPLYDEPOT).amount})
+def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_PATH):
+    """
+    Creates a PDDL problem from the current game state, regenerated before every
+    planning call. Only the fluents the domain declares are written, so older
+    domain versions stay usable for comparison.
+    """
 
-(= (barracks-count)
-   {bot.structures(UnitTypeId.BARRACKS).amount})
-
-(= (refinery-count)
-   {bot.gas_buildings.amount})
-
-(= (factory-count)
-   {bot.structures(UnitTypeId.FACTORY).amount})
-
-(= (engineeringbay-count)
-   {bot.structures(UnitTypeId.ENGINEERINGBAY).amount})
-
-(= (cc-count)
-   {bot.townhalls.amount})
-
-(= (techlab-barracks-count)
-   {bot.structures(UnitTypeId.BARRACKSTECHLAB).ready.amount})
-
-(= (techlab-factory-count)
-   {bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount})
-
-(= (marine-count)
-   {marines})
-
-(= (marauder-count)
-   {marauders})
-
-(= (tank-count)
-   {tanks})
-
-(= (weapon-upgrades)
-   {bot.weapon_upgrades_done})
-
-(= (stimpack)
-   {bot.stimpack_done})
-
-(= (armor-upgrades)
-   0)
-
-; Always zero: the counter measures waves launched since this plan began, so
-; a goal of (>= (attacks-launched) 1) asks for one more commitment every time
-; the final stage is replanned.
-(= (attacks-launched)
-   0)
-"""
+    state = game_state(bot)
+    init = "\n        ".join(f"(= ({name}) {state[name]})" for name in domain_fluents(domain))
 
     text = f"""\
 (define (problem sc2-dynamic)

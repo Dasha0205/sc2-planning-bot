@@ -482,7 +482,8 @@ class PlanningBot(BotAI):
         try:
             path = write_dynamic_problem(
                 self,
-                stage_goal
+                stage_goal,
+                domain=self.config.domain,
             )
 
             generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(

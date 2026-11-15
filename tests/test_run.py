@@ -51,7 +51,7 @@ def test_domain_is_a_path_or_a_name_in_planning():
 
 def test_config_is_saved_with_paths_relative_to_the_repository():
     config = RunConfig(run_id="7", out=REPO_ROOT / "runs" / "x", seed=3).to_dict()
-    assert config["domain"] == "planning/domain_numeric_v5.pddl"
+    assert config["domain"] == DOMAIN_PATH.relative_to(REPO_ROOT).as_posix()
     assert (config["out"], config["run_id"], config["seed"]) == ("runs/x", "7", 3)
 
 

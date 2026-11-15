@@ -44,7 +44,7 @@ class _Bot(_OpeningBot):
 def problem_in_tmp(monkeypatch, tmp_path):
     monkeypatch.setattr(
         planning_bot, "write_dynamic_problem",
-        lambda bot, goal: write_dynamic_problem(bot, goal, tmp_path / "problem.pddl"),
+        lambda bot, goal, **kw: write_dynamic_problem(bot, goal, tmp_path / "problem.pddl", **kw),
     )
 
 

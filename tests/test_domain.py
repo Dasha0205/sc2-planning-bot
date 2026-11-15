@@ -1,5 +1,5 @@
 """
-Offline ENHSP checks of the active domain and the stage goals (T1.7).
+Offline ENHSP checks of the active domain and the stage goals (T1.7, T8.2).
 Each test solves a real problem, so the suite needs Java.
 """
 
@@ -22,7 +22,7 @@ OPENING = {
     "cc-count": 1, "techlab-barracks-count": 0, "techlab-factory-count": 0,
     "marine-count": 0, "marauder-count": 0, "tank-count": 0,
     "weapon-upgrades": 0, "stimpack": 0, "armor-upgrades": 0,
-    "attacks-launched": 0,
+    "attacks-launched": 0, "rax-time": 0, "factory-time": 0,
 }
 
 # State at the start of stage 3 in runs/2026-10-25_d8a042d.
@@ -34,6 +34,8 @@ STAGE_3_FLOATING = dict(
         "techlab-barracks-count": 1, "techlab-factory-count": 1,
         "marine-count": 12, "marauder-count": 4, "tank-count": 2,
         "weapon-upgrades": 1, "stimpack": 1,
+        # Idle Barracks and Factory, as dynamic_problem.production_time counts them.
+        "rax-time": 2 * 18, "factory-time": 32,
     }
 )
 
@@ -88,8 +90,8 @@ def test_floating_bank_is_spent_on_units_after_a_short_build_up(tmp_path):
 
     assert counts["attack"] == 1
     assert counts["train_marine"] + counts["train_marauder"] + counts["train_siegetank"] > 0
-    # The budget keeps one planning cycle short.
-    assert len(plan) <= 20
+    # The budget keeps one planning cycle short; production time (v6) adds waits.
+    assert len(plan) <= 40
 
 
 def test_spending_is_never_phantom_depots_or_upgrades(tmp_path):
@@ -101,7 +103,7 @@ def test_spending_is_never_phantom_depots_or_upgrades(tmp_path):
 
 def test_a_huge_bank_is_spent_over_several_plans_not_one(tmp_path):
     rich = dict(STAGE_3_FLOATING, minerals=20000, vespene=8000)
-    assert len(solve(rich, final_goal(rich), tmp_path)) <= 20
+    assert len(solve(rich, final_goal(rich), tmp_path)) <= 40
 
 
 def test_production_limits_hold(tmp_path):
@@ -138,3 +140,22 @@ def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):
 def test_small_bank_needs_only_the_attack(tmp_path):
     lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100)
     assert solve(lean, final_goal(lean), tmp_path) == ["attack"]
+
+
+def test_production_time_makes_the_planner_add_production(tmp_path):
+    # One Barracks cannot turn 3 000 minerals into units within one plan (T8.2).
+    one_rax = dict(STAGE_1_FLOATING, minerals=3000, **{"barracks-count": 1, "rax-time": 18})
+    counts = Counter(solve(one_rax, goal_for_stage(1, 3000, 0), tmp_path))
+
+    assert counts["build_barracks"] >= 1
+
+
+def test_units_wait_for_production_time(tmp_path):
+    # Money for 10 Marines but one busy Barracks: the plan must wait between them.
+    busy = dict(OPENING, minerals=500, **{
+        "depot-count": 1, "barracks-count": 1, "supply-cap": 23, "rax-time": 0,
+    })
+    plan = solve(busy, "(>= (marine-count) 3)", tmp_path)
+
+    first, last = plan.index("train_marine"), len(plan) - 1 - plan[::-1].index("train_marine")
+    assert "wait_for_minerals" in plan[:first] and "wait_for_minerals" in plan[first:last]
