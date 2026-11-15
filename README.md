@@ -65,7 +65,7 @@ Each stage of the game runs a **plan → execute → verify → replan** cycle:
 4. An action is only advanced past once its entry in `COMPLETION_CONDITIONS` reports the effect is visible in the game. Conditions are judged against a baseline captured *before* the action was issued (`_snapshot_baseline`), so a second `build_supply_depot` must add a second depot and a `wait_for_minerals` must actually bank `mining-rate` more minerals. A gated action that cannot progress is released after 30 s and logged as `action_timeout`.
 5. When the plan is exhausted the stage counter advances and a new plan is generated. The last stage is never left: its goal asks for one more `attack`, so replanning it gives a planner-driven mass → commit → rebuild cycle. An action that cannot even be *issued* for 30 s forces a replan; after three such replans it is skipped, after six the stage is abandoned. Only if the planner itself fails does `_emergency_fallback()` train Marines and attack.
 
-Running in parallel every step, independent of the plan: `distribute_workers()`, `_train_scvs()` (cap 22), `_manage_supply()` (emergency Supply Depot when `supply_left < 2`), `_defend_base()` (army units within 35 of the start location engage anything there; tanks siege in range; units attacking elsewhere are not recalled).
+Running in parallel every step, independent of the plan: `distribute_workers()`, `_train_scvs()` (to saturation: 16 per CC + 3 per Refinery, at most 66), `_manage_supply()` (emergency Supply Depot when `supply_left < 2`), `_defend_base()` (army units within 35 of the start location engage anything there; tanks siege in range; units attacking elsewhere are not recalled).
 
 ### Macro stages
 

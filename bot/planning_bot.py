@@ -7,6 +7,7 @@ from planning.dynamic_problem import (
     write_dynamic_problem,
     harvest_rates,
     army_value,
+    MAX_MINERAL_HARVESTERS_PER_BASE,
 )
 from bot.combat import advance_attack, army, defend, near_bases, retreat, stand_down
 from bot.executor import execute_action, build_near_base
@@ -120,6 +121,9 @@ CONSTRUCTION_WAIT_SECONDS = 120.0
 # does not help after this many consecutive attempts the action is skipped,
 # so a stubbornly impossible action degrades the plan instead of ending it.
 MAX_FORCED_REPLANS = 3
+
+# Workers stop here: 66 saturates three bases with two Refineries each.
+MAX_SCVS = 66
 
 # Pause before retrying an emergency depot that could not be placed.
 SUPPLY_RETRY_SECONDS = 5.0
@@ -881,7 +885,13 @@ class PlanningBot(BotAI):
         from the high-level PDDL plan.
         """
 
-        scv_cap = 22
+        # Saturation: two per mineral patch and three per geyser, so an expansion
+        # the plan builds actually raises income (a fixed 22 left ~10 on minerals).
+        scv_cap = min(
+            MAX_SCVS,
+            MAX_MINERAL_HARVESTERS_PER_BASE * self.townhalls.amount
+            + 3 * self.gas_buildings.amount,
+        )
 
         if self.units(UnitTypeId.SCV).amount >= scv_cap:
             return
