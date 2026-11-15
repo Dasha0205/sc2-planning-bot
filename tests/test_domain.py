@@ -54,12 +54,12 @@ def solve(init, goal, tmp_path):
 
 
 def final_goal(init):
-    return goal_for_stage(3, init["minerals"], init["vespene"])
+    return goal_for_stage(3, init["minerals"])
 
 
 @pytest.mark.parametrize("stage", range(len(STAGE_GOALS)))
 def test_every_stage_is_solvable_from_the_opening(stage, tmp_path):
-    goal = goal_for_stage(stage, OPENING["minerals"], OPENING["vespene"])
+    goal = goal_for_stage(stage, OPENING["minerals"])
     assert solve(OPENING, goal, tmp_path)
 
 
@@ -78,7 +78,7 @@ PRODUCTION = ("build_barracks", "build_factory", "expand")
 
 @pytest.mark.parametrize("stage, state", [(1, STAGE_1_FLOATING), (2, STAGE_2_FLOATING)])
 def test_early_stages_spend_a_floating_bank_on_production(stage, state, tmp_path):
-    goal = goal_for_stage(stage, state["minerals"], state["vespene"])
+    goal = goal_for_stage(stage, state["minerals"])
     counts = Counter(solve(state, goal, tmp_path))
 
     assert sum(counts[a] for a in PRODUCTION) > 0
@@ -133,18 +133,19 @@ def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):
     })
     plan = solve(blocked, final_goal(blocked), tmp_path)
 
-    first_unit = min(i for i, a in enumerate(plan) if a.startswith("train_"))
-    assert "build_supply_depot" in plan[:first_unit]
+    # Two free supply fit a Marauder at most; anything more needs a depot first.
+    second_unit = [i for i, a in enumerate(plan) if a.startswith("train_")][1]
+    assert "build_supply_depot" in plan[:second_unit]
 
 
 def test_small_bank_needs_only_the_attack(tmp_path):
-    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100,
+    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR - 100, vespene=100,
                 **{"marine-count": 16})   # army value 16 + 8 + 6 = 30
     assert solve(lean, final_goal(lean), tmp_path) == ["attack"]
 
 
 def test_the_attack_waits_for_army_value_30(tmp_path):
-    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100)  # value 26
+    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR - 100, vespene=100)  # value 26
     plan = solve(lean, final_goal(lean), tmp_path)
     assert plan[-1] == "attack" and len(plan) > 1
 
@@ -160,7 +161,7 @@ def test_one_attack_closes_the_plan_after_the_bank_is_spent(bank, tmp_path):
 def test_production_time_makes_the_planner_add_production(tmp_path):
     # One Barracks cannot turn 3 000 minerals into units within one plan (T8.2).
     one_rax = dict(STAGE_1_FLOATING, minerals=3000, **{"barracks-count": 1, "rax-time": 18})
-    counts = Counter(solve(one_rax, goal_for_stage(1, 3000, 0), tmp_path))
+    counts = Counter(solve(one_rax, goal_for_stage(1, 3000), tmp_path))
 
     assert counts["build_barracks"] >= 1
 
@@ -182,3 +183,20 @@ def test_every_wait_advances_the_one_clock(tmp_path):
     plan = solve(state, "(and (>= (minerals) 110) (>= (vespene) 100))", tmp_path)
 
     assert len(plan) == 5   # gas needs five waits; the minerals come with them
+
+
+# runs/T8.2_v7_medium Medium_4 at 866 s, rebuilt from its snapshot (review of T8.3):
+# four Refineries bank about the gas a tank costs on every wait.
+GAS_RICH = dict(OPENING, minerals=725, vespene=859, **{
+    "mining-rate": 51, "gas-rate": 50, "supply-used": 54, "supply-cap": 110,
+    "depot-count": 10, "barracks-count": 6, "refinery-count": 4, "factory-count": 2,
+    "engineeringbay-count": 1, "cc-count": 2, "marine-count": 1, "marauder-count": 4,
+    "tank-count": 3, "weapon-upgrades": 1, "techlab-barracks-count": 6,
+    "techlab-factory-count": 2, "stimpack": 1, "rax-time": 108, "factory-time": 64,
+})
+
+
+def test_gas_income_does_not_stretch_the_plan(tmp_path):
+    # With a gas ceiling in the goal this plan had 218 actions, 139 of them waits.
+    plan = solve(GAS_RICH, final_goal(GAS_RICH), tmp_path)
+    assert len(plan) <= 50 and plan[-1] == "attack"

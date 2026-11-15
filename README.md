@@ -76,7 +76,7 @@ Running in parallel every step, independent of the plan: `distribute_workers()`,
 | 2 | ≥ 1 Factory, ≥ 1 Factory Tech Lab, ≥ 2 Siege Tanks, ≥ 1 weapon upgrade, Stimpack, ≥ 14 Marines |
 | 3 (repeats) | ≥ 1 attack launched — the `attack` action requires weighted army value ≥ 20 (`marines + 2·marauders + 3·tanks`) |
 
-Every stage goal also asks the plan to spend the bank down by up to 1 500 minerals / 600 gas (never below 400 / 300), unless supply is ≥ 190 and no more units fit (`goal_for_stage`). Replanning on a growing bank (`plan_stale`) was tried and removed: it replaced plans before they finished, and a stage only ends when its plan does (`runs/2026-10-30_T1.6_2b58c7d`).
+Every stage goal also asks the plan to spend the mineral bank down by up to 1 500 (never below 400), unless supply is ≥ 190 and no more units fit (`goal_for_stage`). Replanning on a growing bank (`plan_stale`) was tried and removed: it replaced plans before they finished, and a stage only ends when its plan does (`runs/2026-10-30_T1.6_2b58c7d`).
 
 ### The numeric domain
 

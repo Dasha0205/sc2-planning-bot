@@ -12,7 +12,7 @@ import pytest
 from unified_planning.shortcuts import get_environment
 
 import bot.planning_bot as planning_bot
-from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot, goal_for_stage
+from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot
 from bot.smoke import _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
 from planning import planner
@@ -95,10 +95,10 @@ def test_planner_error_carries_planning_fields(monkeypatch):
 
 @pytest.mark.skipif(sys.platform != "win32", reason="counts java.exe with tasklist")
 def test_a_timed_out_planner_leaves_no_jvm_behind(tmp_path, monkeypatch):
-    # v7 with no gas income cannot be solved quickly; see dynamic_problem.harvest_rates.
+    # Stimpack cannot exceed 1, but the relaxed reachability check does not see it,
+    # so ENHSP searches the endless space of waits until the timeout.
     problem = tmp_path / "slow.pddl"
-    write_dynamic_problem(_OpeningBot(), goal_for_stage(1, 50, 0), problem)
-    problem.write_text(problem.read_text().replace("(= (gas-rate) 1)", "(= (gas-rate) 0)"))
+    write_dynamic_problem(_OpeningBot(), "(>= (stimpack) 2)", problem)
     monkeypatch.setattr(planner, "PLAN_TIMEOUT_SECONDS", 2)
 
     before = _jvms()

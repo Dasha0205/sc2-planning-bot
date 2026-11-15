@@ -18,10 +18,13 @@ from utils.run_config import RunConfig
 # High-level macro stages
 # ============================================================
 
-# Every plan spends up to this much of the bank, never below the floor, so the
-# planner decides what floating resources become (T1.7, T1.8).
-SPEND_PER_PLAN = {"minerals": 1500, "vespene": 600}
-BANK_FLOOR = {"minerals": 400, "vespene": 300}
+# Every plan spends up to this many banked minerals, never below the floor, so
+# the planner decides what floating money becomes (T1.7, T1.8). Gas has no
+# ceiling since T8.3: with several Refineries each wait banks about as much gas
+# as a unit costs, so a gas ceiling was unreachable and stretched one plan to
+# 150-220 actions while the army waited at home (runs/T8.3_v8_medium, M9).
+SPEND_PER_PLAN = 1500
+BANK_FLOOR = 400
 
 # Above this supply no more units fit, so the bank cannot be spent on them.
 MAXED_SUPPLY = 190
@@ -74,21 +77,20 @@ STAGE_GOALS = [
 ]
 
 
-def bank_ceiling(resource, banked):
-    """The most of a resource a plan may leave in the bank."""
-    return max(BANK_FLOOR[resource], int(banked) - SPEND_PER_PLAN[resource])
+def bank_ceiling(banked):
+    """The most minerals a plan may leave in the bank."""
+    return max(BANK_FLOOR, int(banked) - SPEND_PER_PLAN)
 
 
-def goal_for_stage(stage, minerals, vespene):
-    """The stage's objective plus spending part of the bank (waived at max supply)."""
+def goal_for_stage(stage, minerals):
+    """The stage's objective plus spending part of the mineral bank (waived at max supply)."""
 
     objective = STAGE_GOALS[min(stage, len(STAGE_GOALS) - 1)]
 
     return (
         f"(and {objective} "
         f"(or (>= (supply-used) {MAXED_SUPPLY}) "
-        f"(and (<= (minerals) {bank_ceiling('minerals', minerals)}) "
-        f"(<= (vespene) {bank_ceiling('vespene', vespene)}))))"
+        f"(<= (minerals) {bank_ceiling(minerals)})))"
     )
 
 
@@ -475,7 +477,7 @@ class PlanningBot(BotAI):
         state before every planning call.
         """
 
-        stage_goal = goal_for_stage(self.stage, self.minerals, self.vespene)
+        stage_goal = goal_for_stage(self.stage, self.minerals)
 
         # Fields every planning event carries, for the experiment aggregation.
         # attempt is the consecutive forced replan (0 = a regular plan).
