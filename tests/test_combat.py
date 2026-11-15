@@ -1,13 +1,16 @@
-"""Attack targeting, hunting for hidden buildings, whole-army defence of every base (T1.3, T8.3)."""
+"""Attack targeting, hunting for hidden buildings, whole-army defence of every base, attacks fought outside the plan (T1.3, T8.3)."""
 
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
 from bot.combat import (
-    advance_attack, attack_target, defend, launch_attack, near_bases, retreat, stand_down,
+    advance_attack, attack_target, defend, field_army, launch_attack, near_bases, retreat,
+    stand_down,
 )
 from bot.executor import execute_action
+from bot.planning_bot import COMPLETION_CONDITIONS, PlanningBot
+from planning.dynamic_problem import game_state
 from fakes import CC_AT, FakeBot, FakeUnit, Group, TRAINING, run
 
 
@@ -147,3 +150,53 @@ def test_the_attack_waits_for_the_planned_army_to_leave_production():
     bot.pending = {}
     assert run(execute_action(bot, "attack"))
     assert marine.issued == [("attack", ENEMY_START)]
+
+class _Events:
+    def __init__(self):
+        self.events = []
+
+    def log_event(self, kind, detail, **_fields):
+        self.events.append((kind, detail))
+
+
+def test_the_planner_sees_only_the_army_at_home():
+    home, away = unit(UnitTypeId.MARAUDER), unit(UnitTypeId.SIEGETANK, NEAR_ENEMY)
+    bot = FakeBot(units=[home, away])
+    bot.gas_buildings, bot.weapon_upgrades_done, bot.stimpack_done = Group(), 0, 0
+    home.assigned_harvesters = 0
+    bot.cc.assigned_harvesters = 12
+    bot.minerals = bot.vespene = bot.supply_used = bot.supply_cap = 0
+
+    assert list(field_army(bot)) == [away]
+    state = game_state(bot, near_bases(bot, bot.units.of_type({UnitTypeId.MARAUDER, UnitTypeId.SIEGETANK})))
+    assert (state["marauder-count"], state["tank-count"]) == (1, 0)
+
+
+def test_the_attack_is_done_once_its_army_has_left_the_bases():
+    marine = unit(UnitTypeId.MARINE)
+    bot = FakeBot(units=[marine])
+    bot.committed_value = 0
+    bot.issue_baseline = {"sent": {marine.tag}, "army_value": 1, "deadline": 1e9}
+
+    assert not COMPLETION_CONDITIONS["attack"](bot)
+    marine.position = NEAR_ENEMY
+    assert COMPLETION_CONDITIONS["attack"](bot)
+    assert bot.committed_value == 1
+
+
+def test_a_field_army_down_to_half_walks_home():
+    survivor = unit(UnitTypeId.MARINE, NEAR_ENEMY)
+    bot = FakeBot(units=[survivor], expansions=[ENEMY_START])
+    bot.metrics, bot.committed_value, bot.next_attack_order = _Events(), 1, 0.0
+    bot.attack_target = None
+    follow = lambda: PlanningBot._follow_attack(bot)
+    bot._keep_attacking = lambda: PlanningBot._keep_attacking(bot)
+
+    follow()
+    assert bot.committed_value == 1 and survivor.issued == [("attack", ENEMY_START)]
+
+    bot.committed_value = 2
+    follow()
+    assert bot.committed_value == 0
+    assert survivor.issued[-1] == ("move", CC_AT)
+    assert [kind for kind, _ in bot.metrics.events] == ["attack_retarget", "attack_resolved", "attack_retreat"]

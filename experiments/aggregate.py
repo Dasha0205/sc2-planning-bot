@@ -113,7 +113,7 @@ class Game:
             "timeouts": self.count("action_timeout"),
             "planner_errors": self.count("planner_error"),
             "first_attack": self.first_attack() or "",
-            "attacks": self.count("attack_resolved"),
+            "attacks": self.count("plan_issued", "attack"),
             "minerals_floated": self.end.get("minerals_floated", ""),
             "peak_minerals": max((s["minerals"] for s in self.snapshots), default=""),
             "peak_army_value": max(

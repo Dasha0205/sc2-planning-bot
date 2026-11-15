@@ -36,6 +36,12 @@ def near_bases(bot, units):
     )
 
 
+def field_army(bot):
+    """The army away from every base: units of a committed attack."""
+    home = near_bases(bot, army(bot))
+    return army(bot).filter(lambda u: u not in home)
+
+
 def _hunting_order(bot):
     """Expansion locations, nearest to the enemy's start first."""
     enemy_start = bot.enemy_start_locations[0]
@@ -82,14 +88,14 @@ def launch_attack(bot):
     return True
 
 
-def advance_attack(bot):
+def advance_attack(bot, forces=None):
     """
     Keep a committed attack moving: mark an empty target as scouted and send
-    idle units on to the current target. Returns that target.
+    idle units of forces (the whole army by default) on. Returns the target.
     """
 
     target = attack_target(bot)
-    forces = army(bot)
+    forces = army(bot) if forces is None else forces
 
     if not bot.enemy_structures and forces.closer_than(SCOUT_RADIUS, target):
         bot.scouted.add(target)
@@ -117,7 +123,7 @@ def retreat(bot):
     fighting on alone. Returns how many units were called back.
     """
 
-    away = [u for u in army(bot) if u not in near_bases(bot, army(bot))]
+    away = field_army(bot)
     for unit in away:
         if unit.type_id == UnitTypeId.SIEGETANKSIEGED:
             unit(AbilityId.UNSIEGE_UNSIEGE)

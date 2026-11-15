@@ -47,30 +47,37 @@ BUILD_SECONDS = {
 }
 
 
-def army_counts(bot):
+def army_counts(bot, army=None):
     """
-    Returns (marines, marauders, tanks) as the domain counts them.
+    Returns (marines, marauders, tanks) as the domain counts them, of the whole
+    army or only of the given units.
     """
 
+    if army is None:
+        count = lambda unit_id: bot.units(unit_id).amount
+    else:
+        count = lambda unit_id: sum(1 for u in army if u.type_id == unit_id)
+
     return (
-        bot.units(UnitTypeId.MARINE).amount,
-        bot.units(UnitTypeId.MARAUDER).amount,
-        bot.units(UnitTypeId.SIEGETANK).amount
-        + bot.units(UnitTypeId.SIEGETANKSIEGED).amount,
+        count(UnitTypeId.MARINE),
+        count(UnitTypeId.MARAUDER),
+        count(UnitTypeId.SIEGETANK) + count(UnitTypeId.SIEGETANKSIEGED),
     )
 
 
-def army_value(bot):
+def army_value(bot, army=None):
     """
     The weighted army strength the attack action's precondition tests.
 
-    Shared with the executor's attack-completion check so that the force the
-    planner decided was worth committing is the same force measured in game.
+    Shared with the attack's resolution check so that the force the planner
+    decided was worth committing is the same force measured in game.
     """
 
-    return sum(
-        bot.units(unit_id).amount * weight
-        for unit_id, weight in ARMY_WEIGHTS.items()
+    marines, marauders, tanks = army_counts(bot, army)
+    return (
+        marines * ARMY_WEIGHTS[UnitTypeId.MARINE]
+        + marauders * ARMY_WEIGHTS[UnitTypeId.MARAUDER]
+        + tanks * ARMY_WEIGHTS[UnitTypeId.SIEGETANK]
     )
 
 
@@ -124,11 +131,11 @@ def domain_fluents(domain_path):
     return re.findall(r"\(([a-z-]+)\)", functions.group(1))
 
 
-def game_state(bot):
-    """Every fluent any domain version uses, read from the game."""
+def game_state(bot, army=None):
+    """Every fluent any domain version uses, read from the game; army counts only `army` if given."""
 
     mining_rate, gas_rate = harvest_rates(bot)
-    marines, marauders, tanks = army_counts(bot)
+    marines, marauders, tanks = army_counts(bot, army)
     rax_time, factory_time = production_time(bot)
 
     return {
@@ -160,14 +167,14 @@ def game_state(bot):
     }
 
 
-def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_PATH):
+def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_PATH, army=None):
     """
     Creates a PDDL problem from the current game state, regenerated before every
     planning call. Only the fluents the domain declares are written, so older
     domain versions stay usable for comparison.
     """
 
-    state = game_state(bot)
+    state = game_state(bot, army)
     init = "\n        ".join(f"(= ({name}) {state[name]})" for name in domain_fluents(domain))
 
     text = f"""\

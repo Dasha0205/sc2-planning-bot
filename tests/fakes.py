@@ -86,6 +86,7 @@ class FakeUnit:
     def __init__(self, type_id, position, idle=True, add_on=False, ready=True,
                  techlab=False, orders=None):
         self.type_id = type_id
+        self.tag = id(self)
         self.position = position
         self.orders = list(orders) if orders is not None else ([] if idle else [TRAINING])
         self.has_add_on = add_on or techlab

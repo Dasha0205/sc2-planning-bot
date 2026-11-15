@@ -13,7 +13,7 @@ from unified_planning.shortcuts import get_environment
 
 import bot.planning_bot as planning_bot
 from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot
-from bot.smoke import _OpeningBot
+from bot.smoke import _Group, _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
 from planning import planner
 from planning.planner import DOMAIN_PATH, generate_plan_from_file
@@ -28,6 +28,19 @@ PLANNING_FIELDS = {"stage", "attempt", "solve_time", "enhsp_time", "status"}
 IMPOSSIBLE_GOAL = "(< (cc-count) 0)"
 
 
+class _NoArmy(_Group):
+    """bot.units with no army, queried by type or by the army filters."""
+
+    def __call__(self, _type_id):
+        return _Group()
+
+    def of_type(self, _type_ids):
+        return self
+
+    def filter(self, _predicate):
+        return self
+
+
 class _Bot(_OpeningBot):
     """The opening position with just enough of PlanningBot to plan."""
 
@@ -39,6 +52,7 @@ class _Bot(_OpeningBot):
         self.stage = stage
         self.forced_replans = forced_replans
         self.time = 0.0
+        self.units = _NoArmy()
         self.state = SimpleNamespace(game_loop=0)
         self.config = RunConfig()
         self.metrics = MetricsCollector(self)
