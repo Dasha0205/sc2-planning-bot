@@ -72,6 +72,9 @@ class Group(list):
     def closest_to(self, point):
         return min(self, key=lambda u: u.position.distance_to(point))
 
+    def filter(self, predicate):
+        return Group(u for u in self if predicate(u))
+
 
 class FakeUnit:
 
@@ -106,6 +109,9 @@ class FakeUnit:
 
     def attack(self, target):
         self.issued.append(("attack", target))
+
+    def move(self, target):
+        self.issued.append(("move", target))
 
     def __call__(self, ability_id):
         self.issued.append(ability_id)

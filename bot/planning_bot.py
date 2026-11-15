@@ -2,13 +2,13 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-from planning.planner import generate_plan_from_file
+from planning.planner import FALLBACK_PLANNER_CONFIG, generate_plan_from_file
 from planning.dynamic_problem import (
     write_dynamic_problem,
     harvest_rates,
     army_value,
 )
-from bot.combat import DEFENCE_RADIUS, advance_attack, army, defend, stand_down
+from bot.combat import advance_attack, army, defend, near_bases, retreat, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 from utils.run_config import RunConfig
@@ -288,6 +288,8 @@ def _attack_resolved(bot):
             "attack_resolved",
             f"army spent: {committed} -> {army_value(bot)}"
         )
+        # Beaten: the survivors go home and join the next wave (T8.3).
+        bot.metrics.log_event("attack_retreat", f"{retreat(bot)} units called back")
         return True
 
     if bot.time >= bot.issue_baseline.get("attack_deadline", 0):
@@ -479,30 +481,42 @@ class PlanningBot(BotAI):
         # attempt is the consecutive forced replan (0 = a regular plan).
         fields = {"stage": self.stage, "attempt": self.forced_replans}
 
-        try:
-            path = write_dynamic_problem(
-                self,
-                stage_goal,
-                domain=self.config.domain,
-            )
-
-            generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
-                self.config.domain,
-                path,
-                self.config.planner_config,
-            )
-
-        except Exception as exc:
-            return self._planner_failed(f"error={exc}", fields)
-
-        fields.update(
-            solve_time=round(solve_time, 3), enhsp_time=enhsp_time, status=status
+        # ENHSP's default search times out on a few states the fallback solves
+        # (and vice versa), so a timeout gets one more try with the fallback.
+        # An explicitly configured planner is used alone.
+        configs = (
+            [self.config.planner_config] if self.config.planner_config
+            else [None, FALLBACK_PLANNER_CONFIG]
         )
 
-        if generated_plan is None:
-            return self._planner_failed(
-                f"status={status}, solve_time={solve_time:.2f}s", fields
+        for planner_config in configs:
+            try:
+                path = write_dynamic_problem(
+                    self,
+                    stage_goal,
+                    domain=self.config.domain,
+                )
+
+                generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
+                    self.config.domain,
+                    path,
+                    planner_config,
+                )
+
+            except Exception as exc:
+                return self._planner_failed(f"error={exc}", fields)
+
+            fields.update(
+                solve_time=round(solve_time, 3), enhsp_time=enhsp_time,
+                status=status, planner_config=planner_config,
             )
+            failure = f"status={status}, solve_time={solve_time:.2f}s"
+
+            if generated_plan is not None:
+                break
+            if status != "TIMEOUT" or planner_config == configs[-1]:
+                return self._planner_failed(failure, fields)
+            self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
 
         # IMPORTANT:
         # Normalize planner actions:
@@ -922,7 +936,7 @@ class PlanningBot(BotAI):
         fight, so the event count is the number of attacks on the base.
         """
 
-        threats = self.enemy_units.closer_than(DEFENCE_RADIUS, self.start_location)
+        threats = near_bases(self, self.enemy_units)
 
         if threats:
             if not self.defending:

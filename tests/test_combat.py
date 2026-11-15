@@ -1,10 +1,12 @@
-"""Attack targeting, hunting for hidden buildings, and whole-army defence (T1.3)."""
+"""Attack targeting, hunting for hidden buildings, whole-army defence of every base (T1.3, T8.3)."""
 
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
-from bot.combat import advance_attack, attack_target, defend, launch_attack, stand_down
+from bot.combat import (
+    advance_attack, attack_target, defend, launch_attack, near_bases, retreat, stand_down,
+)
 from fakes import CC_AT, FakeBot, FakeUnit, Group, TRAINING
 
 
@@ -101,3 +103,33 @@ def test_standing_down_unsieges_tanks():
 
     stand_down(bot)
     assert tank.issued == [AbilityId.UNSIEGE_UNSIEGE]
+
+
+NATURAL = CC_AT.offset((45, 0))
+
+
+def with_natural(bot):
+    bot.townhalls.append(FakeUnit(UnitTypeId.COMMANDCENTER, NATURAL))
+    return bot
+
+
+def test_threats_at_the_natural_count_and_are_answered():
+    raider = unit(UnitTypeId.ZERGLING, NATURAL.offset((5, 0)))
+    elsewhere = unit(UnitTypeId.ZERGLING, FAR_AWAY)
+    guard = unit(UnitTypeId.MARINE, NATURAL.offset((-3, 0)))
+    bot = with_natural(FakeBot(units=[guard]))
+
+    assert list(near_bases(bot, Group([raider, elsewhere]))) == [raider]
+    defend(bot, Group([raider]))
+    assert guard.issued == [("attack", raider)]
+
+
+def test_a_beaten_attack_walks_home_and_leaves_defenders_alone():
+    away, home = unit(UnitTypeId.MARINE, NEAR_ENEMY), unit(UnitTypeId.MARINE)
+    sieged_away = unit(UnitTypeId.SIEGETANKSIEGED, NEAR_ENEMY)
+    bot = FakeBot(units=[away, home, sieged_away])
+
+    assert retreat(bot) == 2
+    assert away.issued == [("move", CC_AT)]
+    assert sieged_away.issued == [AbilityId.UNSIEGE_UNSIEGE]
+    assert home.issued == []

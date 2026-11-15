@@ -17,7 +17,7 @@ ARMY_TYPES = set(ARMY_WEIGHTS)
 # An expansion counts as scouted once a unit of the army is this close to it.
 SCOUT_RADIUS = 6
 
-# Enemies this close to the start location count as an attack on the base;
+# Enemies this close to any own Command Center count as an attack on the base;
 # only units within it defend, so an attack across the map is not recalled.
 DEFENCE_RADIUS = 35
 
@@ -27,6 +27,13 @@ SIEGE_RANGE = 13
 
 def army(bot):
     return bot.units.of_type(ARMY_TYPES)
+
+
+def near_bases(bot, units):
+    """Those of units within DEFENCE_RADIUS of an own Command Center, expansions included."""
+    return units.filter(
+        lambda u: any(u.position.distance_to(th.position) < DEFENCE_RADIUS for th in bot.townhalls)
+    )
 
 
 def _hunting_order(bot):
@@ -95,13 +102,28 @@ def advance_attack(bot):
 
 
 def defend(bot, threats):
-    """The army at home engages threats near the base; tanks siege up in range."""
+    """The army at home engages threats near the bases; tanks siege up in range."""
 
-    for unit in army(bot).closer_than(DEFENCE_RADIUS, bot.start_location):
+    for unit in near_bases(bot, army(bot)):
         if unit.type_id == UnitTypeId.SIEGETANK and threats.closer_than(SIEGE_RANGE, unit):
             unit(AbilityId.SIEGEMODE_SIEGEMODE)
         elif unit.type_id != UnitTypeId.SIEGETANKSIEGED and unit.is_idle:
             unit.attack(threats.closest_to(unit))
+
+
+def retreat(bot):
+    """
+    Survivors of a beaten attack walk home to join the next wave instead of
+    fighting on alone. Returns how many units were called back.
+    """
+
+    away = [u for u in army(bot) if u not in near_bases(bot, army(bot))]
+    for unit in away:
+        if unit.type_id == UnitTypeId.SIEGETANKSIEGED:
+            unit(AbilityId.UNSIEGE_UNSIEGE)
+        else:
+            unit.move(bot.start_location)
+    return len(away)
 
 
 def stand_down(bot):

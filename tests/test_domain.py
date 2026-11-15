@@ -138,8 +138,23 @@ def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):
 
 
 def test_small_bank_needs_only_the_attack(tmp_path):
-    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100)
+    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100,
+                **{"marine-count": 16})   # army value 16 + 8 + 6 = 30
     assert solve(lean, final_goal(lean), tmp_path) == ["attack"]
+
+
+def test_the_attack_waits_for_army_value_30(tmp_path):
+    lean = dict(STAGE_3_FLOATING, minerals=BANK_FLOOR["minerals"] - 100, vespene=100)  # value 26
+    plan = solve(lean, final_goal(lean), tmp_path)
+    assert plan[-1] == "attack" and len(plan) > 1
+
+
+@pytest.mark.parametrize("bank", [(800, 300), (4625, 1344), (20000, 8000)])
+def test_one_attack_closes_the_plan_after_the_bank_is_spent(bank, tmp_path):
+    # v8: nothing is built after the attack, so the army is massed before it moves out.
+    state = dict(STAGE_3_FLOATING, minerals=bank[0], vespene=bank[1])
+    plan = solve(state, final_goal(state), tmp_path)
+    assert plan.count("attack") == 1 and plan[-1] == "attack"
 
 
 def test_production_time_makes_the_planner_add_production(tmp_path):

@@ -112,3 +112,40 @@ def test_a_timed_out_planner_leaves_no_jvm_behind(tmp_path, monkeypatch):
 def _jvms():
     listing = subprocess.run(["tasklist"], capture_output=True, text=True).stdout
     return listing.lower().count("java.exe")
+
+
+def _planner_answers(monkeypatch, tmp_path, *answers):
+    """Replace ENHSP with scripted (plan?, status) answers; returns the configs asked."""
+    asked, real_plan = [], generate_plan_from_file(
+        DOMAIN_PATH, write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0], tmp_path / "real.pddl"))[0]
+    queue = list(answers)
+
+    def fake(domain, problem, params=None):
+        asked.append(params)
+        solved, status = queue.pop(0)
+        return (real_plan if solved else None), 10.0, None, status
+
+    monkeypatch.setattr(planning_bot, "generate_plan_from_file", fake)
+    return asked
+
+
+def test_a_timeout_is_retried_with_the_fallback_config(monkeypatch, tmp_path):
+    asked = _planner_answers(monkeypatch, tmp_path, (False, "TIMEOUT"), (True, "SOLVED_SATISFICING"))
+    bot = _Bot()
+    assert bot._advance_plan()
+
+    assert asked == [None, planning_bot.FALLBACK_PLANNER_CONFIG]
+    assert [e["kind"] for e in bot.metrics.events] == ["planner_error", "plan_generated"]
+    assert bot.metrics.events[1]["planner_config"] == planning_bot.FALLBACK_PLANNER_CONFIG
+
+
+def test_unsolvable_and_explicit_configs_get_no_fallback(monkeypatch, tmp_path):
+    asked = _planner_answers(monkeypatch, tmp_path, (False, "UNSOLVABLE_PROVEN"))
+    assert not _Bot()._advance_plan()
+    assert asked == [None]
+
+    asked = _planner_answers(monkeypatch, tmp_path, (False, "TIMEOUT"))
+    bot = _Bot()
+    bot.config.planner_config = "-h hadd -s wastar"
+    assert not bot._advance_plan()
+    assert asked == ["-h hadd -s wastar"]
