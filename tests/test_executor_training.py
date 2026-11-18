@@ -113,3 +113,16 @@ def test_weapons_research_is_issued_at_an_idle_engineering_bay():
 
     assert run(execute_action(bot, "research_weapons"))
     assert ebay.issued == [UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]
+
+
+def test_a_unit_waits_for_a_depot_under_construction_and_fails_without_one():
+    bot = FakeBot(structures=[barracks(30.5)])
+    bot.supply_blocked = True
+
+    bot.pending = {UnitTypeId.SUPPLYDEPOT: 1}
+    assert not run(execute_action(bot, "train_marine"))
+    assert bot.last_issue_waiting and "SUPPLYDEPOT under construction" in bot.last_issue_failure
+
+    bot.pending = {}
+    assert not run(execute_action(bot, "train_marine"))
+    assert not bot.last_issue_waiting and bot.last_issue_failure == "cannot afford MARINE"

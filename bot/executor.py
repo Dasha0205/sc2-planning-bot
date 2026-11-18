@@ -46,6 +46,9 @@ def _train(bot, producer_id, unit_id, needs_techlab=False):
     """Queue one unit at the emptiest producer, preferring buildings without an add-on."""
 
     if not bot.can_afford(unit_id):
+        # burnysc2 counts supply as a cost; a depot under construction is progress.
+        if bot.can_afford(unit_id, check_supply_cost=False) and bot.already_pending(UnitTypeId.SUPPLYDEPOT):
+            return _wait(bot, f"supply for {unit_id.name}: SUPPLYDEPOT under construction")
         return _refuse(bot, f"cannot afford {unit_id.name}")
 
     producers = list(bot.structures(producer_id))

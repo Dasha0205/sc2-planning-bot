@@ -171,12 +171,14 @@ class FakeBot:
         self.scouted = set()
         self.pending = pending or {}
         self.attack_threshold = ATTACK_THRESHOLD   # set by PlanningBot._advance_plan
+        self.supply_blocked = False
 
     def already_pending(self, unit_id):
         return self.pending.get(unit_id, 0)
 
-    def can_afford(self, _unit_id):
-        return self.affordable
+    def can_afford(self, _unit_id, check_supply_cost=True):
+        # supply_blocked: the money is there, the supply is not.
+        return self.affordable and not (check_supply_cost and self.supply_blocked)
 
     async def can_place(self, unit_id, positions):
         size = FOOTPRINT_SIZE[unit_id]
