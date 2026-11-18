@@ -70,7 +70,10 @@ def solve(domain, problem_file, config=None, planner="enhsp"):
 
 
 def solve_temporal(problem_file):
-    """ENHSP on the PDDL+ domain; unified-planning is not needed for its plan."""
+    """
+    ENHSP on the PDDL+ domain; unified-planning is not needed for its plan. ENHSP
+    also reports a malformed problem as unsolvable, which this cannot tell apart.
+    """
     started = time.perf_counter()
     command = ["java", "-jar", ENHSP_JAR, "-o", str(TEMPORAL_DOMAIN), "-f", str(problem_file), *TEMPORAL_FLAGS]
     try:

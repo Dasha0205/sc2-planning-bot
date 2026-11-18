@@ -4,6 +4,7 @@ Aggregation of a series (T2.6): Wilson interval, the B2 game from before E2
 """
 
 import csv
+import json
 from pathlib import Path
 
 import pytest
@@ -104,3 +105,10 @@ def test_plan_held_counts_long_gaps_before_an_issue():
         {"kind": "game_end", "detail": "Result.Victory", "game_time": 86.0},  # held 10 s at the end
     ]
     assert aggregate.Game(Path("g.json"), {"events": events}).plan_held() == 80.0
+
+
+def test_a_game_that_did_not_end_is_not_counted(tmp_path):
+    ended = {"config": {"run_id": "a"}, "events": [{"kind": "game_end", "detail": "Result.Victory"}]}
+    (tmp_path / "a.json").write_text(json.dumps(ended))
+    (tmp_path / "b.partial.json").write_text(json.dumps({"config": {"run_id": "b"}, "events": []}))
+    assert [g.config["run_id"] for g in aggregate.load_games([tmp_path])] == ["a"]

@@ -134,8 +134,11 @@ def main(argv=None):
             realtime=args.realtime, random_seed=args.seed, game_time_limit=args.time_limit,
         )
     finally:
-        # Kept even if his bot or the game fails; run_batch then records a crash.
-        (out / f"{args.run_id}.json").write_text(json.dumps(
+        # A game without its end is kept as .partial.json, which run_batch replays
+        # and aggregate.py skips, like a crash of run.py that leaves no result.
+        ended = any(e["kind"] == "game_end" for e in events)
+        name = f"{args.run_id}.json" if ended else f"{args.run_id}.partial.json"
+        (out / name).write_text(json.dumps(
             {"config": config, "plan": [], "events": events, "snapshots": snapshots}, indent=2))
 
 

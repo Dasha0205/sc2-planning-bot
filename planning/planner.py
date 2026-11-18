@@ -110,7 +110,7 @@ def _solve_with_enhsp(domain_path, problem_path, params):
             _kill(process)
             process.communicate()
             return problem, None, None, "TIMEOUT"
-        except Exception:
+        except BaseException:   # a parse error or Ctrl+C: no JVM left behind
             _kill(process)
             process.communicate()
             raise

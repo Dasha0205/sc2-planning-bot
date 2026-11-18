@@ -21,7 +21,7 @@ import math
 import statistics
 from pathlib import Path
 
-GRID = ("difficulty", "map", "race", "domain", "planner", "planner_config")
+GRID = ("difficulty", "map", "race", "domain", "planner", "planner_config", "realtime")
 ARMY_MINUTES = (3, 6, 9, 12, 15)
 # Unit costs (minerals + gas) for V(t) in games recorded before snapshots
 # carried the score's army_cost; units still in production are not counted.
@@ -257,7 +257,8 @@ def _mean(values, digits):
 def load_games(paths):
     files = []
     for path in map(Path, paths):
-        files += sorted(path.glob("*.json")) if path.is_dir() else [path]
+        # A .partial.json is a game that did not end (experiments/orava_bot.py).
+        files += sorted(f for f in path.glob("*.json") if not f.name.endswith(".partial.json"))             if path.is_dir() else [path]
     games = []
     for file in files:
         data = json.loads(file.read_text())
