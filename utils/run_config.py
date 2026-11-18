@@ -15,7 +15,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def current_commit():
-    """Short commit hash, marked "-dirty" if tracked files have local changes."""
+    """
+    Short commit hash, marked "-dirty" if tracked files have local changes; results
+    in runs/ do not count, since a series updates its own summaries as it goes.
+    """
     def git(*args):
         return subprocess.run(
             ["git", *args], cwd=REPO_ROOT, capture_output=True, text=True, check=True
@@ -23,7 +26,7 @@ def current_commit():
 
     try:
         commit = git("rev-parse", "--short", "HEAD")
-        dirty = git("status", "--porcelain", "--untracked-files=no")
+        dirty = git("status", "--porcelain", "--untracked-files=no", "--", ".", ":(exclude)runs")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
     return f"{commit}-dirty" if dirty else commit

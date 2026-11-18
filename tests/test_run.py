@@ -3,6 +3,7 @@ Parameterised runs (T2.4): run.py turns its options into a RunConfig, the
 planner receives the ENHSP flags, and the result file carries the config.
 """
 
+import subprocess
 from datetime import date
 from types import SimpleNamespace
 
@@ -14,6 +15,7 @@ from bot.planning_bot import STAGE_GOALS
 from bot.smoke import _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
 from planning.planner import DOMAIN_PATH, PLANNING_DIR, generate_plan_from_file
+from utils import run_config
 from utils.run_config import REPO_ROOT, RunConfig
 
 get_environment().credits_stream = None
@@ -106,3 +108,19 @@ def test_a_game_that_never_ended_still_fails(tmp_path, monkeypatch):
     with pytest.raises(ConnectionResetError):
         run.main(["--out", str(tmp_path), "--run-id", "g"])
     assert not (tmp_path / "g.json").exists()
+
+
+def test_results_in_runs_do_not_make_the_tree_dirty(tmp_path, monkeypatch):
+    git = lambda *args: subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)
+    git("init", "-q")
+    (tmp_path / "runs").mkdir()
+    (tmp_path / "runs" / "summary.md").write_text("a")
+    (tmp_path / "code.py").write_text("a")
+    git("add", ".")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init")
+    monkeypatch.setattr(run_config, "REPO_ROOT", tmp_path)
+
+    (tmp_path / "runs" / "summary.md").write_text("b")
+    assert not run_config.current_commit().endswith("-dirty")
+    (tmp_path / "code.py").write_text("b")
+    assert run_config.current_commit().endswith("-dirty")
