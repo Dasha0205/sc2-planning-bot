@@ -1,8 +1,8 @@
 # Summary
 
-| Group | Games | Win rate (95 % CI) | Game time, s | solve_time med / p95, s | Plan length | Waits | Planned / reactive per game | First attack, s | Floated |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 10 | 100% (72%–100%) | 715.8 | 1.116 / 2.199 | 29.0 | 0.356 | 160.6 / 14.8 | 573.4 | 0.588 |
+| Group | Games | Win rate (95 % CI) | Game time, s | solve_time med / p95, s | Plan length | Waits | Planned / reactive per game | First attack, s | Plan held, s | Floated |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 10 | 100% (72%–100%) | 715.8 | 1.116 / 2.199 | 29.0 | 0.356 | 160.6 / 14.8 | 573.4 | 317.3 | 0.588 |
 
 ## Army value over time (mean, IQR, games still running)
 
