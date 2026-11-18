@@ -105,16 +105,18 @@ class Game:
     def plan_held(self):
         """
         Game seconds the plan stood with its next action not yet issued: from a
-        plan or a completed action to the next issue, gaps above HELD_GAP only.
+        plan or a completed action to the next issue, replan or game end, gaps
+        above HELD_GAP only.
         """
         held, ready = 0.0, None
         for event in self.events:
-            if event["kind"] in ("plan_generated", "plan_completed"):
-                ready = event.get("game_time")
-            elif event["kind"] == "plan_issued" and ready is not None and "game_time" in event:
-                gap = event["game_time"] - ready
+            kind, now = event["kind"], event.get("game_time")
+            if kind in ("plan_issued", "plan_generated", "game_end") and ready is not None and now is not None:
+                gap = now - ready
                 held += gap if gap > HELD_GAP else 0
                 ready = None
+            if kind in ("plan_generated", "plan_completed"):
+                ready = now
         return held
 
     def replan_interval(self):

@@ -11,7 +11,7 @@ from unified_planning.io import PDDLReader
 from unified_planning.shortcuts import OneshotPlanner, get_environment
 
 from bot.planning_bot import BANK_FLOOR, STAGE_GOALS, bank_ceilings, goal_for_stage
-from planning.dynamic_problem import attack_threshold
+from planning.dynamic_problem import WAIT_SECONDS, attack_threshold
 from planning.planner import DOMAIN_PATH
 
 get_environment().credits_stream = None
@@ -102,6 +102,14 @@ def test_spending_is_never_phantom_upgrades(tmp_path):
     assert counts["research_weapons"] == counts["research_stimpack"] == 0
 
 
+def test_a_bank_of_one_plan_cycle_is_spent_in_a_short_plan(tmp_path):
+    # ~100 s of two-base income on top of a spent bank: the strict goal's usual case.
+    # Its length is spending orders; what keeps the army waiting is modelled time.
+    state = dict(STAGE_3_FLOATING, minerals=5000, vespene=1500, **{"cc-count": 2, "barracks-count": 4})
+    plan = solve(state, final_goal(state), tmp_path)
+    assert sum(a.startswith("wait_for_") for a in plan) * WAIT_SECONDS <= 75
+
+
 def test_the_weaker_goal_keeps_a_huge_bank_plan_short(tmp_path):
     rich = dict(STAGE_3_FLOATING, minerals=20000, vespene=8000)
     strict, weaker = bank_ceilings(rich["minerals"])
@@ -118,9 +126,19 @@ def test_production_limits_hold(tmp_path):
     counts = Counter(solve(rich, final_goal(rich), tmp_path))
 
     cc = 1 + counts["expand"]
-    assert 2 + counts["build_barracks"] <= 3 * cc
+    assert cc <= 3
+    assert 2 + counts["build_barracks"] <= 4 * cc
     assert 1 + counts["build_factory"] <= cc
     assert counts["build_engineeringbay"] == 0
+
+
+def test_v11_limits_are_reached_but_not_passed(tmp_path):
+    # Three bases' worth of production is allowed and no more (T4.8).
+    goal = "(and (>= (cc-count) 3) (>= (barracks-count) 12))"
+    counts = Counter(solve(dict(STAGE_3_FLOATING, minerals=20000), goal, tmp_path))
+    assert (counts["expand"], counts["build_barracks"]) == (2, 10)
+    with pytest.raises(AssertionError):
+        solve(dict(STAGE_3_FLOATING, minerals=20000), "(>= (barracks-count) 13)", tmp_path)
 
 
 def test_maxed_supply_waives_the_bank_ceiling(tmp_path):

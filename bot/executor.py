@@ -190,7 +190,7 @@ async def execute_action(bot, action):
     if "attack" in action:
         # The domain's precondition, checked in the game: a train action completes
         # once the unit is queued, so the army the plan weighed may still be in
-        # production. Units beyond the threshold stay home for the next wave.
+        # production. Units still in production stay home for the next wave.
         if army_value(bot, home_army(bot)) < bot.attack_threshold:
             return _wait(bot, "army at home below the attack threshold")
         return launch_attack(bot) or _refuse(bot, "no army")

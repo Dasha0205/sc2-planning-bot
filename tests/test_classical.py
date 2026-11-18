@@ -13,7 +13,8 @@ from unified_planning.shortcuts import get_environment
 
 from bot.planning_bot import COMPLETION_CONDITIONS, STAGE_GOALS
 from bot.smoke import _Group, _OpeningBot
-from planning.classical_problem import write_classical_problem
+from planning.classical_problem import slot_count, wave_for, wave_value, write_classical_problem
+from planning.dynamic_problem import attack_threshold, game_state
 from planning.planner import CLASSICAL_DOMAIN_PATH, generate_plan_from_file
 from run import parse_config
 
@@ -58,3 +59,11 @@ def test_the_wave_shrinks_to_what_fits_and_no_depot_passes_the_cap(tmp_path):
 def test_fast_downward_runs_the_classical_domain():
     config = parse_config(["--planner", "fast-downward", "--run-id", "t"])
     assert config.domain == CLASSICAL_DOMAIN_PATH
+
+
+def test_the_classical_attack_waits_for_its_scaled_wave():
+    # Near the supply cap the wave shrinks to its slots; the executor's gate follows it.
+    state = game_state(_Maxed(), army=[])
+    assert wave_value(state) <= attack_threshold(0, 180, 200)
+    assert wave_value(state) == sum(
+        n * w for n, w in zip(wave_for(state, slot_count(state)).values(), (1, 2, 3)))

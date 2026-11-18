@@ -4,10 +4,11 @@ from sc2.ids.upgrade_id import UpgradeId
 
 from planning.planner import FALLBACK_PLANNER_CONFIG, solve_problem
 from planning.plan_order import PlanOrder
-from planning.classical_problem import write_classical_problem
+from planning.classical_problem import wave_value, write_classical_problem
 from planning.dynamic_problem import (
     ATTACK_THRESHOLD,
     attack_threshold,
+    game_state,
     write_dynamic_problem,
     harvest_rates,
     army_value,
@@ -519,6 +520,8 @@ class PlanningBot(BotAI):
                     if classical:
                         objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
                         path = write_classical_problem(self, objective, army=home)
+                        # Its attack waits for the wave, scaled to the supply that is left.
+                        threshold = wave_value(game_state(self, home))
                     else:
                         path = write_dynamic_problem(
                             self,

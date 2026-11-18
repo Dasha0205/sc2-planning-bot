@@ -36,6 +36,18 @@ def wave_for(state, slots):
     return {kind: home[kind] + new[kind] for kind in WAVE}
 
 
+def slot_count(state):
+    """Supply slots the plan can fill: those free now and those its new depots unlock."""
+    free = max(0, (state["supply-cap"] - state["supply-used"]) // SUPPLY_PER_SLOT)
+    return free + SLOTS_PER_DEPOT * (limits(state)["depot"] - state["depot-count"])
+
+
+def wave_value(state):
+    """Army value of the stage-3 wave: what the classical attack's precondition asks for."""
+    wave = wave_for(state, slot_count(state))
+    return wave["marine"] + 2 * wave["marauder"] + 3 * wave["tank"]
+
+
 BUILDINGS = {
     "depot": "depot-count", "barracks": "barracks-count", "refinery": "refinery-count",
     "factory": "factory-count", "ebay": "engineeringbay-count", "cc": "cc-count",
@@ -94,7 +106,7 @@ def write_classical_state(state, goal_expr, path):
     objects["slot"] = slots
 
     attack = "attacks-launched" in need
-    wave = wave_for(state, len(slots)) if attack else {}
+    wave = wave_for(state, slot_count(state)) if attack else {}
     for kind, fluent in UNITS.items():
         have = state[fluent]
         names = [f"{kind}{k}" for k in range(1, max(have, need.get(fluent, 0), wave.get(kind, 0)) + 1)]

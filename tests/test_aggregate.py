@@ -98,6 +98,9 @@ def test_plan_held_counts_long_gaps_before_an_issue():
         {"kind": "plan_completed", "detail": "a", "game_time": 3.0},
         {"kind": "plan_issued", "detail": "b", "game_time": 43.0},    # held 40 s
         {"kind": "plan_completed", "detail": "b", "game_time": 44.0},
-        {"kind": "game_end", "detail": "Result.Victory", "game_time": 50.0},
+        {"kind": "plan_generated", "detail": "", "game_time": 74.0},   # held 30 s, then replanned
+        {"kind": "plan_issued", "detail": "c", "game_time": 75.0},
+        {"kind": "plan_completed", "detail": "c", "game_time": 76.0},
+        {"kind": "game_end", "detail": "Result.Victory", "game_time": 86.0},  # held 10 s at the end
     ]
-    assert aggregate.Game(Path("g.json"), {"events": events}).plan_held() == 40.0
+    assert aggregate.Game(Path("g.json"), {"events": events}).plan_held() == 80.0
