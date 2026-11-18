@@ -95,3 +95,13 @@ def test_planners_in_one_series_play_the_same_seeds(tmp_path):
     classical = next(g for g in games if g["planner"] == "fast-downward")
     config = run.parse_config(run_batch.run_py_options(classical, tmp_path, args))
     assert (config.planner, config.domain.name) == ("fast-downward", "domain_classical.pddl")
+
+
+def test_a_runner_gets_its_own_arguments(tmp_path, monkeypatch):
+    monkeypatch.setenv("FAKE_GAMES", "{}")
+    run_batch.main(["--name", "t", "--out", str(tmp_path), "--allow-dirty",
+                    "--runner", FAKE_GAME[1], "--runner-arg=--src=elsewhere"])
+
+    config = json.loads((tmp_path / "config.json").read_text())
+    assert config["runner"] == [FAKE_GAME[1], "--src=elsewhere"]
+    assert (tmp_path / "VeryEasy_1.json").exists()

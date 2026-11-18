@@ -4,6 +4,7 @@ so that a crashed or hung StarCraft II does not stop the series.
 
     python experiments/run_batch.py --name T8.1_medium --difficulty Medium --games 10
     python experiments/run_batch.py --name ablation --planner enhsp fast-downward --games 20
+    python experiments/run_batch.py --name orava --runner experiments/orava_bot.py --runner-arg=--src=<his src>
 
 Results go to runs/<name>/: <run-id>.json and .log per game, config.json for the
 series and progress.csv with one row per finished game. Running the same command
@@ -59,6 +60,10 @@ def parse_args(argv=None):
     parser.add_argument("--out", type=Path, help="series folder (default: runs/<name>)")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="run although tracked files have uncommitted changes")
+    parser.add_argument("--runner", type=Path, help="script playing one game with run.py's options "
+                        "(default run.py; experiments/orava_bot.py plays Orava's bot)")
+    parser.add_argument("--runner-arg", action="append", default=[],
+                        help="extra argument for the runner, repeatable: --runner-arg=--src=...")
     args = parser.parse_args(argv)
     args.planner_config = args.planner_config or [None]
     return args
@@ -144,8 +149,10 @@ def _kill_tree(process):
     process.wait()
 
 
-def main(argv=None, command=RUN_PY):
+def main(argv=None, command=None):
     args = parse_args(argv)
+    command = command or ([sys.executable, str(args.runner.resolve())] if args.runner else RUN_PY)
+    command = [*command, *args.runner_arg]
     commit = current_commit()
     if commit.endswith("-dirty") and not args.allow_dirty:
         sys.exit("Tracked files have uncommitted changes; commit them or pass --allow-dirty.")
@@ -163,6 +170,7 @@ def main(argv=None, command=RUN_PY):
         "seed": base_seed,
         "time_limit": args.time_limit,
         "wall_timeout": args.wall_timeout,
+        "runner": [str(part) for part in command[1:]],
         "commit": commit,
         "started_at": datetime.now().isoformat(timespec="seconds"),
     }, indent=2))

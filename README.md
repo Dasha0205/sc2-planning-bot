@@ -141,6 +141,8 @@ python experiments/run_batch.py --name ablation --map AbyssalReefLE --difficulty
 
 Every combination is played `--games` times, with consecutive seeds from `--seed` (random if omitted). The seed depends only on the scenario (difficulty, map, race) and the game number, so the planners, domains and configs of one series play the same seeds. `runs/<name>/` gets `<run-id>.json` and `.log` per game (run ids name what varies, e.g. `Easy_Zerg_3`), `config.json` for the series and `progress.csv` with a row per finished game (`status` ok / crashed / timeout, `result`, game and wall time). A game ends as a Tie after `--time-limit` game seconds (default 1 800); a hung one is killed with its StarCraft II after `--wall-timeout` real seconds (default 1 200). A crash or timeout is recorded and the series goes on; rerunning the same command plays only games without a result, with the same seeds. The runner refuses to start on uncommitted tracked changes unless `--allow-dirty`.
 
+Orava's bot plays in the same harness (T5.5): `--runner experiments/orava_bot.py --runner-arg=--src=<his unpacked src>` (and `--domain expert` or `baseline`) runs his `PlanningBot` under the same map, opponent, seed and time limit, with snapshots and his planning times written in our result format, so `aggregate.py` gives his games the same measures. It plays `realtime=False` like ours (his own experiments ran in real time) unless `--runner-arg=--realtime`; his planning time is measured around `planner.solve` only, ours around the whole call. His code is not part of this repository.
+
 Summarise one or more series (or single metrics files):
 
 ```bash
