@@ -89,3 +89,15 @@ def test_orava_measures():
         400.0, 200.0, 2.0)
     assert (summary["R_6min_mean"], summary["V_3min_mean"], summary["V_3min_sd"]) == (1200, 600, "")
     assert (summary["V_6min_games"], summary["V_9min_games"]) == (1, 0)
+
+
+def test_plan_held_counts_long_gaps_before_an_issue():
+    events = [
+        {"kind": "plan_generated", "detail": "", "game_time": 0.0},
+        {"kind": "plan_issued", "detail": "a", "game_time": 1.0},     # 1 s: normal pace
+        {"kind": "plan_completed", "detail": "a", "game_time": 3.0},
+        {"kind": "plan_issued", "detail": "b", "game_time": 43.0},    # held 40 s
+        {"kind": "plan_completed", "detail": "b", "game_time": 44.0},
+        {"kind": "game_end", "detail": "Result.Victory", "game_time": 50.0},
+    ]
+    assert aggregate.Game(Path("g.json"), {"events": events}).plan_held() == 40.0

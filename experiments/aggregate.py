@@ -27,6 +27,9 @@ ARMY_MINUTES = (3, 6, 9, 12, 15)
 # carried the score's army_cost; units still in production are not counted.
 UNIT_COSTS = {"marines": 50, "marauders": 125, "tanks": 275}
 Z_95 = 1.959964
+# An issue this long after the plan was ready counts as the plan standing still
+# (a frame or two is the executor's normal pace).
+HELD_GAP = 2.0
 
 
 def wilson(wins, n, z=Z_95):
@@ -99,6 +102,21 @@ class Game:
                   if (v := value(s)) is not None]
         return before[-1] if before else None
 
+    def plan_held(self):
+        """
+        Game seconds the plan stood with its next action not yet issued: from a
+        plan or a completed action to the next issue, gaps above HELD_GAP only.
+        """
+        held, ready = 0.0, None
+        for event in self.events:
+            if event["kind"] in ("plan_generated", "plan_completed"):
+                ready = event.get("game_time")
+            elif event["kind"] == "plan_issued" and ready is not None and "game_time" in event:
+                gap = event["game_time"] - ready
+                held += gap if gap > HELD_GAP else 0
+                ready = None
+        return held
+
     def replan_interval(self):
         """Game seconds per plan, Orava's plan stability."""
         if not self.plans or not self.end.get("game_time"):
@@ -138,6 +156,7 @@ class Game:
                 (s["army_value"] for s in self.snapshots if "army_value" in s), default=""
             ),
             "replan_interval": _round(self.replan_interval(), 1),
+            "plan_held": round(self.plan_held(), 1) if self.plans else "",
             "unspent_mean": _round(statistics.mean(map(unspent, self.snapshots)), 1)
             if self.snapshots else "",
             "peak_army_cost": max(
@@ -195,6 +214,7 @@ def summary_row(group, games):
         "planned_per_game": round(statistics.mean(numbers("planned_actions")), 1),
         "reactive_per_game": round(statistics.mean(numbers("reactive_actions")), 1),
         "first_attack_median": _round(median(numbers("first_attack")), 1),
+        "plan_held_mean": _mean(numbers("plan_held"), 1),
         "minerals_floated_mean": _round(statistics.mean(numbers("minerals_floated")))
         if numbers("minerals_floated") else "",
     }
@@ -262,6 +282,7 @@ def write_markdown(path, summaries, games):
         ("Waits", lambda s: s["wait_share"]),
         ("Planned / reactive per game", lambda s: _pair(s["planned_per_game"], s["reactive_per_game"])),
         ("First attack, s", lambda s: s["first_attack_median"]),
+        ("Plan held, s", lambda s: s["plan_held_mean"]),
         ("Floated", lambda s: s["minerals_floated_mean"]),
     ]
     lines = ["# Summary", "", _table([c for c, _ in columns], [[f(s) for _, f in columns] for s in summaries])]
