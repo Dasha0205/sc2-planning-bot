@@ -372,6 +372,8 @@ class PlanningBot(BotAI):
         self.action_issued = False
         # Actions the game held back since the last one was issued.
         self.held = set()
+        # Army value the current plan's attack precondition asks for.
+        self.attack_threshold = ATTACK_THRESHOLD
 
         # Game state captured when the current action was issued; the
         # completion condition is judged against it.
@@ -537,9 +539,16 @@ class PlanningBot(BotAI):
                 return self._planner_failed(failure, fields)
             self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
 
+        try:
+            order = PlanOrder(problem, generated_plan)
+        except Exception as exc:
+            return self._planner_failed(f"error={exc}", fields)
+
         # Action names without parameters, as COMPLETION_CONDITIONS keys them.
-        self.plan_order = PlanOrder(problem, generated_plan)
-        self.plan = self.plan_order.names
+        self.plan_order = order
+        self.plan = order.names
+        # The army value the plan's attack was made for; the executor checks it.
+        self.attack_threshold = threshold
 
         self.index = 0
         self.action_issued = False
@@ -697,8 +706,8 @@ class PlanningBot(BotAI):
         planner's model says the reordered plan still holds (PlanOrder).
 
         Without this one held action stopped the whole plan: in ten VeryEasy
-        games and five Medium ones the plan stood ~290 s of an ~810 s game while
-        income the model never saw piled up in the bank (experiments/LOG.md).
+        games and five Medium ones the plan stood ~200 s of an ~810 s game (the
+        attack another ~86 s) while income the model never saw piled up.
         Nothing is decided here; only actions the planner chose move, and only
         where its own model allows.
         """

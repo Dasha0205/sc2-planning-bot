@@ -11,6 +11,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
 from bot.placement import FOOTPRINT_SIZE
+from planning.dynamic_problem import ATTACK_THRESHOLD
 
 
 CC_AT = Point2((45.5, 50.5))
@@ -169,6 +170,7 @@ class FakeBot:
         self.expansion_locations_list = list(expansions)
         self.scouted = set()
         self.pending = pending or {}
+        self.attack_threshold = ATTACK_THRESHOLD   # set by PlanningBot._advance_plan
 
     def already_pending(self, unit_id):
         return self.pending.get(unit_id, 0)

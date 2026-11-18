@@ -139,17 +139,19 @@ def test_a_beaten_attack_walks_home_and_leaves_defenders_alone():
     assert home.issued == []
 
 
-def test_the_attack_waits_for_the_planned_army_to_leave_production():
-    marine = unit(UnitTypeId.MARINE)
-    bot = FakeBot(units=[marine], expansions=[ENEMY_START], pending={UnitTypeId.SIEGETANK: 1})
+def test_the_attack_waits_until_the_home_army_meets_the_plans_threshold():
+    marines = [unit(UnitTypeId.MARINE) for _ in range(3)]
+    bot = FakeBot(units=marines[:2], expansions=[ENEMY_START], pending={UnitTypeId.MARINE: 1})
     bot.last_issue_waiting = False
+    bot.attack_threshold = 3
 
     assert not run(execute_action(bot, "attack"))
-    assert bot.last_issue_waiting and marine.issued == []
+    assert bot.last_issue_waiting and all(m.issued == [] for m in marines)
 
-    bot.pending = {}
+    # The threshold is met; a unit still in production does not hold the wave.
+    bot.units = FakeBot(units=marines).units
     assert run(execute_action(bot, "attack"))
-    assert marine.issued == [("attack", ENEMY_START)]
+    assert all(m.issued == [("attack", ENEMY_START)] for m in marines)
 
 class _Events:
     def __init__(self):

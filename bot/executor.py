@@ -12,8 +12,9 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-from bot.combat import launch_attack
+from bot.combat import home_army, launch_attack
 from bot.placement import addon_blockers, addon_spot, find_spot, reserve
+from planning.dynamic_problem import army_value
 
 
 def _refuse(bot, reason):
@@ -31,8 +32,6 @@ def _wait(bot, reason):
 QUEUE_LIMIT = 2
 
 ADDON_ABILITIES = {AbilityId.BUILD_TECHLAB_BARRACKS, AbilityId.BUILD_TECHLAB_FACTORY}
-
-ARMY_UNITS = (UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.SIEGETANK)
 
 
 def _free_slots(producer):
@@ -189,10 +188,11 @@ async def execute_action(bot, action):
         return _train(bot, UnitTypeId.BARRACKS, UnitTypeId.MARINE)
 
     if "attack" in action:
-        # A train action completes once the unit is queued, so the last units of
-        # the plan may not exist yet; the army the domain weighed includes them.
-        if any(bot.already_pending(unit_id) for unit_id in ARMY_UNITS):
-            return _wait(bot, "army still in production")
+        # The domain's precondition, checked in the game: a train action completes
+        # once the unit is queued, so the army the plan weighed may still be in
+        # production. Units beyond the threshold stay home for the next wave.
+        if army_value(bot, home_army(bot)) < bot.attack_threshold:
+            return _wait(bot, "army at home below the attack threshold")
         return launch_attack(bot) or _refuse(bot, "no army")
 
     if "build_refinery" in action:
