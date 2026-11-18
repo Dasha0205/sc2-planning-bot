@@ -10,7 +10,7 @@ from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.io import PDDLReader
 from unified_planning.shortcuts import OneshotPlanner, get_environment
 
-from bot.planning_bot import BANK_FLOOR, STAGE_GOALS, goal_for_stage
+from bot.planning_bot import BANK_FLOOR, STAGE_GOALS, bank_ceilings, goal_for_stage
 from planning.dynamic_problem import attack_threshold
 from planning.planner import DOMAIN_PATH
 
@@ -85,26 +85,32 @@ def test_early_stages_spend_a_floating_bank_on_production(stage, state, tmp_path
     assert sum(counts[a] for a in PRODUCTION) > 0
 
 
-def test_floating_bank_is_spent_on_units_after_a_short_build_up(tmp_path):
+def test_a_floating_bank_becomes_production_and_army(tmp_path):
+    # v11 (T4.8): the bank is spent down to the floor; with room for production
+    # that is a short build-up, not minutes of waiting for production time.
     plan = solve(STAGE_3_FLOATING, final_goal(STAGE_3_FLOATING), tmp_path)
     counts = Counter(plan)
 
-    assert counts["attack"] >= 1
+    assert plan[-1] == "attack"
     assert counts["train_marine"] + counts["train_marauder"] + counts["train_siegetank"] > 0
-    # The budget keeps one planning cycle short; production time (v6) adds waits.
-    assert len(plan) <= 50
+    assert sum(counts[a] for a in PRODUCTION) > 0
+    assert len(plan) <= 60
 
 
-def test_spending_is_never_phantom_depots_or_upgrades(tmp_path):
+def test_spending_is_never_phantom_upgrades(tmp_path):
     counts = Counter(solve(STAGE_3_FLOATING, final_goal(STAGE_3_FLOATING), tmp_path))
-
-    assert counts["build_supply_depot"] <= 3
-    assert counts["research_weapons"] == 0
+    assert counts["research_weapons"] == counts["research_stimpack"] == 0
 
 
-def test_a_huge_bank_is_spent_over_several_plans_not_one(tmp_path):
+def test_the_weaker_goal_keeps_a_huge_bank_plan_short(tmp_path):
     rich = dict(STAGE_3_FLOATING, minerals=20000, vespene=8000)
-    assert len(solve(rich, final_goal(rich), tmp_path)) <= 50
+    strict, weaker = bank_ceilings(rich["minerals"])
+    assert strict == BANK_FLOOR
+    assert len(solve(rich, goal_for_stage(3, rich["minerals"], ceiling=weaker), tmp_path)) <= 50
+
+
+def test_a_small_bank_has_one_goal():
+    assert bank_ceilings(BANK_FLOOR + 100) == [BANK_FLOOR]
 
 
 def test_production_limits_hold(tmp_path):

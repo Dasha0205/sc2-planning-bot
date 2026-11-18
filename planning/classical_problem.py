@@ -46,12 +46,12 @@ UPGRADES = {"weapon-upgrades": "weapons-researched", "stimpack": "stim-researche
 
 
 def limits(state):
-    """How many of each building may exist: the production limits of domain v2."""
+    """How many of each building may exist: the production limits of the numeric domain (v11)."""
     cc = state["cc-count"]
     room = max(0, MAX_SUPPLY - state["supply-cap"]) // SUPPLY_PER_DEPOT
     return {
-        "depot": state["depot-count"] + min(SPARE_DEPOTS, room), "barracks": 3 * cc,
-        "refinery": 2 * cc, "factory": cc, "ebay": 1, "cc": 2,
+        "depot": state["depot-count"] + min(SPARE_DEPOTS, room), "barracks": 4 * cc,
+        "refinery": 2 * cc, "factory": cc, "ebay": 1, "cc": 3,
     }
 
 

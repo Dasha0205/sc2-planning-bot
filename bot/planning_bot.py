@@ -23,13 +23,15 @@ from utils.run_config import RunConfig
 # High-level macro stages
 # ============================================================
 
-# Every plan spends up to this many banked minerals, never below the floor, so
-# the planner decides what floating money becomes (T1.7, T1.8). Gas has no
-# ceiling since T8.3: with several Refineries each wait banks about as much gas
-# as a unit costs, so a gas ceiling was unreachable and stretched one plan to
-# 150-220 actions while the army waited at home (runs/T8.3_v8_medium, M9).
-SPEND_PER_PLAN = 1500
+# Every plan spends the mineral bank down to the floor, so the planner decides
+# what all floating money becomes (T1.7, T1.8, T4.8). Spending only
+# SPEND_PER_PLAN of it, as before T4.8, left the income of a ~100 s plan cycle
+# in the bank: R(t) 4 500 at 9 min. That weaker goal is kept for a state where
+# the strict one finds no plan. Gas has no ceiling since T8.3: with several
+# Refineries each wait banks about as much gas as a unit costs, so a gas ceiling
+# was unreachable and stretched one plan to 150-220 actions (runs/T8.3_v8_medium, M9).
 BANK_FLOOR = 400
+SPEND_PER_PLAN = 1500
 
 # Above this supply no more units fit, so the bank cannot be spent on them.
 MAXED_SUPPLY = 190
@@ -82,12 +84,12 @@ STAGE_GOALS = [
 ]
 
 
-def bank_ceiling(banked):
-    """The most minerals a plan may leave in the bank."""
-    return max(BANK_FLOOR, int(banked) - SPEND_PER_PLAN)
+def bank_ceilings(banked):
+    """The most minerals a plan may leave in the bank: the floor, else part of the bank."""
+    return list(dict.fromkeys((BANK_FLOOR, max(BANK_FLOOR, int(banked) - SPEND_PER_PLAN))))
 
 
-def goal_for_stage(stage, minerals, threshold=ATTACK_THRESHOLD):
+def goal_for_stage(stage, minerals, threshold=ATTACK_THRESHOLD, ceiling=BANK_FLOOR):
     """
     The stage's objective plus spending part of the mineral bank (waived at max
     supply). When no attack fits at home (threshold 0: the army in the field holds
@@ -102,7 +104,7 @@ def goal_for_stage(stage, minerals, threshold=ATTACK_THRESHOLD):
     return (
         f"(and {objective} "
         f"(or (>= (supply-used) {MAXED_SUPPLY}) "
-        f"(<= (minerals) {bank_ceiling(minerals)})))"
+        f"(<= (minerals) {ceiling})))"
     )
 
 
@@ -486,10 +488,12 @@ class PlanningBot(BotAI):
 
         home = home_army(self)
         threshold = attack_threshold(army_value(self, home), self.supply_used, self.supply_cap)
-        stage_goal = goal_for_stage(self.stage, self.minerals, threshold)
-
         # The classical baseline has no bank, so it gets the bare stage goal (T4.1).
         classical = self.config.planner == "fast-downward"
+        goals = [None] if classical else [
+            goal_for_stage(self.stage, self.minerals, threshold, ceiling)
+            for ceiling in bank_ceilings(self.minerals)
+        ]
 
         # Fields every planning event carries, for the experiment aggregation.
         # attempt is the consecutive forced replan (0 = a regular plan).
@@ -503,41 +507,49 @@ class PlanningBot(BotAI):
             else [None, FALLBACK_PLANNER_CONFIG]
         )
 
-        for planner_config in configs:
-            try:
-                # Committed units are spent in the model (see _attack_committed).
-                if classical:
-                    objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
-                    path = write_classical_problem(self, objective, army=home)
-                else:
-                    path = write_dynamic_problem(
-                        self,
-                        stage_goal,
-                        domain=self.config.domain,
-                        army=home,
+        # Goals strongest first; within a goal, the next config only after a
+        # timeout. Every failed attempt but the last is logged as it is left.
+        generated_plan, failure = None, None
+        for stage_goal in goals:
+            for planner_config in configs:
+                if failure:
+                    self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
+                try:
+                    # Committed units are spent in the model (see _attack_committed).
+                    if classical:
+                        objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
+                        path = write_classical_problem(self, objective, army=home)
+                    else:
+                        path = write_dynamic_problem(
+                            self,
+                            stage_goal,
+                            domain=self.config.domain,
+                            army=home,
+                        )
+
+                    problem, generated_plan, solve_time, enhsp_time, status = solve_problem(
+                        self.config.domain,
+                        path,
+                        planner_config,
+                        self.config.planner,
                     )
 
-                problem, generated_plan, solve_time, enhsp_time, status = solve_problem(
-                    self.config.domain,
-                    path,
-                    planner_config,
-                    self.config.planner,
+                except Exception as exc:
+                    return self._planner_failed(f"error={exc}", fields)
+
+                fields.update(
+                    solve_time=round(solve_time, 3), enhsp_time=enhsp_time,
+                    status=status, planner_config=planner_config, goal=stage_goal,
                 )
+                failure = f"status={status}, solve_time={solve_time:.2f}s"
 
-            except Exception as exc:
-                return self._planner_failed(f"error={exc}", fields)
-
-            fields.update(
-                solve_time=round(solve_time, 3), enhsp_time=enhsp_time,
-                status=status, planner_config=planner_config,
-            )
-            failure = f"status={status}, solve_time={solve_time:.2f}s"
-
+                if generated_plan is not None or status != "TIMEOUT":
+                    break
             if generated_plan is not None:
                 break
-            if status != "TIMEOUT" or planner_config == configs[-1]:
-                return self._planner_failed(failure, fields)
-            self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
+
+        if generated_plan is None:
+            return self._planner_failed(failure, fields)
 
         try:
             order = PlanOrder(problem, generated_plan)
