@@ -143,6 +143,8 @@ Every combination is played `--games` times, with consecutive seeds from `--seed
 
 Orava's bot plays in the same harness (T5.5): `--runner experiments/orava_bot.py --runner-arg=--src=<his unpacked src>` (and `--domain expert` or `baseline`) runs his `PlanningBot` under the same map, opponent, seed and time limit, with snapshots and his planning times written in our result format, so `aggregate.py` gives his games the same measures. It plays `realtime=False` like ours (his own experiments ran in real time) unless `--runner-arg=--realtime`; his planning time is measured around `planner.solve` only, ours around the whole call. His code is not part of this repository.
 
+A night of series (T7.2): `powershell -File experiments/night.ps1 -Queue <file>` runs one `run_batch.py` command line per line of the queue file, then `aggregate.py` on that series, and logs to `runs/night_<time>.log`; a failed series does not stop the queue. Repeating a series name with a larger `--games` (and the same `--seed`) extends it in chunks.
+
 Summarise one or more series (or single metrics files):
 
 ```bash
