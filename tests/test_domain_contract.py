@@ -1,5 +1,5 @@
 """
-Every PDDL action needs an executor branch and a completion condition (T3.2):
+Every PDDL action, numeric or classical, needs an executor branch and a completion condition (T3.2):
 an action added to a domain without them fails here, not in a game.
 """
 
@@ -11,7 +11,7 @@ from bot.planning_bot import COMPLETION_CONDITIONS
 from planning.planner import PLANNING_DIR
 from fakes import FakeBot, run
 
-DOMAINS = sorted(PLANNING_DIR.glob("domain_numeric*.pddl"))
+DOMAINS = sorted(PLANNING_DIR.glob("domain_numeric*.pddl")) + [PLANNING_DIR / "domain_classical.pddl"]
 ACTIONS = sorted({
     (domain.name, action.name)
     for domain in DOMAINS

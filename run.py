@@ -16,10 +16,9 @@ from sc2.main import run_game
 from sc2.player import Bot, Computer
 
 from bot.planning_bot import PlanningBot
-from planning.planner import PLANNING_DIR
+from planning.planner import CLASSICAL_DOMAIN_PATH, PLANNERS, PLANNING_DIR
 from utils.run_config import REPO_ROOT, RunConfig, current_commit
 
-PLANNERS = ["enhsp"]   # Fast Downward joins with the classical domain (E4)
 RACES = [race.name for race in Race if race != Race.NoRace]
 
 
@@ -28,9 +27,11 @@ def parse_config(argv=None):
     parser.add_argument("--difficulty", default="VeryEasy", choices=[d.name for d in Difficulty])
     parser.add_argument("--map", default="AcropolisLE")
     parser.add_argument("--race", default="Terran", choices=RACES, help="the opponent's race")
-    parser.add_argument("--domain", help="PDDL domain, a path or a file name in planning/")
+    parser.add_argument("--domain", help="PDDL domain, a path or a file name in planning/ "
+                        "(default: the active numeric domain; the classical one for fast-downward)")
     parser.add_argument("--planner", default="enhsp", choices=PLANNERS)
-    parser.add_argument("--planner-config", help='ENHSP flags, written with "=": --planner-config="-h hmrp -s gbfs"')
+    parser.add_argument("--planner-config", help='ENHSP flags, written with "=": --planner-config="-h hmrp -s gbfs"; '
+                        "a Fast Downward alias, e.g. lama-first")
     parser.add_argument("--seed", type=int, help="game seed (default: random, always recorded)")
     parser.add_argument("--time-limit", type=int, help="game seconds until the game ends as a Tie")
     parser.add_argument("--run-id", help="result file name (default: <difficulty>_<n>)")
@@ -53,6 +54,8 @@ def parse_config(argv=None):
     )
     if args.domain:
         config.domain = resolve_domain(parser, args.domain)
+    elif args.planner == "fast-downward":
+        config.domain = CLASSICAL_DOMAIN_PATH
     return config
 
 

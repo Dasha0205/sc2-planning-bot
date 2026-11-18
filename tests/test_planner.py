@@ -135,7 +135,7 @@ def _planner_answers(monkeypatch, tmp_path, *answers):
         DOMAIN_PATH, write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0], tmp_path / "real.pddl"))[0]
     queue = list(answers)
 
-    def fake(domain, problem, params=None):
+    def fake(domain, problem, params=None, planner="enhsp"):
         asked.append(params)
         solved, status = queue.pop(0)
         return (real_plan if solved else None), 10.0, None, status

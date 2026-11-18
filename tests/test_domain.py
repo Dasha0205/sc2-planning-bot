@@ -126,18 +126,29 @@ def test_maxed_supply_waives_the_bank_ceiling(tmp_path):
     assert solve(maxed, final_goal(maxed), tmp_path) == ["attack"]
 
 
-@pytest.mark.parametrize("supply_used, home_value", [(180, 0), (195, 0), (185, 10)])
+# States from the games (review T8.3): the domain builds depots only to a cap of
+# 193-200, and the army in the field keeps its supply. Fixed at 30, these had no plan.
+@pytest.mark.parametrize("supply_used, supply_cap, home_value", [
+    (169, 198, 0), (181, 198, 0), (196, 198, 0), (180, 198, 10), (185, 190, 0), (180, 200, 0),
+])
 def test_an_army_in_the_field_lowers_the_threshold_to_what_fits_at_home(
-        tmp_path, supply_used, home_value):
-    # Committed units keep their supply but leave the planner's view (review T8.3):
-    # with a fixed 30 these states had no plan and ENHSP ran into its timeout.
+        tmp_path, supply_used, supply_cap, home_value):
     state = dict(STAGE_3_FLOATING, **{
-        "supply-used": supply_used, "supply-cap": 200, "depot-count": 23,
+        "supply-used": supply_used, "supply-cap": supply_cap, "depot-count": 23,
         "marine-count": home_value, "marauder-count": 0, "tank-count": 0,
-        "attack-threshold": attack_threshold(home_value, supply_used),
+        "attack-threshold": attack_threshold(home_value, supply_used, supply_cap),
     })
-    assert state["attack-threshold"] == min(30, 200 - supply_used + home_value)
     assert solve(state, final_goal(state), tmp_path)[-1] == "attack"
+
+
+def test_with_nothing_fitting_at_home_the_last_stage_waits(tmp_path):
+    state = dict(STAGE_3_FLOATING, **{
+        "supply-used": 198, "supply-cap": 198, "depot-count": 23,
+        "marine-count": 0, "marauder-count": 0, "tank-count": 0, "attack-threshold": 0,
+    })
+    goal = goal_for_stage(3, state["minerals"], attack_threshold(0, 198, 198))
+    [action] = solve(state, goal, tmp_path)
+    assert action.startswith("wait_for_")
 
 
 def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):

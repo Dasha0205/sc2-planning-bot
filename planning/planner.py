@@ -12,6 +12,12 @@ PLANNING_DIR = Path(__file__).resolve().parent
 # The active domain. Older versions stay in planning/ for comparison.
 DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v9.pddl"
 
+# The classical baseline (T4.1): same actions without numbers, for Fast Downward.
+CLASSICAL_DOMAIN_PATH = PLANNING_DIR / "domain_classical.pddl"
+
+# Planners by their unified-planning names; Fast Downward runs lama-first by default.
+PLANNERS = ("enhsp", "fast-downward")
+
 # An unsolvable numeric goal can keep ENHSP searching until the JVM runs out of
 # memory; a bounded search fails fast into the bot's planner_error path.
 PLAN_TIMEOUT_SECONDS = 10
@@ -36,18 +42,23 @@ pddl_planner.terminate_process = _kill
 ENHSP_PLANNING_TIME = re.compile(r"Planning Time \(msec\): (\d+)")
 
 
-def generate_plan_from_file(domain_path, problem_path, params=None):
+def generate_plan_from_file(domain_path, problem_path, params=None, planner="enhsp"):
     """
-    Solve the problem with ENHSP, run with the command-line flags `params`
-    (None = its default). Returns (plan, solve_time_s, enhsp_time_s, status):
-    plan is None if none was found; solve_time_s is the whole call (PDDL
-    parsing, JVM, ENHSP), enhsp_time_s ENHSP's own reported planning time.
+    Solve the problem with ENHSP (`params` = its command-line flags) or Fast
+    Downward (`params` = an alias, e.g. "lama-first"); None = the default.
+    Returns (plan, solve_time_s, enhsp_time_s, status): plan is None if none was
+    found; solve_time_s is the whole call (PDDL parsing, planner process),
+    enhsp_time_s ENHSP's own reported planning time (None for Fast Downward).
     """
     started = time.perf_counter()
     reader = PDDLReader()
     problem = reader.parse_problem(str(domain_path), str(problem_path))
-    with OneshotPlanner(name="enhsp", params={"params": params}) as planner:
-        result = planner.solve(problem, timeout=PLAN_TIMEOUT_SECONDS)
+    if planner == "enhsp":
+        options = {"params": params}
+    else:
+        options = {"fast_downward_alias": params} if params else {}
+    with OneshotPlanner(name=planner, params=options) as engine:
+        result = engine.solve(problem, timeout=PLAN_TIMEOUT_SECONDS)
     solve_time = time.perf_counter() - started
 
     solved = result.status in (

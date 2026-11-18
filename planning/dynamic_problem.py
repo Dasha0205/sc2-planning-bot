@@ -1,3 +1,4 @@
+import math
 import re
 from pathlib import Path
 
@@ -53,13 +54,27 @@ ATTACK_THRESHOLD = 30
 # The game's supply limit.
 MAX_SUPPLY = 200
 
+# The domain builds a depot (+8 supply-cap) only while supply-cap is at most this.
+DEPOT_CAP_LIMIT = 192
+SUPPLY_PER_DEPOT = 8
 
-def attack_threshold(home_value, supply_used):
+
+def reachable_cap(supply_cap):
+    """The supply-cap the domain can still build depots up to (193-200, as the remainder falls)."""
+    if supply_cap > DEPOT_CAP_LIMIT:
+        return supply_cap
+    depots = math.ceil((DEPOT_CAP_LIMIT + 1 - supply_cap) / SUPPLY_PER_DEPOT)
+    return supply_cap + depots * SUPPLY_PER_DEPOT
+
+
+def attack_threshold(home_value, supply_used, supply_cap):
     """
     30, unless the army at home could never reach it: committed units keep their
-    supply, so only what is home plus the free supply can still stand at home.
+    supply, so only the home army plus the supply still reachable can stand at
+    home. 0 means nothing more fits; stage 3 then waits (goal_for_stage).
     """
-    return max(1, min(ATTACK_THRESHOLD, home_value + MAX_SUPPLY - supply_used))
+    room = reachable_cap(supply_cap) - supply_used
+    return max(0, min(ATTACK_THRESHOLD, home_value + room))
 
 
 def army_counts(bot, army=None):
@@ -180,7 +195,7 @@ def game_state(bot, army=None):
         "rax-time": rax_time,
         "factory-time": factory_time,
         "attack-threshold": attack_threshold(
-            marines + 2 * marauders + 3 * tanks, int(bot.supply_used)),
+            marines + 2 * marauders + 3 * tanks, int(bot.supply_used), int(bot.supply_cap)),
     }
 
 

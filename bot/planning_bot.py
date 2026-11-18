@@ -3,7 +3,10 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 from planning.planner import FALLBACK_PLANNER_CONFIG, generate_plan_from_file
+from planning.classical_problem import write_classical_problem
 from planning.dynamic_problem import (
+    ATTACK_THRESHOLD,
+    attack_threshold,
     write_dynamic_problem,
     harvest_rates,
     army_value,
@@ -83,10 +86,17 @@ def bank_ceiling(banked):
     return max(BANK_FLOOR, int(banked) - SPEND_PER_PLAN)
 
 
-def goal_for_stage(stage, minerals):
-    """The stage's objective plus spending part of the mineral bank (waived at max supply)."""
+def goal_for_stage(stage, minerals, threshold=ATTACK_THRESHOLD):
+    """
+    The stage's objective plus spending part of the mineral bank (waived at max
+    supply). When no attack fits at home (threshold 0: the army in the field holds
+    the supply), the last stage only waits one clock tick for it to come free.
+    """
 
     objective = STAGE_GOALS[min(stage, len(STAGE_GOALS) - 1)]
+
+    if objective == STAGE_GOALS[-1] and threshold <= 0:
+        return f"(>= (minerals) {int(minerals) + 1})"
 
     return (
         f"(and {objective} "
@@ -466,7 +476,12 @@ class PlanningBot(BotAI):
         state before every planning call.
         """
 
-        stage_goal = goal_for_stage(self.stage, self.minerals)
+        home = home_army(self)
+        threshold = attack_threshold(army_value(self, home), self.supply_used, self.supply_cap)
+        stage_goal = goal_for_stage(self.stage, self.minerals, threshold)
+
+        # The classical baseline has no bank, so it gets the bare stage goal (T4.1).
+        classical = self.config.planner == "fast-downward"
 
         # Fields every planning event carries, for the experiment aggregation.
         # attempt is the consecutive forced replan (0 = a regular plan).
@@ -476,24 +491,29 @@ class PlanningBot(BotAI):
         # (and vice versa), so a timeout gets one more try with the fallback.
         # An explicitly configured planner is used alone.
         configs = (
-            [self.config.planner_config] if self.config.planner_config
+            [self.config.planner_config] if self.config.planner_config or classical
             else [None, FALLBACK_PLANNER_CONFIG]
         )
 
         for planner_config in configs:
             try:
                 # Committed units are spent in the model (see _attack_committed).
-                path = write_dynamic_problem(
-                    self,
-                    stage_goal,
-                    domain=self.config.domain,
-                    army=home_army(self),
-                )
+                if classical:
+                    objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
+                    path = write_classical_problem(self, objective, army=home)
+                else:
+                    path = write_dynamic_problem(
+                        self,
+                        stage_goal,
+                        domain=self.config.domain,
+                        army=home,
+                    )
 
                 generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
                     self.config.domain,
                     path,
                     planner_config,
+                    self.config.planner,
                 )
 
             except Exception as exc:
