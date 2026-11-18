@@ -48,6 +48,11 @@ class RunConfig:
     def result_path(self):
         return self.out / f"{self.run_id}.json"
 
+    @property
+    def replay_path(self):
+        """The game's replay, for replay parsers such as Orava's (zephyrus)."""
+        return self.out / f"{self.run_id}.SC2Replay"
+
     def to_dict(self):
         config = asdict(self)
         for key in ("domain", "out"):

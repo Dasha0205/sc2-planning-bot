@@ -88,3 +88,4 @@ def test_orava_measures():
     assert (summary["game_time_mean"], summary["replan_interval_mean"], summary["solve_time_mean"]) == (
         400.0, 200.0, 2.0)
     assert (summary["R_6min_mean"], summary["V_3min_mean"], summary["V_3min_sd"]) == (1200, 600, "")
+    assert (summary["V_6min_games"], summary["V_9min_games"]) == (1, 0)

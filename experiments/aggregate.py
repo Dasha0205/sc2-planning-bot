@@ -224,6 +224,7 @@ def orava_columns(games, numbers):
             columns[f"{name}_{minute}min_sd"] = (
                 round(statistics.stdev(values), 1) if len(values) > 1 else ""
             )
+            columns[f"{name}_{minute}min_games"] = len(values)
     return columns
 
 
@@ -288,11 +289,12 @@ def write_markdown(path, summaries, games):
     ]
     lines.append(_table([c for c, _ in orava], [[f(s) for _, f in orava] for s in summaries]))
     for name, title in (("R", "Unspent minerals + gas R(t)"), ("V", "Army minerals + gas V(t)")):
-        lines += ["", f"### {title} (mean ± SD over games still running)", ""]
+        lines += ["", f"### {title} (mean ± SD, n games still running)", ""]
         header = ["Group"] + [f"{m} min" for m in ARMY_MINUTES]
         body = [
             [" / ".join(s[o] for o in GRID)] + [
-                _mean_sd(s[f"{name}_{m}min_mean"], s[f"{name}_{m}min_sd"]) for m in ARMY_MINUTES
+                _mean_sd(s[f"{name}_{m}min_mean"], s[f"{name}_{m}min_sd"], s[f"{name}_{m}min_games"])
+                for m in ARMY_MINUTES
             ]
             for s in summaries
         ]
@@ -303,10 +305,10 @@ def write_markdown(path, summaries, games):
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _mean_sd(mean, sd):
+def _mean_sd(mean, sd, games):
     if mean == "":
         return ""
-    return f"{mean:g} ± {sd:g}" if sd != "" else f"{mean:g}"
+    return (f"{mean:g} ± {sd:g}" if sd != "" else f"{mean:g}") + f" (n={games})"
 
 
 def _pair(a, b):

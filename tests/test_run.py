@@ -24,6 +24,7 @@ def test_the_acceptance_command_line():
     assert (config.difficulty, config.run_id) == ("Medium", "7")
     assert config.out == REPO_ROOT / "runs" / f"{date.today()}_{config.commit}"
     assert config.result_path == config.out / "7.json"
+    assert config.replay_path == config.out / "7.SC2Replay"
 
 
 def test_defaults_are_todays_game_with_a_recorded_seed(tmp_path):

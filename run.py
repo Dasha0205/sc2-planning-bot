@@ -84,15 +84,16 @@ def next_run_id(out, difficulty):
 def main(argv=None):
     config = parse_config(argv)
     bot = PlanningBot(config)
+    config.out.mkdir(parents=True, exist_ok=True)
     run_game(
         find_map(config.map),
         [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
         realtime=False,
         random_seed=config.seed,
         game_time_limit=config.time_limit,
+        save_replay_as=str(config.replay_path),
     )
     if bot.metrics:   # None if the game never started
-        config.out.mkdir(parents=True, exist_ok=True)
         bot.metrics.save(config.result_path)
 
 
