@@ -62,3 +62,9 @@ def test_planner_flags_reach_enhsp(tmp_path):
     assert plan.actions
     plan, *_, status = generate_plan_from_file(DOMAIN_PATH, path, "-h hadd -s gbfs -nosuchflag")
     assert (plan, status) == (None, "INTERNAL_ERROR")
+
+
+def test_abyssal_reef_comes_from_the_repository():
+    game_map = run.find_map("AbyssalReefLE")
+    assert game_map.path == REPO_ROOT / "maps" / "AbyssalReefLE.SC2Map"
+    assert game_map.data[:3] == b"MPQ"

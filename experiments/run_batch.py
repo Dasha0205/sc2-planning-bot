@@ -3,6 +3,7 @@ A series of games over a grid of run.py options, each game in its own process
 so that a crashed or hung StarCraft II does not stop the series.
 
     python experiments/run_batch.py --name T8.1_medium --difficulty Medium --games 10
+    python experiments/run_batch.py --name ablation --planner enhsp fast-downward --games 20
 
 Results go to runs/<name>/: <run-id>.json and .log per game, config.json for the
 series and progress.csv with one row per finished game. Running the same command
@@ -30,7 +31,10 @@ from utils.run_config import current_commit  # noqa: E402
 RUN_PY = [sys.executable, str(REPO_ROOT / "run.py")]
 
 # run.py options that take a list of values; the grid is their product.
-GRID = ("difficulty", "map", "race", "domain", "planner_config")
+GRID = ("difficulty", "map", "race", "domain", "planner", "planner_config")
+# The scenario of a game; the seed depends only on it, so planners and domains
+# compared in one series play the same seeds.
+SCENARIO = ("difficulty", "map", "race")
 
 CSV_FIELDS = [
     "run_id", *GRID, "seed", "status", "result", "game_time", "wall_seconds", "finished_at",
@@ -42,7 +46,7 @@ def parse_args(argv=None):
     parser.add_argument("--name", required=True, help="series name, the folder in runs/")
     parser.add_argument("--games", type=int, default=1, help="games per grid point")
     parser.add_argument("--difficulty", nargs="+", default=["VeryEasy"])
-    for option in ("map", "race", "domain"):
+    for option in ("map", "race", "domain", "planner"):
         parser.add_argument(f"--{option}", nargs="+", default=[None])
     # Flags start with "-", so each config is its own --planner-config="-h hmrp -s gbfs".
     parser.add_argument("--planner-config", action="append",
@@ -61,17 +65,22 @@ def parse_args(argv=None):
 
 
 def plan_games(args, base_seed):
-    """Every grid point args.games times, with run ids naming what varies."""
+    """
+    Every grid point args.games times, with run ids naming what varies. Game k
+    of a scenario has the same seed under every planner, domain and config.
+    """
     varying = [option for option in GRID[1:] if len(getattr(args, option)) > 1]
+    scenarios = list(itertools.product(*(getattr(args, option) for option in SCENARIO)))
     games = []
     for point in itertools.product(*(getattr(args, option) for option in GRID)):
         options = dict(zip(GRID, point))
         label = "_".join([options["difficulty"], *(_label(options[o]) for o in varying)])
+        first = scenarios.index(tuple(options[o] for o in SCENARIO)) * args.games
         for k in range(1, args.games + 1):
             games.append({
                 "run_id": f"{label}_{k}",
                 **options,
-                "seed": base_seed + len(games),
+                "seed": base_seed + first + k - 1,
             })
     return games
 

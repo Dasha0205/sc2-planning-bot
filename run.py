@@ -20,6 +20,9 @@ from planning.planner import CLASSICAL_DOMAIN_PATH, PLANNERS, PLANNING_DIR
 from utils.run_config import REPO_ROOT, RunConfig, current_commit
 
 RACES = [race.name for race in Race if race != Race.NoRace]
+# Maps shipped with the repository (AbyssalReefLE, from Orava's attachment)
+# are loaded from here; any other name from the StarCraft II Maps folder.
+MAPS_DIR = REPO_ROOT / "maps"
 
 
 def parse_config(argv=None):
@@ -59,6 +62,11 @@ def parse_config(argv=None):
     return config
 
 
+def find_map(name):
+    local = MAPS_DIR / f"{name}.SC2Map"
+    return maps.Map(local) if local.is_file() else maps.get(name)
+
+
 def resolve_domain(parser, name):
     for path in (Path(name), PLANNING_DIR / name):
         if path.is_file():
@@ -77,7 +85,7 @@ def main(argv=None):
     config = parse_config(argv)
     bot = PlanningBot(config)
     run_game(
-        maps.get(config.map),
+        find_map(config.map),
         [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
         realtime=False,
         random_seed=config.seed,

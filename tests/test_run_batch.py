@@ -76,3 +76,22 @@ def test_options_reach_run_py(tmp_path):
         "Medium", "domain_numeric_v4.pddl", "-h hmrp -s gbfs")
     assert (config.seed, config.time_limit, config.run_id, config.out) == (
         7, 1800, "Medium_h-hmrp-s-gbfs_1", tmp_path)
+
+
+def test_planners_in_one_series_play_the_same_seeds(tmp_path):
+    args = run_batch.parse_args([
+        "--name", "x", "--games", "2", "--difficulty", "VeryEasy", "Medium",
+        "--planner", "enhsp", "fast-downward",
+    ])
+    games = run_batch.plan_games(args, base_seed=100)
+    seeds = {g["run_id"]: g["seed"] for g in games}
+    assert seeds == {
+        "VeryEasy_enhsp_1": 100, "VeryEasy_enhsp_2": 101,
+        "VeryEasy_fast-downward_1": 100, "VeryEasy_fast-downward_2": 101,
+        "Medium_enhsp_1": 102, "Medium_enhsp_2": 103,
+        "Medium_fast-downward_1": 102, "Medium_fast-downward_2": 103,
+    }
+
+    classical = next(g for g in games if g["planner"] == "fast-downward")
+    config = run.parse_config(run_batch.run_py_options(classical, tmp_path, args))
+    assert (config.planner, config.domain.name) == ("fast-downward", "domain_classical.pddl")

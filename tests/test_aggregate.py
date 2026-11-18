@@ -62,3 +62,29 @@ def test_army_over_time_skips_games_already_over():
         "snapshots": snapshots,
     })
     assert (game.army_at(3), game.army_at(6), game.army_at(9)) == (18, 36, None)
+
+
+def test_orava_measures():
+    snapshots = [
+        {"game_time": 0, "minerals": 50, "gas": 0, "marines": 0, "marauders": 0, "tanks": 0},
+        {"game_time": 180, "minerals": 300, "gas": 100, "marines": 4, "marauders": 1, "tanks": 1},
+        {"game_time": 360, "minerals": 900, "gas": 300, "army_cost": 1500},
+    ]
+    game = aggregate.Game(Path("g.json"), {
+        "events": [
+            {"kind": "plan_generated", "detail": "", "solve_time": 1.0},
+            {"kind": "plan_generated", "detail": "", "solve_time": 3.0},
+            {"kind": "game_end", "detail": "Result.Victory", "game_time": 400.0},
+        ],
+        "snapshots": snapshots,
+    })
+    assert game.value_at(3, aggregate.unspent) == 400
+    assert game.value_at(3, aggregate.army_cost) == 4 * 50 + 125 + 275
+    assert game.value_at(6, aggregate.army_cost) == 1500
+    assert game.value_at(9, aggregate.army_cost) is None   # the game was over
+    assert game.replan_interval() == 200
+
+    summary = aggregate.summary_row(game.group, [game])
+    assert (summary["game_time_mean"], summary["replan_interval_mean"], summary["solve_time_mean"]) == (
+        400.0, 200.0, 2.0)
+    assert (summary["R_6min_mean"], summary["V_3min_mean"], summary["V_3min_sd"]) == (1200, 600, "")

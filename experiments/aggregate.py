@@ -2,7 +2,11 @@
 Summary of a series of games: one row per game (games.csv) and one per grid
 point (summary.csv, summary.md) with the win rate and its 95 % Wilson interval,
 planning time, plan shape, planner vs reactive actions, time to the first
-attack, floating bank and army value over time.
+attack, floating bank and army value over time. A second table repeats
+Orava's measures (his thesis, §6.1, fig. 6.8–6.9) so the two works compare one
+to one: win rate, mean game length, game seconds between replans, mean
+planning time, and over time the unspent resources R(t) and the minerals + gas
+of the live army V(t).
 
     python experiments/aggregate.py runs/T2.5_check [more folders or files]
 
@@ -17,8 +21,11 @@ import math
 import statistics
 from pathlib import Path
 
-GRID = ("difficulty", "race", "domain", "planner_config")
+GRID = ("difficulty", "map", "race", "domain", "planner", "planner_config")
 ARMY_MINUTES = (3, 6, 9, 12, 15)
+# Unit costs (minerals + gas) for V(t) in games recorded before snapshots
+# carried the score's army_cost; units still in production are not counted.
+UNIT_COSTS = {"marines": 50, "marauders": 125, "tanks": 275}
 Z_95 = 1.959964
 
 
@@ -81,11 +88,22 @@ class Game:
 
     def army_at(self, minute):
         """army_value at the last snapshot by that minute; None if the game was over."""
+        return self.value_at(minute, lambda s: s.get("army_value"))
+
+    def value_at(self, minute, value):
+        """value(snapshot) at the last snapshot by that minute; None if the game was over."""
         t = minute * 60
         if self.end.get("game_time", 0) < t:
             return None
-        before = [s for s in self.snapshots if s["game_time"] <= t and "army_value" in s]
-        return before[-1]["army_value"] if before else None
+        before = [v for s in self.snapshots if s["game_time"] <= t
+                  if (v := value(s)) is not None]
+        return before[-1] if before else None
+
+    def replan_interval(self):
+        """Game seconds per plan, Orava's plan stability."""
+        if not self.plans or not self.end.get("game_time"):
+            return None
+        return self.end["game_time"] / len(self.plans)
 
     def row(self):
         lengths = [p["plan_length"] for p in self.plans if "plan_length" in p]
@@ -119,7 +137,30 @@ class Game:
             "peak_army_value": max(
                 (s["army_value"] for s in self.snapshots if "army_value" in s), default=""
             ),
+            "replan_interval": _round(self.replan_interval(), 1),
+            "unspent_mean": _round(statistics.mean(map(unspent, self.snapshots)), 1)
+            if self.snapshots else "",
+            "peak_army_cost": max(
+                (v for v in map(army_cost, self.snapshots) if v is not None), default=""
+            ),
         }
+
+
+def unspent(snapshot):
+    """R(t): minerals + gas in the bank."""
+    return snapshot["minerals"] + snapshot["gas"]
+
+
+def army_cost(snapshot):
+    """V(t): minerals + gas of the live army."""
+    if "army_cost" in snapshot:
+        return snapshot["army_cost"]
+    if all(unit in snapshot for unit in UNIT_COSTS):
+        return sum(snapshot[unit] * cost for unit, cost in UNIT_COSTS.items())
+    return None
+
+
+ORAVA_SERIES = {"R": unspent, "V": army_cost}
 
 
 def _round(value, digits=3):
@@ -157,6 +198,7 @@ def summary_row(group, games):
         "minerals_floated_mean": _round(statistics.mean(numbers("minerals_floated")))
         if numbers("minerals_floated") else "",
     }
+    summary.update(orava_columns(games, numbers))
     for minute in ARMY_MINUTES:
         values = [v for v in (g.army_at(minute) for g in games) if v is not None]
         summary[f"army_{minute}min_mean"] = _round(statistics.mean(values), 1) if values else ""
@@ -165,6 +207,28 @@ def summary_row(group, games):
         )
         summary[f"army_{minute}min_games"] = len(values)
     return summary
+
+
+def orava_columns(games, numbers):
+    """Orava's measures of one grid point: means, as his notebook takes them."""
+    solve_times = [t for g in games for t in g.solve_times]
+    columns = {
+        "game_time_mean": _mean(numbers("game_time"), 1),
+        "replan_interval_mean": _mean(numbers("replan_interval"), 1),
+        "solve_time_mean": _mean(solve_times, 3),
+    }
+    for name, value in ORAVA_SERIES.items():
+        for minute in ARMY_MINUTES:
+            values = [v for v in (g.value_at(minute, value) for g in games) if v is not None]
+            columns[f"{name}_{minute}min_mean"] = _mean(values, 1)
+            columns[f"{name}_{minute}min_sd"] = (
+                round(statistics.stdev(values), 1) if len(values) > 1 else ""
+            )
+    return columns
+
+
+def _mean(values, digits):
+    return round(statistics.mean(values), digits) if values else ""
 
 
 def load_games(paths):
@@ -213,9 +277,36 @@ def write_markdown(path, summaries, games):
     ]
     lines.append(_table(header, body))
 
+    lines += ["", "## Orava's measures (his §6.1, fig. 6.8–6.9)", ""]
+    orava = [
+        ("Group", lambda s: " / ".join(s[o] for o in GRID)),
+        ("Games", lambda s: s["games"]),
+        ("Win rate, %", lambda s: f"{s['win_rate']:.0%}"),
+        ("Game length mean, s", lambda s: s["game_time_mean"]),
+        ("Between replans, s", lambda s: s["replan_interval_mean"]),
+        ("Planning time mean, s", lambda s: s["solve_time_mean"]),
+    ]
+    lines.append(_table([c for c, _ in orava], [[f(s) for _, f in orava] for s in summaries]))
+    for name, title in (("R", "Unspent minerals + gas R(t)"), ("V", "Army minerals + gas V(t)")):
+        lines += ["", f"### {title} (mean ± SD over games still running)", ""]
+        header = ["Group"] + [f"{m} min" for m in ARMY_MINUTES]
+        body = [
+            [" / ".join(s[o] for o in GRID)] + [
+                _mean_sd(s[f"{name}_{m}min_mean"], s[f"{name}_{m}min_sd"]) for m in ARMY_MINUTES
+            ]
+            for s in summaries
+        ]
+        lines.append(_table(header, body))
+
     lines += ["", "## Games", ""]
     lines += [f"- `{g.path.as_posix()}`: {g.result or '?'} at {g.end.get('game_time', '?')} s" for g in games]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _mean_sd(mean, sd):
+    if mean == "":
+        return ""
+    return f"{mean:g} ± {sd:g}" if sd != "" else f"{mean:g}"
 
 
 def _pair(a, b):

@@ -40,6 +40,20 @@ class _Units:
         return Group([None] * self.counts.get(type_id, 0))
 
 
+class _Score:
+    """The ScoreDetails fields a snapshot reads; every other one is 0."""
+
+    used_minerals_army = 300
+    used_vespene_army = 125
+    collected_minerals = 2000
+    collected_vespene = 400
+    lost_minerals_army = 100
+    lost_vespene_technology = 50
+
+    def __getattr__(self, name):
+        return 0
+
+
 class _Bot:
     """A game clock, a small army and two buildings, enough for snapshots."""
 
@@ -52,7 +66,7 @@ class _Bot:
     supply_cap = 15
 
     def __init__(self):
-        self.state = SimpleNamespace(game_loop=0)
+        self.state = SimpleNamespace(game_loop=0, score=_Score())
         self.units = _Units({UnitTypeId.MARINE: 3, UnitTypeId.SIEGETANKSIEGED: 1})
         self.workers = Group([None] * 12)
         self.structures = Group([
@@ -118,6 +132,7 @@ def test_snapshot_counts_army_and_ready_structures():
     assert (snap["marines"], snap["marauders"], snap["tanks"]) == (3, 0, 1)
     assert snap["army_value"] == 3 * 1 + 1 * 3
     assert snap["scvs"] == 12
+    assert (snap["army_cost"], snap["collected"], snap["lost"]) == (425, 2400, 150)
     assert snap["structures"] == {"COMMANDCENTER": 1, "BARRACKS": 1}
 
 

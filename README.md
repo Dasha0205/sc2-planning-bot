@@ -102,7 +102,7 @@ Prerequisites:
 - **Python 3.14** — the version the project is developed and tested with.
 - **Java 17 or newer** on `PATH` — ENHSP is a Java program; `up-enhsp` calls it through the JVM. Check with `java -version`.
 - **StarCraft II** (the free Starter Edition is enough), installed in the default location or pointed to by the `SC2PATH` environment variable.
-- **Maps** — the code asks for `AcropolisLE`, which is in the *Ladder 2019 Season 3* pack from [Blizzard's s2client-proto](https://github.com/Blizzard/s2client-proto#map-packs). The archives are password-protected; the password is `iagreetotheeula` (accepting the AI and Machine Learning License). Unzip into `StarCraft II/Maps/`, creating the `Maps` folder if a fresh install does not have one.
+- **Maps** — the code asks for `AcropolisLE`, which is in the *Ladder 2019 Season 3* pack from [Blizzard's s2client-proto](https://github.com/Blizzard/s2client-proto#map-packs). The archives are password-protected; the password is `iagreetotheeula` (accepting the AI and Machine Learning License). Unzip into `StarCraft II/Maps/`, creating the `Maps` folder if a fresh install does not have one. `AbyssalReefLE`, the map of the main experiments (as in Orava's thesis, from his attachment), ships in `maps/` and needs no install: `run.py` loads a map from `maps/` first.
 
 Install the pinned runtime dependencies with one command:
 
@@ -134,9 +134,10 @@ A series of games over a grid of these options, each game in its own process:
 ```bash
 python experiments/run_batch.py --name T8.1_medium --difficulty Medium --games 10
 python experiments/run_batch.py --name grid --difficulty Easy Medium --race Zerg Protoss --games 5     --planner-config="-h hadd -s gbfs" --planner-config="-h hmrp -s gbfs"
+python experiments/run_batch.py --name ablation --map AbyssalReefLE --difficulty Medium --planner enhsp fast-downward --games 20
 ```
 
-Every combination is played `--games` times, with consecutive seeds from `--seed` (random if omitted). `runs/<name>/` gets `<run-id>.json` and `.log` per game (run ids name what varies, e.g. `Easy_Zerg_3`), `config.json` for the series and `progress.csv` with a row per finished game (`status` ok / crashed / timeout, `result`, game and wall time). A game ends as a Tie after `--time-limit` game seconds (default 1 800); a hung one is killed with its StarCraft II after `--wall-timeout` real seconds (default 1 200). A crash or timeout is recorded and the series goes on; rerunning the same command plays only games without a result, with the same seeds. The runner refuses to start on uncommitted tracked changes unless `--allow-dirty`.
+Every combination is played `--games` times, with consecutive seeds from `--seed` (random if omitted). The seed depends only on the scenario (difficulty, map, race) and the game number, so the planners, domains and configs of one series play the same seeds. `runs/<name>/` gets `<run-id>.json` and `.log` per game (run ids name what varies, e.g. `Easy_Zerg_3`), `config.json` for the series and `progress.csv` with a row per finished game (`status` ok / crashed / timeout, `result`, game and wall time). A game ends as a Tie after `--time-limit` game seconds (default 1 800); a hung one is killed with its StarCraft II after `--wall-timeout` real seconds (default 1 200). A crash or timeout is recorded and the series goes on; rerunning the same command plays only games without a result, with the same seeds. The runner refuses to start on uncommitted tracked changes unless `--allow-dirty`.
 
 Summarise one or more series (or single metrics files):
 
@@ -144,7 +145,7 @@ Summarise one or more series (or single metrics files):
 python experiments/aggregate.py runs/T8.1_medium [more folders or files] [--out folder]
 ```
 
-It writes `games.csv` (one row per game: config, result, planning time, plan length, share of waits, planned vs reactive actions with defence and supply apart, refusals, time to the first `attack`, floating bank, peak army) and `summary.csv` / `summary.md` (one row per grid point: win rate with its 95 % Wilson interval, median game length, `solve_time` median / p90 / p95 over all plans, waits, planned vs reactive actions per game, time to the first attack, mean `minerals_floated`, army value at 3 / 6 / 9 / 12 / 15 game minutes as mean and IQR over the games still running). Files from before E2 are read as far as their events go.
+It writes `games.csv` (one row per game: config, result, planning time, plan length, share of waits, planned vs reactive actions with defence and supply apart, refusals, time to the first `attack`, floating bank, peak army) and `summary.csv` / `summary.md` (one row per grid point: win rate with its 95 % Wilson interval, median game length, `solve_time` median / p90 / p95 over all plans, waits, planned vs reactive actions per game, time to the first attack, mean `minerals_floated`, army value at 3 / 6 / 9 / 12 / 15 game minutes as mean and IQR over the games still running). A second table repeats Orava's measures (§6.1, fig. 6.8–6.9 of his thesis): win rate, mean game length, game seconds between replans, mean planning time, and at the same minutes the unspent minerals + gas R(t) and the minerals + gas of the live army V(t) (from the game's score, mean ± SD). Files from before E2 are read as far as their events go.
 
 Thesis figures, as PDF into `thesis/figures/` (A4 text width, fonts ≥ 9 pt, no titles):
 

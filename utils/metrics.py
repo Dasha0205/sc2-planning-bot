@@ -12,6 +12,22 @@ METRICS_PATH = Path(__file__).resolve().parent.parent / "metrics.json"
 # A bank above this many minerals counts as floating (unspent) money.
 FLOAT_THRESHOLD = 500
 
+def score_values(score):
+    """
+    Minerals + gas from the game's score, as Orava reads them from replays:
+    the live army (V(t)), everything mined, and everything lost.
+    """
+    return {
+        "army_cost": int(score.used_minerals_army + score.used_vespene_army),
+        "collected": int(score.collected_minerals + score.collected_vespene),
+        "lost": int(sum(
+            getattr(score, f"lost_{resource}_{kind}")
+            for resource in ("minerals", "vespene")
+            for kind in ("army", "economy", "technology")
+        )),
+    }
+
+
 class MetricsCollector:
     """
     Events and snapshots stamped with the game clock (game_time, game_loop);
@@ -80,6 +96,7 @@ class MetricsCollector:
             "marauders": marauders,
             "tanks": tanks,
             "army_value": army_value(bot),
+            **score_values(bot.state.score),
             "structures": dict(Counter(s.type_id.name for s in bot.structures.ready)),
         })
 

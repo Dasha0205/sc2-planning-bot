@@ -99,7 +99,8 @@
           "type": "object",
           "required": [
             "minerals", "gas", "minerals_floated", "supply_used", "supply_cap",
-            "scvs", "marines", "marauders", "tanks", "army_value", "structures"
+            "scvs", "marines", "marauders", "tanks", "army_value",
+            "army_cost", "collected", "lost", "structures"
           ],
           "properties": {
             "minerals": {"$ref": "#/$defs/count"},
@@ -112,6 +113,9 @@
             "marauders": {"$ref": "#/$defs/count"},
             "tanks": {"$ref": "#/$defs/count"},
             "army_value": {"$ref": "#/$defs/count"},
+            "army_cost": {"$ref": "#/$defs/count"},
+            "collected": {"$ref": "#/$defs/count"},
+            "lost": {"$ref": "#/$defs/count"},
             "structures": {
               "type": "object",
               "propertyNames": {"pattern": "^[A-Z0-9_]+$"},
