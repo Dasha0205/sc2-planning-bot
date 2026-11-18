@@ -74,10 +74,13 @@ def solve_temporal(problem_file):
     started = time.perf_counter()
     command = ["java", "-jar", ENHSP_JAR, "-o", str(TEMPORAL_DOMAIN), "-f", str(problem_file), *TEMPORAL_FLAGS]
     try:
-        output = subprocess.run(command, capture_output=True, text=True, timeout=PLAN_TIMEOUT_SECONDS).stdout
+        finished = subprocess.run(command, capture_output=True, text=True, timeout=PLAN_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         return {"status": "TIMEOUT", "solve_time": round(time.perf_counter() - started, 3)}
     row = {"solve_time": round(time.perf_counter() - started, 3)}
+    if finished.returncode != 0:
+        return {**row, "status": "INTERNAL_ERROR"}
+    output = finished.stdout
     makespan = re.search(r"Elapsed Time: ([\d.]+)", output)
     if not makespan:
         return {**row, "status": "UNSOLVABLE_PROVEN"}

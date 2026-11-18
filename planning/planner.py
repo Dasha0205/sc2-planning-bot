@@ -98,23 +98,29 @@ def _solve_with_enhsp(domain_path, problem_path, params):
     for the plan's actions. Through unified-planning the call took ~1.1 s, ~0.45 s
     of it parsing and rewriting PDDL that ENHSP then parses again.
     """
-    plan_file = Path(tempfile.mkdtemp()) / "plan.txt"
-    command = ["java", "-jar", ENHSP_JAR, "-o", str(domain_path), "-f", str(problem_path),
-               "-sp", str(plan_file), "-npm", *(enhsp_flags(params) or "-h hadd -s gbfs").split()]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    problem = PDDLReader().parse_problem(str(domain_path), str(problem_path))
-    try:
-        output, _ = process.communicate(timeout=PLAN_TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired:
-        _kill(process)
-        process.communicate()
-        return problem, None, None, "TIMEOUT"
+    with tempfile.TemporaryDirectory() as folder:
+        plan_file = Path(folder) / "plan.txt"
+        command = ["java", "-jar", ENHSP_JAR, "-o", str(domain_path), "-f", str(problem_path),
+                   "-sp", str(plan_file), "-npm", *(enhsp_flags(params) or "-h hadd -s gbfs").split()]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        try:
+            problem = PDDLReader().parse_problem(str(domain_path), str(problem_path))
+            output, _ = process.communicate(timeout=PLAN_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired:
+            _kill(process)
+            process.communicate()
+            return problem, None, None, "TIMEOUT"
+        except Exception:
+            _kill(process)
+            process.communicate()
+            raise
 
-    if process.returncode != 0:
-        return problem, None, None, "INTERNAL_ERROR"
-    if not plan_file.exists():
-        return problem, None, None, "UNSOLVABLE_PROVEN"
-    names = re.findall(r"\((\S+?)\)", plan_file.read_text())
+        if process.returncode != 0:
+            return problem, None, None, "INTERNAL_ERROR"
+        if not plan_file.exists():
+            return problem, None, None, "UNSOLVABLE_PROVEN"
+        names = re.findall(r"\((\S+?)\)", plan_file.read_text())
+
     plan = SequentialPlan([ActionInstance(problem.action(name)) for name in names])
     match = ENHSP_PLANNING_TIME.search(output)
     return problem, plan, int(match.group(1)) / 1000 if match else None, "SOLVED_SATISFICING"

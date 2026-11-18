@@ -5,11 +5,14 @@ aggregate.py reads like ours — his planning times as plan_generated events, a
 snapshot every 10 game seconds with the same score values, the game's end.
 
     python experiments/orava_bot.py --src <his src folder> --difficulty Medium --seed 7 \
-        --run-id Medium_1 --out runs/T5.5_orava [--domain expert|baseline] [--realtime]
+        --run-id Medium_1 --out runs/T5.5_orava [--domain expert|baseline] [--no-realtime]
 
 His code is not part of this repository; --src points at the unpacked attachment.
-It runs realtime=False like our bot unless --realtime (his own experiments ran in
-real time, so his planning latency delayed his actions there and does not here).
+It plays in real time, as his own experiments did: his planner runs in a thread
+(asyncio.to_thread) while the bot idles, so with realtime=False the game would
+run on during every plan, faster than his bot was built for. Ours plans in the
+step itself and the game waits for it either way. A real-time game to the
+1 800 s limit takes ~1 300 s of wall time: give run_batch a --wall-timeout above it.
 """
 
 import argparse
@@ -38,7 +41,7 @@ def parse_args(argv=None):
     parser.add_argument("--time-limit", type=int, default=1800)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--realtime", action="store_true")
+    parser.add_argument("--realtime", action=argparse.BooleanOptionalAction, default=True)
     # run_batch passes these for our bot; his has one planner.
     parser.add_argument("--planner")
     parser.add_argument("--planner-config")
@@ -117,21 +120,23 @@ def main(argv=None):
         "solve_time": round(seconds, 3)})))
 
     local = MAPS_DIR / f"{args.map}.SC2Map"
-    run_game(
-        maps.Map(local) if local.is_file() else maps.get(args.map),
-        [Bot(Race.Terran, measured), Computer(Race[args.race], Difficulty[args.difficulty])],
-        realtime=args.realtime, random_seed=args.seed, game_time_limit=args.time_limit,
-    )
-
     config = {
         "difficulty": args.difficulty, "map": args.map, "race": args.race,
         "domain": f"orava/domain_{args.domain}.pddl", "planner": "orava fast-downward",
-        "planner_config": "realtime" if args.realtime else None, "seed": args.seed,
+        "planner_config": None, "realtime": args.realtime, "seed": args.seed,
         "time_limit": args.time_limit, "run_id": args.run_id, "commit": current_commit(),
         "started_at": datetime.now().isoformat(timespec="seconds"),
     }
-    (out / f"{args.run_id}.json").write_text(json.dumps(
-        {"config": config, "plan": [], "events": events, "snapshots": snapshots}, indent=2))
+    try:
+        run_game(
+            maps.Map(local) if local.is_file() else maps.get(args.map),
+            [Bot(Race.Terran, measured), Computer(Race[args.race], Difficulty[args.difficulty])],
+            realtime=args.realtime, random_seed=args.seed, game_time_limit=args.time_limit,
+        )
+    finally:
+        # Kept even if his bot or the game fails; run_batch then records a crash.
+        (out / f"{args.run_id}.json").write_text(json.dumps(
+            {"config": config, "plan": [], "events": events, "snapshots": snapshots}, indent=2))
 
 
 if __name__ == "__main__":
