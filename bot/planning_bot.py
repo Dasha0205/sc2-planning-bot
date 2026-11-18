@@ -2,7 +2,8 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-from planning.planner import FALLBACK_PLANNER_CONFIG, generate_plan_from_file
+from planning.planner import FALLBACK_PLANNER_CONFIG, solve_problem
+from planning.plan_order import PlanOrder
 from planning.classical_problem import write_classical_problem
 from planning.dynamic_problem import (
     ATTACK_THRESHOLD,
@@ -364,10 +365,13 @@ class PlanningBot(BotAI):
         # Current high-level macro stage
         self.stage = 0
 
-        # Current PDDL plan
+        # Current PDDL plan, and its order checked against the model (PlanOrder).
         self.plan = []
+        self.plan_order = None
         self.index = 0
         self.action_issued = False
+        # Actions the game held back since the last one was issued.
+        self.held = set()
 
         # Game state captured when the current action was issued; the
         # completion condition is judged against it.
@@ -418,8 +422,10 @@ class PlanningBot(BotAI):
 
         self.stage = 0
         self.plan = []
+        self.plan_order = None
         self.index = 0
         self.action_issued = False
+        self.held = set()
         self.issue_baseline = {}
         self.issue_deadline = None
         self.forced_replans = 0
@@ -509,7 +515,7 @@ class PlanningBot(BotAI):
                         army=home,
                     )
 
-                generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
+                problem, generated_plan, solve_time, enhsp_time, status = solve_problem(
                     self.config.domain,
                     path,
                     planner_config,
@@ -531,24 +537,14 @@ class PlanningBot(BotAI):
                 return self._planner_failed(failure, fields)
             self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
 
-        # IMPORTANT:
-        # Normalize planner actions:
-        #
-        # build_supply_depot()
-        #
-        # becomes:
-        #
-        # build_supply_depot
-        #
-        # This makes COMPLETION_CONDITIONS lookup work.
-        self.plan = [
-            str(action).split("(")[0]
-            for action in generated_plan.actions
-        ]
+        # Action names without parameters, as COMPLETION_CONDITIONS keys them.
+        self.plan_order = PlanOrder(problem, generated_plan)
+        self.plan = self.plan_order.names
 
         self.index = 0
         self.action_issued = False
         self.issue_deadline = None
+        self.held = set()
 
         print(
             f"[PLAN STAGE {self.stage}] "
@@ -575,6 +571,7 @@ class PlanningBot(BotAI):
         )
 
         self.plan = []
+        self.plan_order = None
         self.index = 0
         self.action_issued = False
         self.issue_deadline = None
@@ -692,6 +689,32 @@ class PlanningBot(BotAI):
     # ========================================================
     # Recovery from an action that cannot be issued
     # ========================================================
+
+    def _pull_forward(self, action):
+        """
+        The game holds `action` back (its building is under construction, every
+        queue is full): issue a later action of the same plan first, if the
+        planner's model says the reordered plan still holds (PlanOrder).
+
+        Without this one held action stopped the whole plan: in ten VeryEasy
+        games and five Medium ones the plan stood ~290 s of an ~810 s game while
+        income the model never saw piled up in the bank (experiments/LOG.md).
+        Nothing is decided here; only actions the planner chose move, and only
+        where its own model allows.
+        """
+
+        if action in self.held or self.plan_order is None:
+            return False
+        self.held.add(action)
+
+        moved = self.plan_order.pull_forward(self.index, self.held | set(WAIT_ACTIONS))
+        if moved is None:
+            return False
+
+        self.plan = self.plan_order.names
+        self.issue_deadline = None
+        self.metrics.log_event("plan_reordered", f"{moved} before {action}", held=action, moved=moved)
+        return True
 
     def _waiting_on_construction(self):
         return (
@@ -847,11 +870,15 @@ class PlanningBot(BotAI):
                 self.action_issued = True
                 self.issue_deadline = None
                 self.forced_replans = 0
+                self.held = set()
 
                 self.metrics.log_event(
                     "plan_issued",
                     action
                 )
+
+            elif self.last_issue_waiting and self._pull_forward(action):
+                pass
 
             elif self.time >= self.issue_deadline and not self._waiting_on_construction():
                 await self._handle_unissuable(action)

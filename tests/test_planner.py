@@ -16,7 +16,7 @@ from bot.planning_bot import STAGE_GOALS, WAIT_ACTIONS, PlanningBot
 from bot.smoke import _Group, _OpeningBot
 from planning.dynamic_problem import write_dynamic_problem
 from planning import planner
-from planning.planner import DOMAIN_PATH, generate_plan_from_file
+from planning.planner import DOMAIN_PATH, generate_plan_from_file, solve_problem
 from utils.metrics import MetricsCollector
 from utils.run_config import RunConfig
 
@@ -131,16 +131,17 @@ def _jvms():
 
 def _planner_answers(monkeypatch, tmp_path, *answers):
     """Replace ENHSP with scripted (plan?, status) answers; returns the configs asked."""
-    asked, real_plan = [], generate_plan_from_file(
-        DOMAIN_PATH, write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0], tmp_path / "real.pddl"))[0]
+    asked = []
+    real_problem, real_plan, *_ = solve_problem(
+        DOMAIN_PATH, write_dynamic_problem(_OpeningBot(), STAGE_GOALS[0], tmp_path / "real.pddl"))
     queue = list(answers)
 
     def fake(domain, problem, params=None, planner="enhsp"):
         asked.append(params)
         solved, status = queue.pop(0)
-        return (real_plan if solved else None), 10.0, None, status
+        return real_problem, (real_plan if solved else None), 10.0, None, status
 
-    monkeypatch.setattr(planning_bot, "generate_plan_from_file", fake)
+    monkeypatch.setattr(planning_bot, "solve_problem", fake)
     return asked
 
 

@@ -67,6 +67,11 @@ def generate_plan_from_file(domain_path, problem_path, params=None, planner="enh
     found; solve_time_s is the whole call (PDDL parsing, planner process),
     enhsp_time_s ENHSP's own reported planning time (None for Fast Downward).
     """
+    return solve_problem(domain_path, problem_path, params, planner)[1:]
+
+
+def solve_problem(domain_path, problem_path, params=None, planner="enhsp"):
+    """generate_plan_from_file with the parsed problem first, for checking the plan later."""
     started = time.perf_counter()
     reader = PDDLReader()
     problem = reader.parse_problem(str(domain_path), str(problem_path))
@@ -83,6 +88,7 @@ def generate_plan_from_file(domain_path, problem_path, params=None, planner="enh
         PlanGenerationResultStatus.SOLVED_OPTIMALLY,
     )
     return (
+        problem,
         result.plan if solved else None,
         solve_time,
         _enhsp_time(result),
