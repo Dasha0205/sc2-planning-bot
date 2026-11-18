@@ -16,17 +16,17 @@
 | --- | --- | --- | --- | --- | --- |
 | VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 5 | 100% | 694.5 | 96.9 | 1.796 |
 
-### Unspent minerals + gas R(t) (mean ± SD over games still running)
+### Unspent minerals + gas R(t) (mean ± SD, n games still running)
 
 | Group | 3 min | 6 min | 9 min | 12 min | 15 min |
 | --- | --- | --- | --- | --- | --- |
-| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 382.4 ± 164.2 | 1314.6 ± 493 | 4246.8 ± 821.9 | 6300 | – |
+| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 382.4 ± 164.2 (n=5) | 1314.6 ± 493 (n=5) | 4246.8 ± 821.9 (n=5) | 6300 (n=1) | – |
 
-### Army minerals + gas V(t) (mean ± SD over games still running)
+### Army minerals + gas V(t) (mean ± SD, n games still running)
 
 | Group | 3 min | 6 min | 9 min | 12 min | 15 min |
 | --- | --- | --- | --- | --- | --- |
-| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 375 ± 55.9 | 1400 ± 128.7 | 3655 ± 520.9 | 7525 | – |
+| VeryEasy / AbyssalReefLE / Terran / planning/domain_numeric_v9.pddl / enhsp / - | 375 ± 55.9 (n=5) | 1400 ± 128.7 (n=5) | 3655 ± 520.9 (n=5) | 7525 (n=1) | – |
 
 ## Games
 

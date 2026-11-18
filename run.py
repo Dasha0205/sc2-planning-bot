@@ -85,16 +85,27 @@ def main(argv=None):
     config = parse_config(argv)
     bot = PlanningBot(config)
     config.out.mkdir(parents=True, exist_ok=True)
-    run_game(
-        find_map(config.map),
-        [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
-        realtime=False,
-        random_seed=config.seed,
-        game_time_limit=config.time_limit,
-        save_replay_as=str(config.replay_path),
-    )
+    try:
+        run_game(
+            find_map(config.map),
+            [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
+            realtime=False,
+            random_seed=config.seed,
+            game_time_limit=config.time_limit,
+            save_replay_as=str(config.replay_path),
+        )
+    except Exception as error:
+        # burnysc2 saves the replay after on_end without catching a closed
+        # connection; a game that has ended keeps its result without the replay.
+        if not game_ended(bot):
+            raise
+        print(f"[RUN] game over, replay not saved: {error!r}")
     if bot.metrics:   # None if the game never started
         bot.metrics.save(config.result_path)
+
+
+def game_ended(bot):
+    return bool(bot.metrics) and any(e["kind"] == "game_end" for e in bot.metrics.events)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ planner receives the ENHSP flags, and the result file carries the config.
 """
 
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 from unified_planning.shortcuts import get_environment
@@ -69,3 +70,39 @@ def test_abyssal_reef_comes_from_the_repository():
     game_map = run.find_map("AbyssalReefLE")
     assert game_map.path == REPO_ROOT / "maps" / "AbyssalReefLE.SC2Map"
     assert game_map.data[:3] == b"MPQ"
+
+
+class _EndedGame:
+    """A run_game stand-in: the game ends (on_end logs game_end), then saving the replay fails."""
+
+    def __init__(self, end=True):
+        self.end = end
+        self.kwargs = None
+
+    def __call__(self, game_map, players, **kwargs):
+        self.kwargs = kwargs
+        bot = players[0].ai
+        bot.metrics = SimpleNamespace(events=[], save=lambda path: path.write_text("{}"))
+        if self.end:
+            bot.metrics.events.append({"kind": "game_end"})
+        raise ConnectionResetError("closed while saving the replay")
+
+
+def test_a_failed_replay_save_keeps_the_result(tmp_path, monkeypatch):
+    fake = _EndedGame()
+    monkeypatch.setattr(run, "run_game", fake)
+    monkeypatch.setattr(run, "find_map", lambda name: None)
+
+    run.main(["--out", str(tmp_path), "--run-id", "g"])
+
+    assert fake.kwargs["save_replay_as"] == str(tmp_path / "g.SC2Replay")
+    assert (tmp_path / "g.json").exists()
+
+
+def test_a_game_that_never_ended_still_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(run, "run_game", _EndedGame(end=False))
+    monkeypatch.setattr(run, "find_map", lambda name: None)
+
+    with pytest.raises(ConnectionResetError):
+        run.main(["--out", str(tmp_path), "--run-id", "g"])
+    assert not (tmp_path / "g.json").exists()
