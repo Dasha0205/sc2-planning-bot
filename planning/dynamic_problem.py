@@ -196,18 +196,23 @@ def game_state(bot, army=None):
         "factory-time": factory_time,
         "attack-threshold": attack_threshold(
             marines + 2 * marauders + 3 * tanks, int(bot.supply_used), int(bot.supply_cap)),
+        # What the plan has cost so far (v10): every plan starts from nothing.
+        "total-cost": 0,
     }
 
 
-def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_PATH, army=None):
+def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_PATH, army=None,
+                          metric=False):
     """
     Creates a PDDL problem from the current game state, regenerated before every
     planning call. Only the fluents the domain declares are written, so older
-    domain versions stay usable for comparison.
+    domain versions stay usable for comparison. metric asks the planner to
+    minimise (total-cost), which domain v10 declares (T4.3).
     """
 
     state = game_state(bot, army)
     init = "\n        ".join(f"(= ({name}) {state[name]})" for name in domain_fluents(domain))
+    objective = "\n    (:metric minimize (total-cost))" if metric else ""
 
     text = f"""\
 (define (problem sc2-dynamic)
@@ -219,7 +224,7 @@ def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_
 
     (:goal
         {goal_expr}
-    )
+    ){objective}
 )
 """
 

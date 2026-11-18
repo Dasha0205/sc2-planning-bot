@@ -27,6 +27,23 @@ PLAN_TIMEOUT_SECONDS = 10
 FALLBACK_PLANNER_CONFIG = "-h hmrp -s gbfs"
 
 
+# Named ENHSP configurations compared in T4.2; a value that is not a name is
+# passed to ENHSP as flags. The opt-* ones search for a cheapest plan (A*).
+PLANNER_CONFIGS = {
+    "sat-hadd": "-h hadd -s gbfs",
+    "sat-hmrp": "-h hmrp -s gbfs",
+    "sat-hradd": "-h hradd -s gbfs",
+    "wastar-hadd": "-h hadd -s WAStar",
+    "opt-hmax": "-planner opt-hmax",
+    "opt-hrmax": "-planner opt-hrmax",
+}
+
+
+def enhsp_flags(config):
+    """ENHSP command-line flags for a configuration name or flags; None = its default."""
+    return PLANNER_CONFIGS.get(config, config)
+
+
 def _kill(process):
     # unified-planning stops a timed-out planner with CTRL_BREAK on Windows, which
     # a JVM answers with a thread dump and keeps searching at full CPU.
@@ -44,7 +61,7 @@ ENHSP_PLANNING_TIME = re.compile(r"Planning Time \(msec\): (\d+)")
 
 def generate_plan_from_file(domain_path, problem_path, params=None, planner="enhsp"):
     """
-    Solve the problem with ENHSP (`params` = its command-line flags) or Fast
+    Solve the problem with ENHSP (`params` = a PLANNER_CONFIGS name or its flags) or Fast
     Downward (`params` = an alias, e.g. "lama-first"); None = the default.
     Returns (plan, solve_time_s, enhsp_time_s, status): plan is None if none was
     found; solve_time_s is the whole call (PDDL parsing, planner process),
@@ -54,7 +71,7 @@ def generate_plan_from_file(domain_path, problem_path, params=None, planner="enh
     reader = PDDLReader()
     problem = reader.parse_problem(str(domain_path), str(problem_path))
     if planner == "enhsp":
-        options = {"params": params}
+        options = {"params": enhsp_flags(params)}
     else:
         options = {"fast_downward_alias": params} if params else {}
     with OneshotPlanner(name=planner, params=options) as engine:
