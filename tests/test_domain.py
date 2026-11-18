@@ -7,6 +7,7 @@ from collections import Counter
 
 import pytest
 from unified_planning.engines import PlanGenerationResultStatus
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.io import PDDLReader
 from unified_planning.shortcuts import OneshotPlanner, get_environment
 
@@ -137,8 +138,20 @@ def test_v11_limits_are_reached_but_not_passed(tmp_path):
     goal = "(and (>= (cc-count) 3) (>= (barracks-count) 12))"
     counts = Counter(solve(dict(STAGE_3_FLOATING, minerals=20000), goal, tmp_path))
     assert (counts["expand"], counts["build_barracks"]) == (2, 10)
-    with pytest.raises(AssertionError):
-        solve(dict(STAGE_3_FLOATING, minerals=20000), "(>= (barracks-count) 13)", tmp_path)
+
+    full = dict(STAGE_3_FLOATING, minerals=20000, **{"cc-count": 3, "barracks-count": 12})
+    problem_file = tmp_path / "full.pddl"
+    problem_file.write_text(
+        "(define (problem p) (:domain sc2-terran-macro) (:init "
+        + " ".join(f"(= ({name}) {value})" for name, value in full.items())
+        + ") (:goal (>= (attacks-launched) 1)))"
+    )
+    problem = PDDLReader().parse_problem(str(DOMAIN_PATH), str(problem_file))
+    simulator = UPSequentialSimulator(problem)
+    state = simulator.get_initial_state()
+    assert not simulator.is_applicable(state, problem.action("build_barracks"))
+    assert not simulator.is_applicable(state, problem.action("expand"))
+    assert simulator.is_applicable(state, problem.action("build_factory"))
 
 
 def test_maxed_supply_waives_the_bank_ceiling(tmp_path):
