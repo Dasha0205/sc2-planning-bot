@@ -159,44 +159,46 @@ class _Events:
         self.events.append((kind, detail))
 
 
-def test_the_planner_sees_only_the_army_at_home():
-    home, away = unit(UnitTypeId.MARAUDER), unit(UnitTypeId.SIEGETANK, NEAR_ENEMY)
-    bot = FakeBot(units=[home, away])
+def test_the_planner_sees_only_the_uncommitted_army_at_home():
+    fresh, sent, away = (unit(UnitTypeId.MARAUDER), unit(UnitTypeId.MARINE),
+                         unit(UnitTypeId.SIEGETANK, NEAR_ENEMY))
+    bot = FakeBot(units=[fresh, sent, away])
+    bot.committed = {sent.tag}
     bot.gas_buildings, bot.weapon_upgrades_done, bot.stimpack_done = Group(), 0, 0
-    home.assigned_harvesters = 0
     bot.cc.assigned_harvesters = 12
     bot.minerals = bot.vespene = bot.supply_used = bot.supply_cap = 0
 
     assert list(field_army(bot)) == [away]
-    state = game_state(bot, near_bases(bot, bot.units.of_type({UnitTypeId.MARAUDER, UnitTypeId.SIEGETANK})))
-    assert (state["marauder-count"], state["tank-count"]) == (1, 0)
+    state = game_state(bot, PlanningBot._home_army(bot))
+    assert (state["marine-count"], state["marauder-count"], state["tank-count"]) == (0, 1, 0)
 
 
-def test_the_attack_is_done_once_its_army_has_left_the_bases():
+def test_the_attack_is_committed_once_every_unit_sent_is_on_its_way():
     marine = unit(UnitTypeId.MARINE)
     bot = FakeBot(units=[marine])
-    bot.committed_value = 0
+    bot.committed, bot.committed_value = set(), 0
     bot.issue_baseline = {"sent": {marine.tag}, "army_value": 1, "deadline": 1e9}
 
     assert not COMPLETION_CONDITIONS["attack"](bot)
-    marine.position = NEAR_ENEMY
+    marine.orders = [TRAINING]
     assert COMPLETION_CONDITIONS["attack"](bot)
-    assert bot.committed_value == 1
+    assert bot.committed == {marine.tag} and bot.committed_value == 1
 
 
-def test_a_field_army_down_to_half_walks_home():
-    survivor = unit(UnitTypeId.MARINE, NEAR_ENEMY)
-    bot = FakeBot(units=[survivor], expansions=[ENEMY_START])
-    bot.metrics, bot.committed_value, bot.next_attack_order = _Events(), 1, 0.0
-    bot.attack_target = None
+def test_committed_units_down_to_half_walk_home_even_while_passing_a_base():
+    passing = unit(UnitTypeId.MARINE, idle=False)
+    ahead = unit(UnitTypeId.MARINE, NEAR_ENEMY)
+    bot = FakeBot(units=[passing, ahead], expansions=[ENEMY_START])
+    bot.metrics, bot.next_attack_order, bot.attack_target = _Events(), 0.0, None
+    bot.committed, bot.committed_value = {passing.tag, ahead.tag}, 2
+    bot._keep_attacking = lambda forces: PlanningBot._keep_attacking(bot, forces)
     follow = lambda: PlanningBot._follow_attack(bot)
-    bot._keep_attacking = lambda: PlanningBot._keep_attacking(bot)
 
     follow()
-    assert bot.committed_value == 1 and survivor.issued == [("attack", ENEMY_START)]
+    assert bot.committed and ahead.issued == [("attack", ENEMY_START)]
 
-    bot.committed_value = 2
+    bot.units.units.remove(passing)
     follow()
-    assert bot.committed_value == 0
-    assert survivor.issued[-1] == ("move", CC_AT)
+    assert not bot.committed and bot.committed_value == 0
+    assert ahead.issued[-1] == ("move", CC_AT)
     assert [kind for kind, _ in bot.metrics.events] == ["attack_retarget", "attack_resolved", "attack_retreat"]

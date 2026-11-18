@@ -9,7 +9,7 @@ from planning.dynamic_problem import (
     army_value,
     MAX_MINERAL_HARVESTERS_PER_BASE,
 )
-from bot.combat import advance_attack, army, defend, field_army, near_bases, retreat, stand_down
+from bot.combat import advance_attack, army, defend, near_bases, retreat, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 from utils.run_config import RunConfig
@@ -270,20 +270,21 @@ def _upgrade_done(action):
     return condition
 
 
-def _attack_departed(bot):
+def _attack_committed(bot):
     """
-    The domain's `attack` consumes the army, and the planner only sees the army
-    at the bases, so the action is done once the units it sent have left them.
-    The fight itself goes on outside the plan (_follow_attack): production
-    resumes at once instead of idling until the attack is decided.
+    The domain's `attack` consumes the army, and the planner never sees committed
+    units again, so the action is done once every unit sent is on its way (none
+    idles at home). The fight goes on outside the plan (_follow_attack):
+    production resumes at once instead of idling until the attack is decided.
     """
 
     sent = bot.issue_baseline.get("sent", set())
 
-    at_home = any(u.tag in sent for u in near_bases(bot, army(bot)))
-    if at_home and not _deadline_passed(bot, "attack"):
+    idle_at_home = any(u.tag in sent for u in near_bases(bot, army(bot)).idle)
+    if idle_at_home and not _deadline_passed(bot, "attack"):
         return False
 
+    bot.committed |= sent
     bot.committed_value += bot.issue_baseline.get("army_value", 0)
     return True
 
@@ -336,8 +337,8 @@ COMPLETION_CONDITIONS = {
     "research_weapons":       _upgrade_done("research_weapons"),
     "research_stimpack":      _upgrade_done("research_stimpack"),
 
-    # Attack: the army it sent has left the bases; the fight goes on outside the plan.
-    "attack":                 _attack_departed,
+    # Attack: every unit sent is on its way; the fight goes on outside the plan.
+    "attack":                 _attack_committed,
 }
 
 
@@ -383,6 +384,7 @@ class PlanningBot(BotAI):
         self.scouted = set()
         self.attack_target = None
         self.next_attack_order = 0.0
+        self.committed = set()
         self.committed_value = 0
         self.defending = False
 
@@ -416,6 +418,7 @@ class PlanningBot(BotAI):
         self.scouted = set()
         self.attack_target = None
         self.next_attack_order = 0.0
+        self.committed = set()
         self.committed_value = 0
         self.defending = False
         self.next_snapshot = 0.0
@@ -479,12 +482,12 @@ class PlanningBot(BotAI):
 
         for planner_config in configs:
             try:
-                # Committed units are spent in the model (see _attack_departed).
+                # Committed units are spent in the model (see _attack_committed).
                 path = write_dynamic_problem(
                     self,
                     stage_goal,
                     domain=self.config.domain,
-                    army=near_bases(self, army(self)),
+                    army=self._home_army(),
                 )
 
                 generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
@@ -598,7 +601,7 @@ class PlanningBot(BotAI):
             }
 
         if action == "attack":
-            home = near_bases(self, army(self))
+            home = self._home_army()
             return {
                 "sent": {u.tag for u in home},
                 "army_value": army_value(self, home),
@@ -624,31 +627,36 @@ class PlanningBot(BotAI):
     # Carrying out a committed attack
     # ========================================================
 
+    def _home_army(self):
+        """The army the planner may use: at the bases and not committed to an attack."""
+        return near_bases(self, army(self)).filter(lambda u: u.tag not in self.committed)
+
     def _follow_attack(self):
         """
-        Execution of the planned attacks, not a new decision: the army in the
-        field fights on until it has lost half the value sent, then walks home
+        Execution of the planned attacks, not a new decision: the committed
+        units fight on until they have lost half the value sent, then walk home
         to join the next wave.
         """
 
-        if not self.committed_value:
+        if not self.committed:
             return
 
-        remaining = army_value(self, field_army(self))
+        forces = army(self).filter(lambda u: u.tag in self.committed)
+        remaining = army_value(self, forces)
 
         if remaining * 2 <= self.committed_value:
             self.metrics.log_event(
                 "attack_resolved", f"army spent: {self.committed_value} -> {remaining}"
             )
-            self.metrics.log_event("attack_retreat", f"{retreat(self)} units called back")
-            self.committed_value = 0
+            self.metrics.log_event("attack_retreat", f"{retreat(self, forces)} units called back")
+            self.committed, self.committed_value = set(), 0
             return
 
-        self._keep_attacking()
+        self._keep_attacking(forces)
 
-    def _keep_attacking(self):
+    def _keep_attacking(self, forces):
         """
-        Idle units in the field are sent on, and empty targets give way to the
+        Idle committed units are sent on, and empty targets give way to the
         next unscouted expansion.
         """
 
@@ -656,7 +664,7 @@ class PlanningBot(BotAI):
             return
 
         self.next_attack_order = self.time + ATTACK_ORDER_SECONDS
-        target = advance_attack(self, field_army(self))
+        target = advance_attack(self, forces)
 
         if target != self.attack_target:
             self.attack_target = target

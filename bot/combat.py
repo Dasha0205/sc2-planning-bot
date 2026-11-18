@@ -117,13 +117,13 @@ def defend(bot, threats):
             unit.attack(threats.closest_to(unit))
 
 
-def retreat(bot):
+def retreat(bot, units=None):
     """
-    Survivors of a beaten attack walk home to join the next wave instead of
-    fighting on alone. Returns how many units were called back.
+    Survivors of a beaten attack (units, by default the army away from every
+    base) walk home to join the next wave. Returns how many were called back.
     """
 
-    away = field_army(bot)
+    away = field_army(bot) if units is None else units
     for unit in away:
         if unit.type_id == UnitTypeId.SIEGETANKSIEGED:
             unit(AbilityId.UNSIEGE_UNSIEGE)

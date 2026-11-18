@@ -46,6 +46,7 @@ class _Bot(_OpeningBot):
 
     _advance_plan = PlanningBot._advance_plan
     _planner_failed = PlanningBot._planner_failed
+    _home_army = PlanningBot._home_army
 
     def __init__(self, stage=0, forced_replans=0):
         super().__init__()
@@ -53,6 +54,7 @@ class _Bot(_OpeningBot):
         self.forced_replans = forced_replans
         self.time = 0.0
         self.units = _NoArmy()
+        self.committed = set()
         self.state = SimpleNamespace(game_loop=0)
         self.config = RunConfig()
         self.metrics = MetricsCollector(self)
