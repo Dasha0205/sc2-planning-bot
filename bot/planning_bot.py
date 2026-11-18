@@ -9,7 +9,7 @@ from planning.dynamic_problem import (
     army_value,
     MAX_MINERAL_HARVESTERS_PER_BASE,
 )
-from bot.combat import advance_attack, army, defend, near_bases, retreat, stand_down
+from bot.combat import advance_attack, army, defend, home_army, near_bases, retreat, stand_down
 from bot.executor import execute_action, build_near_base
 from utils.metrics import MetricsCollector
 from utils.run_config import RunConfig
@@ -487,7 +487,7 @@ class PlanningBot(BotAI):
                     self,
                     stage_goal,
                     domain=self.config.domain,
-                    army=self._home_army(),
+                    army=home_army(self),
                 )
 
                 generated_plan, solve_time, enhsp_time, status = generate_plan_from_file(
@@ -601,7 +601,7 @@ class PlanningBot(BotAI):
             }
 
         if action == "attack":
-            home = self._home_army()
+            home = home_army(self)
             return {
                 "sent": {u.tag for u in home},
                 "army_value": army_value(self, home),
@@ -626,10 +626,6 @@ class PlanningBot(BotAI):
     # ========================================================
     # Carrying out a committed attack
     # ========================================================
-
-    def _home_army(self):
-        """The army the planner may use: at the bases and not committed to an attack."""
-        return near_bases(self, army(self)).filter(lambda u: u.tag not in self.committed)
 
     def _follow_attack(self):
         """

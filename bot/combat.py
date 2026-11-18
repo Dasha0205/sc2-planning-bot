@@ -36,6 +36,12 @@ def near_bases(bot, units):
     )
 
 
+def home_army(bot):
+    """The army a new attack may use: at the bases and not committed (bot.committed tags)."""
+    committed = getattr(bot, "committed", set())
+    return near_bases(bot, army(bot)).filter(lambda u: u.tag not in committed)
+
+
 def field_army(bot):
     """The army away from every base: units of a committed attack."""
     home = near_bases(bot, army(bot))
@@ -73,9 +79,9 @@ def _send(unit, target):
 
 
 def launch_attack(bot):
-    """Send the whole army at the current target. False if there is no army."""
+    """Send the army at home at the current target. False if there is none."""
 
-    forces = army(bot)
+    forces = home_army(bot)
 
     if not forces:
         return False

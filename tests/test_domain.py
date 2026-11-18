@@ -11,6 +11,7 @@ from unified_planning.io import PDDLReader
 from unified_planning.shortcuts import OneshotPlanner, get_environment
 
 from bot.planning_bot import BANK_FLOOR, STAGE_GOALS, goal_for_stage
+from planning.dynamic_problem import attack_threshold
 from planning.planner import DOMAIN_PATH
 
 get_environment().credits_stream = None
@@ -22,7 +23,7 @@ OPENING = {
     "cc-count": 1, "techlab-barracks-count": 0, "techlab-factory-count": 0,
     "marine-count": 0, "marauder-count": 0, "tank-count": 0,
     "weapon-upgrades": 0, "stimpack": 0, "armor-upgrades": 0,
-    "attacks-launched": 0, "rax-time": 0, "factory-time": 0,
+    "attacks-launched": 0, "rax-time": 0, "factory-time": 0, "attack-threshold": 30,
 }
 
 # State at the start of stage 3 in runs/2026-10-25_d8a042d.
@@ -123,6 +124,20 @@ def test_maxed_supply_waives_the_bank_ceiling(tmp_path):
         "marine-count": 60,
     })
     assert solve(maxed, final_goal(maxed), tmp_path) == ["attack"]
+
+
+@pytest.mark.parametrize("supply_used, home_value", [(180, 0), (195, 0), (185, 10)])
+def test_an_army_in_the_field_lowers_the_threshold_to_what_fits_at_home(
+        tmp_path, supply_used, home_value):
+    # Committed units keep their supply but leave the planner's view (review T8.3):
+    # with a fixed 30 these states had no plan and ENHSP ran into its timeout.
+    state = dict(STAGE_3_FLOATING, **{
+        "supply-used": supply_used, "supply-cap": 200, "depot-count": 23,
+        "marine-count": home_value, "marauder-count": 0, "tank-count": 0,
+        "attack-threshold": attack_threshold(home_value, supply_used),
+    })
+    assert state["attack-threshold"] == min(30, 200 - supply_used + home_value)
+    assert solve(state, final_goal(state), tmp_path)[-1] == "attack"
 
 
 def test_surviving_army_keeps_its_supply_so_depots_come_first(tmp_path):

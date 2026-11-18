@@ -5,7 +5,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
 from bot.combat import (
-    advance_attack, attack_target, defend, field_army, launch_attack, near_bases, retreat,
+    advance_attack, attack_target, defend, field_army, home_army, launch_attack, near_bases, retreat,
     stand_down,
 )
 from bot.executor import execute_action
@@ -169,7 +169,7 @@ def test_the_planner_sees_only_the_uncommitted_army_at_home():
     bot.minerals = bot.vespene = bot.supply_used = bot.supply_cap = 0
 
     assert list(field_army(bot)) == [away]
-    state = game_state(bot, PlanningBot._home_army(bot))
+    state = game_state(bot, home_army(bot))
     assert (state["marine-count"], state["marauder-count"], state["tank-count"]) == (0, 1, 0)
 
 
@@ -202,3 +202,17 @@ def test_committed_units_down_to_half_walk_home_even_while_passing_a_base():
     assert not bot.committed and bot.committed_value == 0
     assert ahead.issued[-1] == ("move", CC_AT)
     assert [kind for kind, _ in bot.metrics.events] == ["attack_retarget", "attack_resolved", "attack_retreat"]
+
+
+def test_an_attack_sends_only_the_uncommitted_army_at_home():
+    fresh, survivor = unit(UnitTypeId.MARINE), unit(UnitTypeId.MARINE, FAR_AWAY)
+    committed = unit(UnitTypeId.MARINE)
+    bot = FakeBot(units=[fresh, survivor, committed], expansions=[ENEMY_START])
+    bot.committed = {committed.tag}
+
+    assert launch_attack(bot)
+    assert fresh.issued == [("attack", ENEMY_START)]
+    assert survivor.issued == committed.issued == []
+
+    bot.committed = {fresh.tag, committed.tag}
+    assert not launch_attack(bot)

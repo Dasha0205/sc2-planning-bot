@@ -46,7 +46,6 @@ class _Bot(_OpeningBot):
 
     _advance_plan = PlanningBot._advance_plan
     _planner_failed = PlanningBot._planner_failed
-    _home_army = PlanningBot._home_army
 
     def __init__(self, stage=0, forced_replans=0):
         super().__init__()

@@ -47,6 +47,21 @@ BUILD_SECONDS = {
 }
 
 
+# Army value an attack waits for (domain v8 fixed it, v9 reads (attack-threshold)).
+ATTACK_THRESHOLD = 30
+
+# The game's supply limit.
+MAX_SUPPLY = 200
+
+
+def attack_threshold(home_value, supply_used):
+    """
+    30, unless the army at home could never reach it: committed units keep their
+    supply, so only what is home plus the free supply can still stand at home.
+    """
+    return max(1, min(ATTACK_THRESHOLD, home_value + MAX_SUPPLY - supply_used))
+
+
 def army_counts(bot, army=None):
     """
     Returns (marines, marauders, tanks) as the domain counts them, of the whole
@@ -164,6 +179,8 @@ def game_state(bot, army=None):
         "attacks-launched": 0,
         "rax-time": rax_time,
         "factory-time": factory_time,
+        "attack-threshold": attack_threshold(
+            marines + 2 * marauders + 3 * tanks, int(bot.supply_used)),
     }
 
 
