@@ -61,9 +61,13 @@ def required(goal_expr):
 
 
 def write_classical_problem(bot, goal_expr, path=PROBLEM_PATH, army=None):
-    """Writes the classical problem for the state and the numeric stage goal."""
+    """Writes the classical problem for the game state and the numeric stage goal."""
+    return write_classical_state(game_state(bot, army), goal_expr, path)
 
-    state = game_state(bot, army)
+
+def write_classical_state(state, goal_expr, path):
+    """Writes the classical problem for a state as the numeric problem has it (fluent: value)."""
+
     need = required(goal_expr)
     cap = limits(state)
     objects, init, goal = {}, [], []
