@@ -23,7 +23,6 @@ FOOTPRINT_SIZE = {
     UnitTypeId.ENGINEERINGBAY: 3,
     UnitTypeId.BARRACKS: 3,
     UnitTypeId.FACTORY: 3,
-    UnitTypeId.COMMANDCENTER: 5,
 }
 
 # Free cells kept between any two buildings. Separated boxes on open ground

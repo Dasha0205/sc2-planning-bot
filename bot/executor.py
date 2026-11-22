@@ -11,6 +11,7 @@ under construction (progress) rather than blocked (failure).
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.position import Point2
 
 from bot.combat import home_army, launch_attack
 from bot.placement import addon_blockers, addon_spot, find_spot, reserve
@@ -20,6 +21,11 @@ from planning.dynamic_problem import army_value
 def _refuse(bot, reason):
     bot.last_issue_failure = reason
     return False
+
+
+def _build_targets(bot, ability_id):
+    """Where workers are on their way to build: a position, or a geyser's tag."""
+    return [o.target for w in bot.workers for o in w.orders if o.ability.id == ability_id]
 
 
 def _wait(bot, reason):
@@ -43,7 +49,7 @@ def _free_slots(producer):
 
 
 def _train(bot, producer_id, unit_id, needs_techlab=False):
-    """Queue one unit at the emptiest producer, preferring buildings without an add-on."""
+    """Queue one unit at the emptiest producer; one that needs no Tech Lab goes to a building without an add-on first."""
 
     if not bot.can_afford(unit_id):
         # burnysc2 counts supply as a cost; a depot under construction is progress.
@@ -201,16 +207,18 @@ async def execute_action(bot, action):
 
     if "build_refinery" in action:
         if bot.can_afford(UnitTypeId.REFINERY) and bot.townhalls.exists:
-            # The domain allows two per CC from its order on; a geyser takes one at once.
+            # A geyser an SCV is on its way to is taken: gas_buildings shows it only once placed.
+            ordered = _build_targets(bot, AbilityId.TERRANBUILD_REFINERY)
+            # The domain allows two per CC from its order on, so a CC under construction counts.
             for cc in bot.townhalls:
                 geysers = bot.vespene_geyser.closer_than(10, cc).filter(
-                    lambda g: not bot.gas_buildings.closer_than(1, g))
+                    lambda g: g.tag not in ordered and not bot.gas_buildings.closer_than(1, g))
                 if geysers:
                     await bot.build(UnitTypeId.REFINERY, geysers.first)
                     return True
             return _refuse(bot, "no free geyser")
         return _refuse(bot, "cannot afford REFINERY")
-    
+
     if "expand" in action:
         if bot.can_afford(UnitTypeId.COMMANDCENTER):
             location = await bot.get_next_expansion()
@@ -218,10 +226,10 @@ async def execute_action(bot, action):
                 return _refuse(bot, "no expansion location")
             # The next expansion stays the same until the ordered SCV lands its CC
             # there; a second CC ordered meanwhile went up beside it, without geysers.
-            if any(r.centre == location for r in bot.reservations if r.expires > bot.time):
+            ordered = _build_targets(bot, AbilityId.TERRANBUILD_COMMANDCENTER)
+            if any(isinstance(t, Point2) and t.distance_to(location) < 5 for t in ordered):
                 return _wait(bot, "COMMANDCENTER ordered at the next expansion")
             await bot.build(UnitTypeId.COMMANDCENTER, near=location)
-            reserve(bot, UnitTypeId.COMMANDCENTER, location)
             return True
         return _refuse(bot, "cannot afford COMMANDCENTER")
 

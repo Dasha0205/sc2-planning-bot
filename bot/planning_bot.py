@@ -1,3 +1,5 @@
+import os
+
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -7,9 +9,9 @@ from planning.plan_order import PlanOrder
 from planning.classical_problem import wave_value, write_classical_problem
 from planning.dynamic_problem import (
     ATTACK_THRESHOLD,
-    attack_threshold,
+    PROBLEM_PATH,
     game_state,
-    write_dynamic_problem,
+    write_state_problem,
     harvest_rates,
     army_value,
     MAX_MINERAL_HARVESTERS_PER_BASE,
@@ -107,6 +109,36 @@ def goal_for_stage(stage, minerals, threshold=ATTACK_THRESHOLD, ceiling=BANK_FLO
         f"(or (>= (supply-used) {MAXED_SUPPLY}) "
         f"(<= (minerals) {ceiling})))"
     )
+
+
+def solve_stage(state, stage, domain, planner_config, path, on_failure):
+    """
+    The planning cascade on one game_state (also a recorded one, replan_offline):
+    goals strongest first, within a goal ENHSP's fallback config only after a
+    timeout (it solves a few states the default does not, and vice versa); an
+    explicit planner_config is used alone. on_failure(detail, fields) gets every
+    failed attempt but the last. Returns (problem, plan, fields, failure).
+    """
+
+    goals = [goal_for_stage(stage, state["minerals"], state["attack-threshold"], ceiling)
+             for ceiling in bank_ceilings(state["minerals"])]
+    configs = [planner_config] if planner_config else [None, FALLBACK_PLANNER_CONFIG]
+
+    problem, plan, fields, failure = None, None, {}, None
+    for goal in goals:
+        for config in configs:
+            if failure:
+                on_failure(failure, fields)
+            write_state_problem(state, goal, path, domain)
+            problem, plan, solve_time, enhsp_time, status = solve_problem(domain, path, config)
+            fields = dict(solve_time=round(solve_time, 3), enhsp_time=enhsp_time,
+                          status=status, planner_config=config, goal=goal)
+            failure = f"status={status}, solve_time={solve_time:.2f}s"
+            if plan is not None or status != "TIMEOUT":
+                break
+        if plan is not None:
+            break
+    return problem, plan, fields, failure
 
 
 # ============================================================
@@ -363,6 +395,8 @@ class PlanningBot(BotAI):
 
         # Domain and planner settings of this game (run.py); saved with the metrics.
         self.config = config or RunConfig()
+        # Its own problem file: games played at once (run_batch --jobs) share the folder.
+        self.problem_path = PROBLEM_PATH.with_name(f"problem_dynamic_{os.getpid()}.pddl")
         self.metrics = None
 
         # Current high-level macro stage
@@ -488,70 +522,35 @@ class PlanningBot(BotAI):
         """
 
         home = home_army(self)
-        threshold = attack_threshold(army_value(self, home), self.supply_used, self.supply_cap)
-        # The classical baseline has no bank, so it gets the bare stage goal (T4.1).
-        classical = self.config.planner == "fast-downward"
-        goals = [None] if classical else [
-            goal_for_stage(self.stage, self.minerals, threshold, ceiling)
-            for ceiling in bank_ceilings(self.minerals)
-        ]
-
-        # Fields every planning event carries, for the experiment aggregation.
         # attempt is the consecutive forced replan (0 = a regular plan); state is
         # the problem's every fluent, so a later domain can be solved on it offline.
         state = game_state(self, home)
         fields = {"stage": self.stage, "attempt": self.forced_replans, "state": state}
+        log_failure = lambda detail, attempt: self.metrics.log_event(
+            "planner_error", f"stage={self.stage}, {detail}", **fields, **attempt)
 
-        # ENHSP's default search times out on a few states the fallback solves
-        # (and vice versa), so a timeout gets one more try with the fallback.
-        # An explicitly configured planner is used alone.
-        configs = (
-            [self.config.planner_config] if self.config.planner_config or classical
-            else [None, FALLBACK_PLANNER_CONFIG]
-        )
-
-        # Goals strongest first; within a goal, the next config only after a
-        # timeout. Every failed attempt but the last is logged as it is left.
-        generated_plan, failure = None, None
-        for stage_goal in goals:
-            for planner_config in configs:
-                if failure:
-                    self.metrics.log_event("planner_error", f"stage={self.stage}, {failure}", **fields)
-                try:
-                    # Committed units are spent in the model (see _attack_committed).
-                    if classical:
-                        objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
-                        path = write_classical_problem(self, objective, army=home)
-                        # Its attack waits for the wave, scaled to the supply that is left.
-                        threshold = wave_value(state)
-                    else:
-                        path = write_dynamic_problem(
-                            self,
-                            stage_goal,
-                            domain=self.config.domain,
-                            army=home,
-                        )
-
-                    problem, generated_plan, solve_time, enhsp_time, status = solve_problem(
-                        self.config.domain,
-                        path,
-                        planner_config,
-                        self.config.planner,
-                    )
-
-                except Exception as exc:
-                    return self._planner_failed(f"error={exc}", fields)
-
-                fields.update(
-                    solve_time=round(solve_time, 3), enhsp_time=enhsp_time,
-                    status=status, planner_config=planner_config, goal=stage_goal,
-                )
+        try:
+            if self.config.planner == "fast-downward":
+                # The classical baseline has no bank, so it gets the bare stage goal (T4.1);
+                # its attack waits for the wave, scaled to the supply that is left.
+                objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
+                path = write_classical_problem(self, objective, path=self.problem_path, army=home)
+                threshold = wave_value(state)
+                problem, generated_plan, solve_time, enhsp_time, status = solve_problem(
+                    self.config.domain, path, self.config.planner_config, self.config.planner)
+                fields.update(solve_time=round(solve_time, 3), enhsp_time=enhsp_time, status=status,
+                              planner_config=self.config.planner_config, goal=None)
                 failure = f"status={status}, solve_time={solve_time:.2f}s"
-
-                if generated_plan is not None or status != "TIMEOUT":
-                    break
-            if generated_plan is not None:
-                break
+            else:
+                # Committed units are spent in the model (see _attack_committed).
+                threshold = state["attack-threshold"]
+                problem, generated_plan, attempt, failure = solve_stage(
+                    state, self.stage, self.config.domain, self.config.planner_config,
+                    self.problem_path, log_failure)
+                fields.update(attempt)
+                solve_time = attempt["solve_time"]
+        except Exception as exc:
+            return self._planner_failed(f"error={exc}", fields)
 
         if generated_plan is None:
             return self._planner_failed(failure, fields)
@@ -956,6 +955,8 @@ class PlanningBot(BotAI):
             )
 
             self.metrics.save()
+
+        self.problem_path.unlink(missing_ok=True)
 
     # ========================================================
     # Reactive worker management

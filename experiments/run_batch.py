@@ -208,8 +208,13 @@ def main(argv=None, command=None):
                 print(f"[BATCH] {i}/{len(games)} {game['run_id']}: done earlier, skipped")
                 continue
             running.append(pool.submit(one, i, game))
-        for future in running:
-            future.result()   # re-raises an error of the harness itself
+        try:
+            for future in running:
+                future.result()   # re-raises an error of the harness itself
+        except BaseException:
+            for future in running:
+                future.cancel()   # games not started yet are not started
+            raise
 
     print(f"[BATCH] {args.name}: {dict(summary)} -> {out}")
 

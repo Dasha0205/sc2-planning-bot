@@ -64,6 +64,7 @@ class _Bot:
     vespene = 0
     supply_used = 12
     supply_cap = 15
+    problem_path = Path("no-such-problem.pddl")   # on_end removes the game's problem file
 
     def __init__(self):
         self.state = SimpleNamespace(game_loop=0, score=_Score())
