@@ -40,8 +40,8 @@ def test_marine_prefers_a_plain_barracks_to_keep_the_techlab_free():
     assert plain.issued == [UnitTypeId.MARINE] and lab.issued == []
 
 
-def test_marine_still_uses_the_techlab_barracks_when_it_is_the_only_one_idle():
-    lab, plain = barracks(36.5, techlab=True), barracks(30.5, idle=False)
+def test_marine_uses_the_techlab_barracks_when_every_plain_queue_is_full():
+    lab, plain = barracks(36.5, techlab=True), barracks(30.5, orders=[TRAINING, TRAINING])
     bot = FakeBot(structures=[lab, plain])
 
     assert run(execute_action(bot, "train_marine"))
@@ -89,6 +89,15 @@ def test_the_emptiest_queue_is_used_first():
 
     assert run(execute_action(bot, "train_marine"))
     assert idle.issued == [UnitTypeId.MARINE] and busy.issued == []
+
+
+def test_a_marine_queues_at_a_plain_barracks_before_an_idle_techlab_one():
+    # v12: Tech Lab time belongs to Marauders, so the plain queue goes first.
+    busy, lab = barracks(30.5, idle=False), barracks(36.5, techlab=True)
+    bot = FakeBot(structures=[busy, lab])
+
+    assert run(execute_action(bot, "train_marine"))
+    assert busy.issued == [UnitTypeId.MARINE] and lab.issued == []
 
 
 def test_no_unit_is_queued_behind_an_addon_under_construction():

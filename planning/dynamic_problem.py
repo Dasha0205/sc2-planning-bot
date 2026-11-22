@@ -145,7 +145,8 @@ def production_time(bot):
     """
     Production seconds available right now (rax, techlab, factory): every idle
     finished Barracks can start a Marine at once, one with a Tech Lab a Marauder
-    (v12), a Factory with a Tech Lab a Siege Tank.
+    (v12), a Factory with a Tech Lab a Siege Tank. Since v12 this factory-time is
+    written for v6-v11 as well, so their problems differ from games played before.
     """
 
     def idle(unit_id, techlab=False):

@@ -71,7 +71,8 @@ def _train(bot, producer_id, unit_id, needs_techlab=False):
     if not open_queues:
         return _wait(bot, f"every {producer_id.name} queue is full")
 
-    producer = min(open_queues, key=lambda p: (-_free_slots(p), p.has_add_on))
+    # A Marine on a Tech Lab Barracks would take the time domain v12 keeps for Marauders.
+    producer = min(open_queues, key=lambda p: (p.has_add_on and not needs_techlab, -_free_slots(p)))
     producer.train(unit_id)
     return True
 
