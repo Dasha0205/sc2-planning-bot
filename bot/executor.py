@@ -201,7 +201,8 @@ async def execute_action(bot, action):
 
     if "build_refinery" in action:
         if bot.can_afford(UnitTypeId.REFINERY) and bot.townhalls.exists:
-            for cc in bot.townhalls.ready:
+            # The domain allows two per CC from its order on; a geyser takes one at once.
+            for cc in bot.townhalls:
                 geysers = bot.vespene_geyser.closer_than(10, cc).filter(
                     lambda g: not bot.gas_buildings.closer_than(1, g))
                 if geysers:
@@ -213,10 +214,15 @@ async def execute_action(bot, action):
     if "expand" in action:
         if bot.can_afford(UnitTypeId.COMMANDCENTER):
             location = await bot.get_next_expansion()
-            if location:
-                await bot.build(UnitTypeId.COMMANDCENTER, near=location)
-                return True
-            return _refuse(bot, "no expansion location")
+            if not location:
+                return _refuse(bot, "no expansion location")
+            # The next expansion stays the same until the ordered SCV lands its CC
+            # there; a second CC ordered meanwhile went up beside it, without geysers.
+            if any(r.centre == location for r in bot.reservations if r.expires > bot.time):
+                return _wait(bot, "COMMANDCENTER ordered at the next expansion")
+            await bot.build(UnitTypeId.COMMANDCENTER, near=location)
+            reserve(bot, UnitTypeId.COMMANDCENTER, location)
+            return True
         return _refuse(bot, "cannot afford COMMANDCENTER")
 
     if "build_factory" in action:
