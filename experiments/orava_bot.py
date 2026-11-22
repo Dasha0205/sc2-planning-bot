@@ -78,6 +78,7 @@ def main(argv=None):
     from bot.logging_setup import setup_logging
     from sc2 import maps
     from sc2.data import Difficulty, Race
+    from sc2.ids.unit_typeid import UnitTypeId
     from sc2.main import run_game
     from sc2.player import Bot, Computer
     from utils.metrics import score_values
@@ -98,7 +99,7 @@ def main(argv=None):
         async def on_step(self, iteration):
             await super().on_step(iteration)
             if self.time >= self.next_snapshot:
-                army = self.units.exclude_type({self.worker_type})
+                army = self.units.exclude_type({UnitTypeId.SCV, UnitTypeId.MULE})
                 snapshots.append({
                     **self.clock(), "minerals": self.minerals, "gas": self.vespene,
                     "supply_used": self.supply_used, "supply_cap": self.supply_cap,
