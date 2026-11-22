@@ -37,6 +37,8 @@ def parse_config(argv=None):
                         "a Fast Downward alias, e.g. lama-first")
     parser.add_argument("--seed", type=int, help="game seed (default: random, always recorded)")
     parser.add_argument("--time-limit", type=int, help="game seconds until the game ends as a Tie")
+    parser.add_argument("--realtime", action="store_true",
+                        help="play in real time, as Orava's bot does (default: the game waits for the bot)")
     parser.add_argument("--run-id", help="result file name (default: <difficulty>_<n>)")
     parser.add_argument("--out", type=Path, help="experiment folder (default: runs/<date>_<commit>)")
     args = parser.parse_args(argv)
@@ -51,6 +53,7 @@ def parse_config(argv=None):
         planner_config=args.planner_config,
         seed=args.seed if args.seed is not None else random.randrange(2**31),
         time_limit=args.time_limit,
+        realtime=args.realtime,
         run_id=args.run_id or next_run_id(out, args.difficulty),
         out=out,
         commit=commit,
@@ -89,7 +92,7 @@ def main(argv=None):
         run_game(
             find_map(config.map),
             [Bot(Race.Terran, bot), Computer(Race[config.race], Difficulty[config.difficulty])],
-            realtime=False,
+            realtime=config.realtime,
             random_seed=config.seed,
             game_time_limit=config.time_limit,
             save_replay_as=str(config.replay_path),

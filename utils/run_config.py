@@ -42,6 +42,7 @@ class RunConfig:
     planner_config: str | None = None   # ENHSP flags; None = its default (-h hadd -s gbfs)
     seed: int | None = None
     time_limit: int | None = None       # game seconds; the game ends as a Tie
+    realtime: bool = False              # True: the game runs on while the planner solves
     run_id: str = "adhoc"
     out: Path = REPO_ROOT / "runs"
     commit: str = field(default_factory=current_commit)

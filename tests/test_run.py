@@ -101,6 +101,17 @@ def test_a_failed_replay_save_keeps_the_result(tmp_path, monkeypatch):
     assert (tmp_path / "g.json").exists()
 
 
+def test_realtime_is_off_by_default_and_reaches_the_game(tmp_path, monkeypatch):
+    fake = _EndedGame()
+    monkeypatch.setattr(run, "run_game", fake)
+    monkeypatch.setattr(run, "find_map", lambda name: None)
+
+    assert run.parse_config(["--out", str(tmp_path)]).realtime is False
+    run.main(["--out", str(tmp_path), "--run-id", "g", "--realtime"])
+    assert fake.kwargs["realtime"] is True
+    assert RunConfig(realtime=True).to_dict()["realtime"] is True
+
+
 def test_a_game_that_never_ended_still_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(run, "run_game", _EndedGame(end=False))
     monkeypatch.setattr(run, "find_map", lambda name: None)
