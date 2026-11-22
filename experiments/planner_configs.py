@@ -12,6 +12,7 @@ it (unified-planning's validator); modelled game time is 5 s per wait.
 
 import argparse
 import csv
+import re
 import statistics
 import sys
 from pathlib import Path
@@ -35,8 +36,9 @@ FIELDS = ["fixture", "config", "metric", "repeat", "status", "solve_time", "enhs
 
 
 def with_cost(fixture_text, metric):
-    """A v9 fixture as a v10 problem: (total-cost) starts at 0, optionally minimised."""
-    text = fixture_text.replace("(:init", "(:init\n        (= (total-cost) 0)", 1)
+    """A fixture (v12) as a v10 problem: no (techlab-time), (total-cost) starts at 0, optionally minimised."""
+    text = re.sub(r"\s*\(= \(techlab-time\) \d+\)", "", fixture_text)
+    text = text.replace("(:init", "(:init\n        (= (total-cost) 0)", 1)
     if metric:
         text = text[:text.rindex(")")] + "    (:metric minimize (total-cost))\n)\n"
     return text

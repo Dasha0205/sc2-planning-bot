@@ -9,7 +9,7 @@ from unified_planning.shortcuts import get_environment
 from bot.smoke import _OpeningBot
 from experiments.planner_configs import summary, with_cost
 from planning.dynamic_problem import domain_fluents, write_dynamic_problem
-from planning.planner import PLANNER_CONFIGS, PLANNING_DIR, enhsp_flags, generate_plan_from_file
+from planning.planner import DOMAIN_PATH, PLANNER_CONFIGS, PLANNING_DIR, enhsp_flags, generate_plan_from_file
 from run import parse_config
 from test_fixtures import FIXTURES
 
@@ -31,8 +31,7 @@ def test_a_named_config_needs_no_equals_sign_on_the_command_line():
 
 def test_every_named_config_solves_the_opening():
     for name in PLANNER_CONFIGS:
-        plan, *_, status = generate_plan_from_file(
-            PLANNING_DIR / "domain_numeric_v9.pddl", FIXTURES / "stage0_opening.pddl", name)
+        plan, *_, status = generate_plan_from_file(DOMAIN_PATH, FIXTURES / "stage0_opening.pddl", name)
         assert plan is not None, (name, status)
 
 

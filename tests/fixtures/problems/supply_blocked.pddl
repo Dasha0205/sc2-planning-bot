@@ -25,6 +25,7 @@
         (= (stimpack) 1)
         (= (attacks-launched) 0)
         (= (rax-time) 36)
+        (= (techlab-time) 21)
         (= (factory-time) 32)
         (= (attack-threshold) 30)
     )

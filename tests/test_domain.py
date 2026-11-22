@@ -24,7 +24,7 @@ OPENING = {
     "cc-count": 1, "techlab-barracks-count": 0, "techlab-factory-count": 0,
     "marine-count": 0, "marauder-count": 0, "tank-count": 0,
     "weapon-upgrades": 0, "stimpack": 0, "armor-upgrades": 0,
-    "attacks-launched": 0, "rax-time": 0, "factory-time": 0, "attack-threshold": 30,
+    "attacks-launched": 0, "rax-time": 0, "techlab-time": 0, "factory-time": 0, "attack-threshold": 30,
 }
 
 # State at the start of stage 3 in runs/2026-10-25_d8a042d.
@@ -37,7 +37,7 @@ STAGE_3_FLOATING = dict(
         "marine-count": 12, "marauder-count": 4, "tank-count": 2,
         "weapon-upgrades": 1, "stimpack": 1,
         # Idle Barracks and Factory, as dynamic_problem.production_time counts them.
-        "rax-time": 2 * 18, "factory-time": 32,
+        "rax-time": 2 * 18, "techlab-time": 21, "factory-time": 32,
     }
 )
 
@@ -229,6 +229,16 @@ def test_production_time_makes_the_planner_add_production(tmp_path):
     assert counts["build_barracks"] >= 1
 
 
+def test_marauders_need_a_tech_lab_each(tmp_path):
+    # v12 (T4.9): 12 Barracks, one Tech Lab — in v11 all 12 trained Marauders in the model.
+    many_rax = dict(STAGE_3_FLOATING, minerals=3000, vespene=1000, **{
+        "barracks-count": 12, "cc-count": 3, "rax-time": 12 * 18, "techlab-time": 21,
+    })
+    plan = solve(many_rax, "(>= (marauder-count) 10)", tmp_path)
+
+    assert "build_techlab_barracks" in plan
+
+
 def test_units_wait_for_production_time(tmp_path):
     # Money for 10 Marines but one busy Barracks: the plan must wait between them.
     busy = dict(OPENING, minerals=500, **{
@@ -255,7 +265,7 @@ GAS_RICH = dict(OPENING, minerals=725, vespene=859, **{
     "depot-count": 10, "barracks-count": 6, "refinery-count": 4, "factory-count": 2,
     "engineeringbay-count": 1, "cc-count": 2, "marine-count": 1, "marauder-count": 4,
     "tank-count": 3, "weapon-upgrades": 1, "techlab-barracks-count": 6,
-    "techlab-factory-count": 2, "stimpack": 1, "rax-time": 108, "factory-time": 64,
+    "techlab-factory-count": 2, "stimpack": 1, "rax-time": 108, "techlab-time": 126, "factory-time": 64,
 })
 
 

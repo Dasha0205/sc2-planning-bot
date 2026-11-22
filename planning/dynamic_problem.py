@@ -40,7 +40,7 @@ ARMY_WEIGHTS = {
 
 
 # Production time per unit in game seconds (LotV, faster speed); domain v6
-# charges it from (rax-time) / (factory-time).
+# charges it from (rax-time) / (factory-time), v12 a Marauder also from (techlab-time).
 BUILD_SECONDS = {
     UnitTypeId.MARINE: 18,
     UnitTypeId.MARAUDER: 21,
@@ -143,14 +143,19 @@ def harvest_rates(bot):
 
 def production_time(bot):
     """
-    Production seconds available right now, as domain v6 counts them: every idle
-    finished Barracks / Factory can start a unit at once (Marine / Siege Tank).
+    Production seconds available right now (rax, techlab, factory): every idle
+    finished Barracks can start a Marine at once, one with a Tech Lab a Marauder
+    (v12), a Factory with a Tech Lab a Siege Tank.
     """
 
-    idle = lambda unit_id: sum(1 for s in bot.structures(unit_id).ready if s.is_idle)
+    def idle(unit_id, techlab=False):
+        return sum(1 for s in bot.structures(unit_id).ready
+                   if s.is_idle and (s.has_techlab or not techlab))
+
     return (
         idle(UnitTypeId.BARRACKS) * BUILD_SECONDS[UnitTypeId.MARINE],
-        idle(UnitTypeId.FACTORY) * BUILD_SECONDS[UnitTypeId.SIEGETANK],
+        idle(UnitTypeId.BARRACKS, techlab=True) * BUILD_SECONDS[UnitTypeId.MARAUDER],
+        idle(UnitTypeId.FACTORY, techlab=True) * BUILD_SECONDS[UnitTypeId.SIEGETANK],
     )
 
 
@@ -166,7 +171,7 @@ def game_state(bot, army=None):
 
     mining_rate, gas_rate = harvest_rates(bot)
     marines, marauders, tanks = army_counts(bot, army)
-    rax_time, factory_time = production_time(bot)
+    rax_time, techlab_time, factory_time = production_time(bot)
 
     return {
         "minerals": int(bot.minerals),
@@ -193,6 +198,7 @@ def game_state(bot, army=None):
         # so a goal of (>= (attacks-launched) 1) asks for one more commitment.
         "attacks-launched": 0,
         "rax-time": rax_time,
+        "techlab-time": techlab_time,
         "factory-time": factory_time,
         "attack-threshold": attack_threshold(
             marines + 2 * marauders + 3 * tanks, int(bot.supply_used), int(bot.supply_cap)),

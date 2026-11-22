@@ -15,14 +15,19 @@ from planning.planner import PLANNING_DIR
 
 
 class _Producers(_OpeningBot):
-    """Two finished Barracks (one idle), one building, one idle Factory."""
+    """
+    Finished Barracks: idle, busy, idle with a Tech Lab; one under construction.
+    Finished Factories: idle with a Tech Lab, idle without one.
+    """
 
     def structures(self, unit_id):
         made = {
-            UnitTypeId.BARRACKS: [(True, True), (True, False), (False, True)],
-            UnitTypeId.FACTORY: [(True, True)],
+            UnitTypeId.BARRACKS: [(True, True, False), (True, False, False),
+                                  (True, True, True), (False, True, False)],
+            UnitTypeId.FACTORY: [(True, True, True), (True, True, False)],
         }.get(unit_id, [])
-        units = [SimpleNamespace(is_ready=ready, is_idle=idle) for ready, idle in made]
+        units = [SimpleNamespace(is_ready=ready, is_idle=idle, has_techlab=techlab)
+                 for ready, idle, techlab in made]
         return _Ready(units)
 
 
@@ -37,7 +42,8 @@ class _Ready(list):
 
 
 def test_production_time_counts_idle_finished_producers():
-    assert production_time(_Producers()) == (18, 32)
+    # Marines from both idle Barracks, Marauders and Tanks only with a Tech Lab (v12).
+    assert production_time(_Producers()) == (2 * 18, 21, 32)
 
 
 def test_every_declared_fluent_has_a_value():

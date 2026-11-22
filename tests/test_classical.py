@@ -29,7 +29,7 @@ class _Maxed(_OpeningBot):
     BUILT = {UnitTypeId.SUPPLYDEPOT: 23, UnitTypeId.BARRACKS: 3}
 
     def structures(self, type_id):
-        return _Group([SimpleNamespace(is_idle=True)] * self.BUILT.get(type_id, 0))
+        return _Group([SimpleNamespace(is_idle=True, has_techlab=False)] * self.BUILT.get(type_id, 0))
 
 
 def solve(bot, goal, tmp_path):

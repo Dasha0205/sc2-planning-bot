@@ -14,7 +14,7 @@ import time
 # started from anywhere (a batch runner, the dashboard, a test).
 PLANNING_DIR = Path(__file__).resolve().parent
 # The active domain. Older versions stay in planning/ for comparison.
-DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v11.pddl"
+DOMAIN_PATH = PLANNING_DIR / "domain_numeric_v12.pddl"
 
 # The classical baseline (T4.1): same actions without numbers, for Fast Downward.
 CLASSICAL_DOMAIN_PATH = PLANNING_DIR / "domain_classical.pddl"
