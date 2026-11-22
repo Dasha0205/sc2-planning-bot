@@ -1,0 +1,4853 @@
+{
+  "config": {
+    "difficulty": "VeryEasy",
+    "map": "AbyssalReefLE",
+    "race": "Terran",
+    "domain": "planning/domain_numeric_v12.pddl",
+    "planner": "enhsp",
+    "planner_config": null,
+    "seed": 5200001,
+    "time_limit": 1800,
+    "run_id": "VeryEasy_2",
+    "out": "runs/E5_v12_numeric_VeryEasy",
+    "commit": "2bf19a4",
+    "started_at": "2026-11-22T14:08:35"
+  },
+  "plan": [],
+  "events": [
+    {
+      "game_time": 0.0,
+      "game_loop": 0,
+      "wall_time": 1.46,
+      "kind": "plan_generated",
+      "detail": "stage=0, solve_time=1.43s, plan=['wait_for_minerals', 'wait_for_minerals', 'wait_for_minerals', 'wait_for_minerals', 'build_supply_depot', 'wait_for_minerals', 'build_barracks', 'wait_for_minerals', 'wait_for_minerals', 'wait_for_minerals', 'wait_for_minerals', 'build_barracks', 'build_refinery', 'wait_for_minerals', 'wait_for_minerals', 'train_marine', 'wait_for_minerals', 'wait_for_minerals', 'train_marine', 'wait_for_minerals', 'wait_for_minerals', 'train_marine', 'wait_for_minerals', 'train_marine', 'wait_for_minerals', 'wait_for_minerals', 'train_marine', 'train_marine']",
+      "stage": 0,
+      "attempt": 0,
+      "state": {
+        "minerals": 50,
+        "vespene": 0,
+        "supply-used": 12,
+        "supply-cap": 15,
+        "mining-rate": 55,
+        "gas-rate": 1,
+        "depot-count": 0,
+        "barracks-count": 0,
+        "refinery-count": 0,
+        "factory-count": 0,
+        "engineeringbay-count": 0,
+        "cc-count": 1,
+        "techlab-barracks-count": 0,
+        "techlab-factory-count": 0,
+        "marine-count": 0,
+        "marauder-count": 0,
+        "tank-count": 0,
+        "weapon-upgrades": 0,
+        "stimpack": 0,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 0,
+        "techlab-time": 0,
+        "factory-time": 0,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 1.427,
+      "enhsp_time": 0.09,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (and (>= (barracks-count) 1) (>= (marine-count) 6)) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 28,
+      "n_waits": 18
+    },
+    {
+      "game_time": 0.0,
+      "game_loop": 0,
+      "wall_time": 1.47,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 8.21,
+      "game_loop": 184,
+      "wall_time": 2.5,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 8.39,
+      "game_loop": 188,
+      "wall_time": 2.51,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 17.14,
+      "game_loop": 384,
+      "wall_time": 3.43,
+      "kind": "reactive_override",
+      "detail": "Emergency Supply Depot built"
+    },
+    {
+      "game_time": 30.71,
+      "game_loop": 688,
+      "wall_time": 4.86,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 30.89,
+      "game_loop": 692,
+      "wall_time": 4.9,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 35.71,
+      "game_loop": 800,
+      "wall_time": 5.39,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 35.89,
+      "game_loop": 804,
+      "wall_time": 5.41,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 45.18,
+      "game_loop": 1012,
+      "wall_time": 6.44,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 45.36,
+      "game_loop": 1016,
+      "wall_time": 6.53,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 45.54,
+      "game_loop": 1020,
+      "wall_time": 6.56,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 45.71,
+      "game_loop": 1024,
+      "wall_time": 6.57,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 50.89,
+      "game_loop": 1140,
+      "wall_time": 7.1,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 51.07,
+      "game_loop": 1144,
+      "wall_time": 7.25,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 51.25,
+      "game_loop": 1148,
+      "wall_time": 7.27,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 51.43,
+      "game_loop": 1152,
+      "wall_time": 7.29,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 55.89,
+      "game_loop": 1252,
+      "wall_time": 7.79,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 56.07,
+      "game_loop": 1256,
+      "wall_time": 7.8,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 60.71,
+      "game_loop": 1360,
+      "wall_time": 8.36,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 60.89,
+      "game_loop": 1364,
+      "wall_time": 8.38,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 65.71,
+      "game_loop": 1472,
+      "wall_time": 8.94,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 65.89,
+      "game_loop": 1476,
+      "wall_time": 8.96,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 70.54,
+      "game_loop": 1580,
+      "wall_time": 9.47,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 70.71,
+      "game_loop": 1584,
+      "wall_time": 9.6,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 70.89,
+      "game_loop": 1588,
+      "wall_time": 9.64,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 71.07,
+      "game_loop": 1592,
+      "wall_time": 9.65,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 71.25,
+      "game_loop": 1596,
+      "wall_time": 9.67,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 71.43,
+      "game_loop": 1600,
+      "wall_time": 9.7,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 80.36,
+      "game_loop": 1800,
+      "wall_time": 10.69,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 80.54,
+      "game_loop": 1804,
+      "wall_time": 10.71,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 89.64,
+      "game_loop": 2008,
+      "wall_time": 11.75,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 100.36,
+      "game_loop": 2248,
+      "wall_time": 13.1,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 100.54,
+      "game_loop": 2252,
+      "wall_time": 13.12,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 100.71,
+      "game_loop": 2256,
+      "wall_time": 13.15,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 105.71,
+      "game_loop": 2368,
+      "wall_time": 13.71,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 105.89,
+      "game_loop": 2372,
+      "wall_time": 13.72,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 114.82,
+      "game_loop": 2572,
+      "wall_time": 14.8,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 115.0,
+      "game_loop": 2576,
+      "wall_time": 14.83,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 115.18,
+      "game_loop": 2580,
+      "wall_time": 14.88,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 115.36,
+      "game_loop": 2584,
+      "wall_time": 14.9,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 120.54,
+      "game_loop": 2700,
+      "wall_time": 15.61,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 120.71,
+      "game_loop": 2704,
+      "wall_time": 15.63,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 126.07,
+      "game_loop": 2824,
+      "wall_time": 16.41,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 126.25,
+      "game_loop": 2828,
+      "wall_time": 16.44,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 126.43,
+      "game_loop": 2832,
+      "wall_time": 16.45,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 126.61,
+      "game_loop": 2836,
+      "wall_time": 16.5,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 131.61,
+      "game_loop": 2948,
+      "wall_time": 17.12,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 131.79,
+      "game_loop": 2952,
+      "wall_time": 17.15,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 131.96,
+      "game_loop": 2956,
+      "wall_time": 17.17,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 132.14,
+      "game_loop": 2960,
+      "wall_time": 17.19,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 136.96,
+      "game_loop": 3068,
+      "wall_time": 17.77,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 137.14,
+      "game_loop": 3072,
+      "wall_time": 17.79,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 141.96,
+      "game_loop": 3180,
+      "wall_time": 18.39,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 142.14,
+      "game_loop": 3184,
+      "wall_time": 18.41,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 142.32,
+      "game_loop": 3188,
+      "wall_time": 18.44,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 142.5,
+      "game_loop": 3192,
+      "wall_time": 18.47,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 142.68,
+      "game_loop": 3196,
+      "wall_time": 18.5,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 142.86,
+      "game_loop": 3200,
+      "wall_time": 19.64,
+      "kind": "plan_generated",
+      "detail": "stage=1, solve_time=1.09s, plan=['wait_for_vespene', 'wait_for_vespene', 'build_techlab_barracks', 'wait_for_vespene', 'wait_for_vespene', 'wait_for_vespene', 'wait_for_vespene', 'train_marine', 'train_marine', 'expand', 'wait_for_vespene', 'expand', 'wait_for_vespene', 'train_marine', 'build_refinery', 'build_refinery', 'wait_for_vespene', 'build_refinery', 'wait_for_vespene', 'train_marine', 'build_barracks', 'wait_for_vespene', 'train_marine', 'build_refinery', 'wait_for_vespene', 'train_marine', 'build_supply_depot', 'wait_for_vespene', 'build_barracks', 'wait_for_vespene', 'train_marauder', 'build_refinery', 'wait_for_vespene', 'train_marauder', 'build_barracks', 'wait_for_vespene', 'build_techlab_barracks', 'build_techlab_barracks', 'train_marine', 'wait_for_vespene', 'train_marauder', 'train_marauder']",
+      "stage": 1,
+      "attempt": 0,
+      "state": {
+        "minerals": 590,
+        "vespene": 92,
+        "supply-used": 24,
+        "supply-cap": 31,
+        "mining-rate": 74,
+        "gas-rate": 12,
+        "depot-count": 2,
+        "barracks-count": 2,
+        "refinery-count": 1,
+        "factory-count": 0,
+        "engineeringbay-count": 0,
+        "cc-count": 1,
+        "techlab-barracks-count": 0,
+        "techlab-factory-count": 0,
+        "marine-count": 2,
+        "marauder-count": 0,
+        "tank-count": 0,
+        "weapon-upgrades": 0,
+        "stimpack": 0,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 0,
+        "techlab-time": 0,
+        "factory-time": 0,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 1.093,
+      "enhsp_time": 0.213,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (and (>= (refinery-count) 1) (>= (techlab-barracks-count) 1) (>= (marauder-count) 4) (>= (marine-count) 8)) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 42,
+      "n_waits": 17
+    },
+    {
+      "game_time": 143.04,
+      "game_loop": 3204,
+      "wall_time": 19.66,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 146.43,
+      "game_loop": 3280,
+      "wall_time": 20.07,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 146.61,
+      "game_loop": 3284,
+      "wall_time": 20.1,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 150.89,
+      "game_loop": 3380,
+      "wall_time": 20.68,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 161.96,
+      "game_loop": 3628,
+      "wall_time": 22.16,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 162.14,
+      "game_loop": 3632,
+      "wall_time": 22.2,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 162.32,
+      "game_loop": 3636,
+      "wall_time": 22.22,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 165.54,
+      "game_loop": 3708,
+      "wall_time": 22.62,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 165.71,
+      "game_loop": 3712,
+      "wall_time": 22.64,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 170.0,
+      "game_loop": 3808,
+      "wall_time": 23.17,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 170.18,
+      "game_loop": 3812,
+      "wall_time": 23.2,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 174.46,
+      "game_loop": 3908,
+      "wall_time": 23.76,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 174.64,
+      "game_loop": 3912,
+      "wall_time": 23.77,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 178.93,
+      "game_loop": 4008,
+      "wall_time": 24.32,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 179.11,
+      "game_loop": 4012,
+      "wall_time": 24.33,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 179.29,
+      "game_loop": 4016,
+      "wall_time": 24.37,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 179.46,
+      "game_loop": 4020,
+      "wall_time": 24.39,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 179.64,
+      "game_loop": 4024,
+      "wall_time": 24.41,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 179.82,
+      "game_loop": 4028,
+      "wall_time": 24.46,
+      "kind": "plan_issued",
+      "detail": "expand"
+    },
+    {
+      "game_time": 180.0,
+      "game_loop": 4032,
+      "wall_time": 24.48,
+      "kind": "plan_completed",
+      "detail": "expand"
+    },
+    {
+      "game_time": 180.18,
+      "game_loop": 4036,
+      "wall_time": 24.51,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 183.21,
+      "game_loop": 4104,
+      "wall_time": 24.88,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 183.39,
+      "game_loop": 4108,
+      "wall_time": 24.94,
+      "kind": "plan_reordered",
+      "detail": "train_marine before expand",
+      "held": "expand",
+      "moved": "train_marine"
+    },
+    {
+      "game_time": 183.57,
+      "game_loop": 4112,
+      "wall_time": 24.96,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 183.75,
+      "game_loop": 4116,
+      "wall_time": 24.99,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 183.93,
+      "game_loop": 4120,
+      "wall_time": 25.03,
+      "kind": "plan_reordered",
+      "detail": "build_refinery before expand",
+      "held": "expand",
+      "moved": "build_refinery"
+    },
+    {
+      "game_time": 184.11,
+      "game_loop": 4124,
+      "wall_time": 25.06,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 184.29,
+      "game_loop": 4128,
+      "wall_time": 25.08,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 184.46,
+      "game_loop": 4132,
+      "wall_time": 25.2,
+      "kind": "plan_reordered",
+      "detail": "build_techlab_barracks before expand",
+      "held": "expand",
+      "moved": "build_techlab_barracks"
+    },
+    {
+      "game_time": 196.96,
+      "game_loop": 4412,
+      "wall_time": 26.9,
+      "kind": "reactive_override",
+      "detail": "Emergency Supply Depot built"
+    },
+    {
+      "game_time": 214.64,
+      "game_loop": 4808,
+      "wall_time": 29.18,
+      "kind": "action_unissuable",
+      "detail": "build_techlab_barracks could not be issued at 214s (every BARRACKS without an add-on is busy); replanning stage 1 (attempt 1)"
+    },
+    {
+      "game_time": 214.64,
+      "game_loop": 4808,
+      "wall_time": 30.0,
+      "kind": "plan_generated",
+      "detail": "stage=1, solve_time=0.79s, plan=['wait_for_vespene', 'expand', 'build_supply_depot', 'build_refinery', 'build_refinery', 'wait_for_vespene', 'build_refinery', 'wait_for_vespene', 'build_factory', 'wait_for_vespene', 'train_marauder', 'wait_for_vespene', 'research_stimpack', 'build_techlab_barracks', 'train_marine', 'wait_for_vespene', 'wait_for_vespene', 'train_marauder', 'wait_for_vespene', 'build_factory', 'wait_for_vespene', 'train_marauder', 'build_supply_depot', 'train_marauder']",
+      "stage": 1,
+      "attempt": 1,
+      "state": {
+        "minerals": 765,
+        "vespene": 267,
+        "supply-used": 31,
+        "supply-cap": 31,
+        "mining-rate": 74,
+        "gas-rate": 16,
+        "depot-count": 3,
+        "barracks-count": 2,
+        "refinery-count": 2,
+        "factory-count": 0,
+        "engineeringbay-count": 0,
+        "cc-count": 2,
+        "techlab-barracks-count": 1,
+        "techlab-factory-count": 0,
+        "marine-count": 8,
+        "marauder-count": 0,
+        "tank-count": 0,
+        "weapon-upgrades": 0,
+        "stimpack": 0,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 18,
+        "techlab-time": 21,
+        "factory-time": 0,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 0.793,
+      "enhsp_time": 0.114,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (and (>= (refinery-count) 1) (>= (techlab-barracks-count) 1) (>= (marauder-count) 4) (>= (marine-count) 8)) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 24,
+      "n_waits": 9
+    },
+    {
+      "game_time": 214.82,
+      "game_loop": 4812,
+      "wall_time": 30.03,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 218.57,
+      "game_loop": 4896,
+      "wall_time": 30.52,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 218.75,
+      "game_loop": 4900,
+      "wall_time": 30.55,
+      "kind": "plan_issued",
+      "detail": "expand"
+    },
+    {
+      "game_time": 218.93,
+      "game_loop": 4904,
+      "wall_time": 30.59,
+      "kind": "plan_completed",
+      "detail": "expand"
+    },
+    {
+      "game_time": 219.11,
+      "game_loop": 4908,
+      "wall_time": 30.71,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 219.29,
+      "game_loop": 4912,
+      "wall_time": 30.74,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 219.46,
+      "game_loop": 4916,
+      "wall_time": 30.77,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 219.64,
+      "game_loop": 4920,
+      "wall_time": 30.8,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 219.82,
+      "game_loop": 4924,
+      "wall_time": 30.82,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 220.0,
+      "game_loop": 4928,
+      "wall_time": 30.85,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 220.18,
+      "game_loop": 4932,
+      "wall_time": 30.88,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 224.11,
+      "game_loop": 5020,
+      "wall_time": 31.41,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 231.79,
+      "game_loop": 5192,
+      "wall_time": 32.49,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 231.96,
+      "game_loop": 5196,
+      "wall_time": 32.52,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 232.14,
+      "game_loop": 5200,
+      "wall_time": 32.54,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 235.89,
+      "game_loop": 5284,
+      "wall_time": 33.04,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 236.07,
+      "game_loop": 5288,
+      "wall_time": 33.2,
+      "kind": "plan_issued",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 236.25,
+      "game_loop": 5292,
+      "wall_time": 33.24,
+      "kind": "plan_completed",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 236.43,
+      "game_loop": 5296,
+      "wall_time": 33.26,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 239.82,
+      "game_loop": 5372,
+      "wall_time": 33.72,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 240.0,
+      "game_loop": 5376,
+      "wall_time": 33.75,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 240.18,
+      "game_loop": 5380,
+      "wall_time": 33.77,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 240.36,
+      "game_loop": 5384,
+      "wall_time": 33.8,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 243.75,
+      "game_loop": 5460,
+      "wall_time": 34.25,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 245.18,
+      "game_loop": 5492,
+      "wall_time": 34.51,
+      "kind": "plan_issued",
+      "detail": "research_stimpack"
+    },
+    {
+      "game_time": 245.36,
+      "game_loop": 5496,
+      "wall_time": 34.55,
+      "kind": "plan_completed",
+      "detail": "research_stimpack"
+    },
+    {
+      "game_time": 247.86,
+      "game_loop": 5552,
+      "wall_time": 34.91,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 248.93,
+      "game_loop": 5576,
+      "wall_time": 35.08,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 249.11,
+      "game_loop": 5580,
+      "wall_time": 35.12,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 256.25,
+      "game_loop": 5740,
+      "wall_time": 36.15,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 256.43,
+      "game_loop": 5744,
+      "wall_time": 36.17,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 256.61,
+      "game_loop": 5748,
+      "wall_time": 36.21,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 263.39,
+      "game_loop": 5900,
+      "wall_time": 37.19,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 263.57,
+      "game_loop": 5904,
+      "wall_time": 37.22,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 271.25,
+      "game_loop": 6076,
+      "wall_time": 38.28,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 271.43,
+      "game_loop": 6080,
+      "wall_time": 38.31,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 271.61,
+      "game_loop": 6084,
+      "wall_time": 38.34,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 271.79,
+      "game_loop": 6088,
+      "wall_time": 38.36,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 276.61,
+      "game_loop": 6196,
+      "wall_time": 39.07,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 288.39,
+      "game_loop": 6460,
+      "wall_time": 40.82,
+      "kind": "plan_issued",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 288.57,
+      "game_loop": 6464,
+      "wall_time": 40.86,
+      "kind": "plan_completed",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 288.75,
+      "game_loop": 6468,
+      "wall_time": 40.88,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 293.04,
+      "game_loop": 6564,
+      "wall_time": 41.49,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 300.71,
+      "game_loop": 6736,
+      "wall_time": 42.7,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 300.89,
+      "game_loop": 6740,
+      "wall_time": 42.73,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 314.29,
+      "game_loop": 7040,
+      "wall_time": 44.86,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 314.46,
+      "game_loop": 7044,
+      "wall_time": 44.89,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 326.61,
+      "game_loop": 7316,
+      "wall_time": 46.77,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 326.79,
+      "game_loop": 7320,
+      "wall_time": 46.8,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 326.96,
+      "game_loop": 7324,
+      "wall_time": 47.63,
+      "kind": "plan_generated",
+      "detail": "stage=2, solve_time=0.79s, plan=['wait_for_vespene', 'wait_for_vespene', 'build_techlab_factory', 'train_marine', 'wait_for_vespene', 'research_stimpack', 'wait_for_vespene', 'train_marine', 'build_engineeringbay', 'wait_for_vespene', 'research_weapons', 'wait_for_vespene', 'train_marine', 'wait_for_vespene', 'wait_for_vespene', 'wait_for_vespene', 'train_marine', 'train_marine', 'train_marine', 'build_supply_depot', 'wait_for_vespene', 'wait_for_vespene', 'train_marine', 'build_barracks', 'wait_for_vespene', 'build_techlab_factory', 'build_refinery', 'wait_for_vespene', 'wait_for_vespene', 'train_siegetank', 'train_siegetank']",
+      "stage": 2,
+      "attempt": 0,
+      "state": {
+        "minerals": 5,
+        "vespene": 390,
+        "supply-used": 56,
+        "supply-cap": 77,
+        "mining-rate": 106,
+        "gas-rate": 42,
+        "depot-count": 5,
+        "barracks-count": 2,
+        "refinery-count": 5,
+        "factory-count": 2,
+        "engineeringbay-count": 0,
+        "cc-count": 3,
+        "techlab-barracks-count": 2,
+        "techlab-factory-count": 0,
+        "marine-count": 10,
+        "marauder-count": 3,
+        "tank-count": 0,
+        "weapon-upgrades": 0,
+        "stimpack": 0,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 18,
+        "techlab-time": 21,
+        "factory-time": 0,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 0.788,
+      "enhsp_time": 0.109,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (and (>= (factory-count) 1) (>= (techlab-factory-count) 1) (>= (tank-count) 2) (>= (weapon-upgrades) 1) (>= (stimpack) 1) (>= (marine-count) 14)) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 31,
+      "n_waits": 14
+    },
+    {
+      "game_time": 327.14,
+      "game_loop": 7328,
+      "wall_time": 47.67,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 330.0,
+      "game_loop": 7392,
+      "wall_time": 48.11,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 331.61,
+      "game_loop": 7428,
+      "wall_time": 48.4,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 331.79,
+      "game_loop": 7432,
+      "wall_time": 48.43,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 336.61,
+      "game_loop": 7540,
+      "wall_time": 49.22,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 336.79,
+      "game_loop": 7544,
+      "wall_time": 49.25,
+      "kind": "plan_issued",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 336.96,
+      "game_loop": 7548,
+      "wall_time": 49.28,
+      "kind": "plan_completed",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 338.57,
+      "game_loop": 7584,
+      "wall_time": 49.6,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 338.75,
+      "game_loop": 7588,
+      "wall_time": 49.63,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 338.93,
+      "game_loop": 7592,
+      "wall_time": 49.66,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 339.29,
+      "game_loop": 7600,
+      "wall_time": 49.72,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 343.57,
+      "game_loop": 7696,
+      "wall_time": 50.45,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 348.93,
+      "game_loop": 7816,
+      "wall_time": 51.48,
+      "kind": "plan_issued",
+      "detail": "research_stimpack"
+    },
+    {
+      "game_time": 349.11,
+      "game_loop": 7820,
+      "wall_time": 51.53,
+      "kind": "plan_completed",
+      "detail": "research_stimpack"
+    },
+    {
+      "game_time": 349.29,
+      "game_loop": 7824,
+      "wall_time": 51.56,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 353.93,
+      "game_loop": 7928,
+      "wall_time": 52.37,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 354.11,
+      "game_loop": 7932,
+      "wall_time": 52.41,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 354.29,
+      "game_loop": 7936,
+      "wall_time": 52.44,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 354.46,
+      "game_loop": 7940,
+      "wall_time": 52.54,
+      "kind": "plan_issued",
+      "detail": "build_engineeringbay"
+    },
+    {
+      "game_time": 354.64,
+      "game_loop": 7944,
+      "wall_time": 52.58,
+      "kind": "plan_completed",
+      "detail": "build_engineeringbay"
+    },
+    {
+      "game_time": 354.82,
+      "game_loop": 7948,
+      "wall_time": 52.62,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 359.64,
+      "game_loop": 8056,
+      "wall_time": 53.45,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 361.43,
+      "game_loop": 8096,
+      "wall_time": 53.76,
+      "kind": "plan_reordered",
+      "detail": "train_marine before research_weapons",
+      "held": "research_weapons",
+      "moved": "train_marine"
+    },
+    {
+      "game_time": 361.61,
+      "game_loop": 8100,
+      "wall_time": 53.8,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 361.79,
+      "game_loop": 8104,
+      "wall_time": 53.82,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 382.68,
+      "game_loop": 8572,
+      "wall_time": 57.61,
+      "kind": "plan_issued",
+      "detail": "research_weapons"
+    },
+    {
+      "game_time": 382.86,
+      "game_loop": 8576,
+      "wall_time": 57.64,
+      "kind": "plan_completed",
+      "detail": "research_weapons"
+    },
+    {
+      "game_time": 383.04,
+      "game_loop": 8580,
+      "wall_time": 57.68,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 387.68,
+      "game_loop": 8684,
+      "wall_time": 58.51,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 387.86,
+      "game_loop": 8688,
+      "wall_time": 58.54,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 393.04,
+      "game_loop": 8804,
+      "wall_time": 59.48,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 393.21,
+      "game_loop": 8808,
+      "wall_time": 59.51,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 398.04,
+      "game_loop": 8916,
+      "wall_time": 60.45,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 398.21,
+      "game_loop": 8920,
+      "wall_time": 60.48,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 403.21,
+      "game_loop": 9032,
+      "wall_time": 61.4,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 403.39,
+      "game_loop": 9036,
+      "wall_time": 61.44,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 403.57,
+      "game_loop": 9040,
+      "wall_time": 61.47,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 403.75,
+      "game_loop": 9044,
+      "wall_time": 61.5,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 403.93,
+      "game_loop": 9048,
+      "wall_time": 61.54,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 404.11,
+      "game_loop": 9052,
+      "wall_time": 61.58,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 404.29,
+      "game_loop": 9056,
+      "wall_time": 61.6,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 404.46,
+      "game_loop": 9060,
+      "wall_time": 61.68,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 404.64,
+      "game_loop": 9064,
+      "wall_time": 61.73,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 404.82,
+      "game_loop": 9068,
+      "wall_time": 61.77,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 404.82,
+      "game_loop": 9068,
+      "wall_time": 61.77,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 409.82,
+      "game_loop": 9180,
+      "wall_time": 62.92,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 410.0,
+      "game_loop": 9184,
+      "wall_time": 62.95,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 415.18,
+      "game_loop": 9300,
+      "wall_time": 63.94,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 415.36,
+      "game_loop": 9304,
+      "wall_time": 63.97,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 415.54,
+      "game_loop": 9308,
+      "wall_time": 64.01,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 415.71,
+      "game_loop": 9312,
+      "wall_time": 64.2,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 415.89,
+      "game_loop": 9316,
+      "wall_time": 64.24,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 416.07,
+      "game_loop": 9320,
+      "wall_time": 64.28,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 419.46,
+      "game_loop": 9396,
+      "wall_time": 64.94,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 420.36,
+      "game_loop": 9416,
+      "wall_time": 65.12,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 420.54,
+      "game_loop": 9420,
+      "wall_time": 65.15,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 420.71,
+      "game_loop": 9424,
+      "wall_time": 65.19,
+      "kind": "plan_issued",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 420.89,
+      "game_loop": 9428,
+      "wall_time": 65.23,
+      "kind": "plan_completed",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 421.07,
+      "game_loop": 9432,
+      "wall_time": 65.27,
+      "kind": "plan_issued",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 421.25,
+      "game_loop": 9436,
+      "wall_time": 65.3,
+      "kind": "plan_completed",
+      "detail": "build_refinery"
+    },
+    {
+      "game_time": 421.43,
+      "game_loop": 9440,
+      "wall_time": 65.34,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 422.32,
+      "game_loop": 9460,
+      "wall_time": 65.51,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 426.07,
+      "game_loop": 9544,
+      "wall_time": 66.25,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 426.25,
+      "game_loop": 9548,
+      "wall_time": 66.28,
+      "kind": "plan_issued",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 431.25,
+      "game_loop": 9660,
+      "wall_time": 67.25,
+      "kind": "plan_completed",
+      "detail": "wait_for_vespene"
+    },
+    {
+      "game_time": 431.43,
+      "game_loop": 9664,
+      "wall_time": 67.29,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 431.61,
+      "game_loop": 9668,
+      "wall_time": 67.37,
+      "kind": "reactive_override",
+      "detail": "Emergency Supply Depot built"
+    },
+    {
+      "game_time": 431.61,
+      "game_loop": 9668,
+      "wall_time": 67.37,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 455.36,
+      "game_loop": 10200,
+      "wall_time": 72.44,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 455.54,
+      "game_loop": 10204,
+      "wall_time": 72.48,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 455.71,
+      "game_loop": 10208,
+      "wall_time": 73.29,
+      "kind": "plan_generated",
+      "detail": "stage=3, solve_time=0.76s, plan=['build_factory', 'build_barracks', 'build_barracks', 'build_barracks', 'build_barracks', 'build_barracks', 'build_barracks', 'wait_for_minerals', 'train_marauder', 'build_supply_depot', 'train_marine', 'train_marine', 'wait_for_minerals', 'train_marine', 'train_marine', 'wait_for_minerals', 'train_marauder', 'wait_for_minerals', 'train_marauder', 'build_supply_depot', 'train_marine', 'train_marine', 'train_marine', 'train_marine', 'wait_for_minerals', 'train_marauder', 'train_marine', 'wait_for_minerals', 'build_supply_depot', 'train_marine', 'train_siegetank', 'attack']",
+      "stage": 3,
+      "attempt": 0,
+      "state": {
+        "minerals": 1240,
+        "vespene": 1526,
+        "supply-used": 99,
+        "supply-cap": 101,
+        "mining-rate": 209,
+        "gas-rate": 75,
+        "depot-count": 7,
+        "barracks-count": 3,
+        "refinery-count": 6,
+        "factory-count": 2,
+        "engineeringbay-count": 1,
+        "cc-count": 3,
+        "techlab-barracks-count": 2,
+        "techlab-factory-count": 2,
+        "marine-count": 7,
+        "marauder-count": 1,
+        "tank-count": 0,
+        "weapon-upgrades": 0,
+        "stimpack": 1,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 36,
+        "techlab-time": 42,
+        "factory-time": 0,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 0.757,
+      "enhsp_time": 0.067,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (>= (attacks-launched) 1) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 32,
+      "n_waits": 6
+    },
+    {
+      "game_time": 455.89,
+      "game_loop": 10212,
+      "wall_time": 73.52,
+      "kind": "plan_issued",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 456.07,
+      "game_loop": 10216,
+      "wall_time": 73.56,
+      "kind": "plan_completed",
+      "detail": "build_factory"
+    },
+    {
+      "game_time": 456.25,
+      "game_loop": 10220,
+      "wall_time": 73.77,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 456.43,
+      "game_loop": 10224,
+      "wall_time": 73.81,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 456.61,
+      "game_loop": 10228,
+      "wall_time": 73.97,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 456.79,
+      "game_loop": 10232,
+      "wall_time": 74.01,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 456.96,
+      "game_loop": 10236,
+      "wall_time": 74.21,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 457.14,
+      "game_loop": 10240,
+      "wall_time": 74.25,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 457.32,
+      "game_loop": 10244,
+      "wall_time": 74.33,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 457.5,
+      "game_loop": 10248,
+      "wall_time": 74.37,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 457.68,
+      "game_loop": 10252,
+      "wall_time": 74.5,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 457.86,
+      "game_loop": 10256,
+      "wall_time": 74.53,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 458.04,
+      "game_loop": 10260,
+      "wall_time": 74.65,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 458.21,
+      "game_loop": 10264,
+      "wall_time": 74.69,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 458.39,
+      "game_loop": 10268,
+      "wall_time": 74.72,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 463.39,
+      "game_loop": 10380,
+      "wall_time": 77.33,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 463.57,
+      "game_loop": 10384,
+      "wall_time": 77.45,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 463.75,
+      "game_loop": 10388,
+      "wall_time": 77.74,
+      "kind": "reactive_override",
+      "detail": "Emergency Supply Depot built"
+    },
+    {
+      "game_time": 463.75,
+      "game_loop": 10388,
+      "wall_time": 77.74,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 463.93,
+      "game_loop": 10392,
+      "wall_time": 78.0,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 464.11,
+      "game_loop": 10396,
+      "wall_time": 78.04,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 488.04,
+      "game_loop": 10932,
+      "wall_time": 83.12,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 488.21,
+      "game_loop": 10936,
+      "wall_time": 83.17,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 488.39,
+      "game_loop": 10940,
+      "wall_time": 83.2,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 488.57,
+      "game_loop": 10944,
+      "wall_time": 83.24,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 488.75,
+      "game_loop": 10948,
+      "wall_time": 83.27,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 493.21,
+      "game_loop": 11048,
+      "wall_time": 84.16,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 493.39,
+      "game_loop": 11052,
+      "wall_time": 84.2,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 493.57,
+      "game_loop": 11056,
+      "wall_time": 84.23,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 493.75,
+      "game_loop": 11060,
+      "wall_time": 84.26,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 493.93,
+      "game_loop": 11064,
+      "wall_time": 84.3,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 494.11,
+      "game_loop": 11068,
+      "wall_time": 84.33,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 499.29,
+      "game_loop": 11184,
+      "wall_time": 85.37,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 499.46,
+      "game_loop": 11188,
+      "wall_time": 85.4,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 499.64,
+      "game_loop": 11192,
+      "wall_time": 85.45,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 499.82,
+      "game_loop": 11196,
+      "wall_time": 85.48,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 508.75,
+      "game_loop": 11396,
+      "wall_time": 87.38,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 508.93,
+      "game_loop": 11400,
+      "wall_time": 87.42,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 509.11,
+      "game_loop": 11404,
+      "wall_time": 87.46,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 509.29,
+      "game_loop": 11408,
+      "wall_time": 87.58,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 509.46,
+      "game_loop": 11412,
+      "wall_time": 87.63,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 509.64,
+      "game_loop": 11416,
+      "wall_time": 87.67,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 509.82,
+      "game_loop": 11420,
+      "wall_time": 87.7,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.0,
+      "game_loop": 11424,
+      "wall_time": 87.74,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.18,
+      "game_loop": 11428,
+      "wall_time": 87.78,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.36,
+      "game_loop": 11432,
+      "wall_time": 87.82,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.54,
+      "game_loop": 11436,
+      "wall_time": 87.86,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.71,
+      "game_loop": 11440,
+      "wall_time": 87.9,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 510.89,
+      "game_loop": 11444,
+      "wall_time": 87.94,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 511.07,
+      "game_loop": 11448,
+      "wall_time": 87.98,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 515.89,
+      "game_loop": 11556,
+      "wall_time": 89.06,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 516.07,
+      "game_loop": 11560,
+      "wall_time": 89.12,
+      "kind": "plan_reordered",
+      "detail": "train_marine before train_marauder",
+      "held": "train_marauder",
+      "moved": "train_marine"
+    },
+    {
+      "game_time": 516.25,
+      "game_loop": 11564,
+      "wall_time": 89.19,
+      "kind": "plan_reordered",
+      "detail": "build_supply_depot before train_marine",
+      "held": "train_marine",
+      "moved": "build_supply_depot"
+    },
+    {
+      "game_time": 516.43,
+      "game_loop": 11568,
+      "wall_time": 89.27,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 516.61,
+      "game_loop": 11572,
+      "wall_time": 89.31,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 516.79,
+      "game_loop": 11576,
+      "wall_time": 89.37,
+      "kind": "plan_reordered",
+      "detail": "train_marauder before train_marine",
+      "held": "train_marine",
+      "moved": "train_marauder"
+    },
+    {
+      "game_time": 531.79,
+      "game_loop": 11912,
+      "wall_time": 92.92,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 531.96,
+      "game_loop": 11916,
+      "wall_time": 92.96,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 532.14,
+      "game_loop": 11920,
+      "wall_time": 93.01,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 532.32,
+      "game_loop": 11924,
+      "wall_time": 93.04,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 532.5,
+      "game_loop": 11928,
+      "wall_time": 93.08,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 533.93,
+      "game_loop": 11960,
+      "wall_time": 93.4,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 537.14,
+      "game_loop": 12032,
+      "wall_time": 94.15,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 537.32,
+      "game_loop": 12036,
+      "wall_time": 94.2,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 537.5,
+      "game_loop": 12040,
+      "wall_time": 94.25,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 537.68,
+      "game_loop": 12044,
+      "wall_time": 94.28,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 537.86,
+      "game_loop": 12048,
+      "wall_time": 94.33,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 553.21,
+      "game_loop": 12392,
+      "wall_time": 99.87,
+      "kind": "plan_issued",
+      "detail": "attack"
+    },
+    {
+      "game_time": 553.39,
+      "game_loop": 12396,
+      "wall_time": 99.93,
+      "kind": "plan_completed",
+      "detail": "attack"
+    },
+    {
+      "game_time": 553.57,
+      "game_loop": 12400,
+      "wall_time": 99.97,
+      "kind": "attack_retarget",
+      "detail": "army heads to (162, 22) at 553s"
+    },
+    {
+      "game_time": 553.57,
+      "game_loop": 12400,
+      "wall_time": 100.71,
+      "kind": "plan_generated",
+      "detail": "stage=3, solve_time=0.72s, plan=['train_marauder', 'build_barracks', 'build_barracks', 'build_barracks', 'train_marine', 'train_marine', 'build_supply_depot', 'train_marine', 'train_marine', 'train_marine', 'build_supply_depot', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_barracks', 'build_techlab_factory', 'wait_for_minerals', 'train_marauder', 'train_marauder', 'train_marine', 'build_supply_depot', 'wait_for_minerals', 'train_marauder', 'train_marauder', 'train_marauder', 'build_supply_depot', 'wait_for_minerals', 'train_siegetank', 'train_marauder', 'train_marauder', 'train_siegetank', 'train_marauder', 'attack']",
+      "stage": 3,
+      "attempt": 0,
+      "state": {
+        "minerals": 2610,
+        "vespene": 2665,
+        "supply-used": 126,
+        "supply-cap": 133,
+        "mining-rate": 223,
+        "gas-rate": 75,
+        "depot-count": 11,
+        "barracks-count": 9,
+        "refinery-count": 6,
+        "factory-count": 3,
+        "engineeringbay-count": 1,
+        "cc-count": 3,
+        "techlab-barracks-count": 2,
+        "techlab-factory-count": 2,
+        "marine-count": 0,
+        "marauder-count": 0,
+        "tank-count": 0,
+        "weapon-upgrades": 1,
+        "stimpack": 1,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 126,
+        "techlab-time": 21,
+        "factory-time": 32,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 0.72,
+      "enhsp_time": 0.064,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (>= (attacks-launched) 1) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 39,
+      "n_waits": 3
+    },
+    {
+      "game_time": 553.75,
+      "game_loop": 12404,
+      "wall_time": 100.75,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 553.93,
+      "game_loop": 12408,
+      "wall_time": 100.8,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 554.11,
+      "game_loop": 12412,
+      "wall_time": 100.99,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 554.29,
+      "game_loop": 12416,
+      "wall_time": 101.03,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 554.46,
+      "game_loop": 12420,
+      "wall_time": 101.13,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 554.64,
+      "game_loop": 12424,
+      "wall_time": 101.18,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 554.82,
+      "game_loop": 12428,
+      "wall_time": 101.33,
+      "kind": "plan_issued",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 555.0,
+      "game_loop": 12432,
+      "wall_time": 101.38,
+      "kind": "plan_completed",
+      "detail": "build_barracks"
+    },
+    {
+      "game_time": 555.18,
+      "game_loop": 12436,
+      "wall_time": 101.42,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 555.36,
+      "game_loop": 12440,
+      "wall_time": 101.47,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 555.54,
+      "game_loop": 12444,
+      "wall_time": 101.51,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 555.71,
+      "game_loop": 12448,
+      "wall_time": 101.56,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 555.89,
+      "game_loop": 12452,
+      "wall_time": 101.66,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 556.07,
+      "game_loop": 12456,
+      "wall_time": 101.71,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 556.25,
+      "game_loop": 12460,
+      "wall_time": 101.76,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 556.43,
+      "game_loop": 12464,
+      "wall_time": 101.8,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 556.61,
+      "game_loop": 12468,
+      "wall_time": 101.85,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 556.79,
+      "game_loop": 12472,
+      "wall_time": 101.89,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 556.96,
+      "game_loop": 12476,
+      "wall_time": 101.94,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 557.14,
+      "game_loop": 12480,
+      "wall_time": 101.98,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 557.32,
+      "game_loop": 12484,
+      "wall_time": 102.06,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 557.5,
+      "game_loop": 12488,
+      "wall_time": 102.11,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 557.68,
+      "game_loop": 12492,
+      "wall_time": 102.15,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 557.86,
+      "game_loop": 12496,
+      "wall_time": 102.21,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 558.04,
+      "game_loop": 12500,
+      "wall_time": 102.25,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 558.21,
+      "game_loop": 12504,
+      "wall_time": 102.3,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 573.04,
+      "game_loop": 12836,
+      "wall_time": 105.98,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 573.21,
+      "game_loop": 12840,
+      "wall_time": 106.03,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 573.39,
+      "game_loop": 12844,
+      "wall_time": 106.08,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 573.57,
+      "game_loop": 12848,
+      "wall_time": 106.12,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 574.11,
+      "game_loop": 12860,
+      "wall_time": 106.25,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 574.29,
+      "game_loop": 12864,
+      "wall_time": 106.3,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 574.46,
+      "game_loop": 12868,
+      "wall_time": 106.35,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 574.64,
+      "game_loop": 12872,
+      "wall_time": 106.39,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 574.82,
+      "game_loop": 12876,
+      "wall_time": 106.44,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 575.0,
+      "game_loop": 12880,
+      "wall_time": 106.49,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 587.86,
+      "game_loop": 13168,
+      "wall_time": 109.76,
+      "kind": "attack_retarget",
+      "detail": "army heads to (130, 26) at 587s"
+    },
+    {
+      "game_time": 592.68,
+      "game_loop": 13276,
+      "wall_time": 111.15,
+      "kind": "plan_reordered",
+      "detail": "build_techlab_factory before build_techlab_barracks",
+      "held": "build_techlab_barracks",
+      "moved": "build_techlab_factory"
+    },
+    {
+      "game_time": 592.86,
+      "game_loop": 13280,
+      "wall_time": 111.21,
+      "kind": "plan_issued",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 593.04,
+      "game_loop": 13284,
+      "wall_time": 111.25,
+      "kind": "plan_completed",
+      "detail": "build_techlab_factory"
+    },
+    {
+      "game_time": 593.21,
+      "game_loop": 13288,
+      "wall_time": 111.38,
+      "kind": "plan_reordered",
+      "detail": "train_siegetank before build_techlab_barracks",
+      "held": "build_techlab_barracks",
+      "moved": "train_siegetank"
+    },
+    {
+      "game_time": 593.39,
+      "game_loop": 13292,
+      "wall_time": 111.42,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 593.57,
+      "game_loop": 13296,
+      "wall_time": 111.47,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 593.75,
+      "game_loop": 13300,
+      "wall_time": 111.56,
+      "kind": "plan_reordered",
+      "detail": "build_supply_depot before build_techlab_barracks",
+      "held": "build_techlab_barracks",
+      "moved": "build_supply_depot"
+    },
+    {
+      "game_time": 593.93,
+      "game_loop": 13304,
+      "wall_time": 111.65,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 594.11,
+      "game_loop": 13308,
+      "wall_time": 111.71,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 596.61,
+      "game_loop": 13364,
+      "wall_time": 112.51,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 603.75,
+      "game_loop": 13524,
+      "wall_time": 114.74,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 603.93,
+      "game_loop": 13528,
+      "wall_time": 114.79,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 604.82,
+      "game_loop": 13548,
+      "wall_time": 115.07,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 605.0,
+      "game_loop": 13552,
+      "wall_time": 115.13,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 606.07,
+      "game_loop": 13576,
+      "wall_time": 115.45,
+      "kind": "plan_issued",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 606.25,
+      "game_loop": 13580,
+      "wall_time": 115.52,
+      "kind": "plan_completed",
+      "detail": "build_techlab_barracks"
+    },
+    {
+      "game_time": 606.43,
+      "game_loop": 13584,
+      "wall_time": 115.57,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 611.43,
+      "game_loop": 13696,
+      "wall_time": 116.87,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 611.61,
+      "game_loop": 13700,
+      "wall_time": 116.92,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 611.79,
+      "game_loop": 13704,
+      "wall_time": 116.97,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 611.96,
+      "game_loop": 13708,
+      "wall_time": 117.02,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 612.14,
+      "game_loop": 13712,
+      "wall_time": 117.07,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 612.32,
+      "game_loop": 13716,
+      "wall_time": 117.13,
+      "kind": "plan_issued",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 612.5,
+      "game_loop": 13720,
+      "wall_time": 117.18,
+      "kind": "plan_completed",
+      "detail": "train_marine"
+    },
+    {
+      "game_time": 612.68,
+      "game_loop": 13724,
+      "wall_time": 117.24,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 617.68,
+      "game_loop": 13836,
+      "wall_time": 118.62,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 617.86,
+      "game_loop": 13840,
+      "wall_time": 118.67,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.04,
+      "game_loop": 13844,
+      "wall_time": 118.72,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.21,
+      "game_loop": 13848,
+      "wall_time": 118.76,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.39,
+      "game_loop": 13852,
+      "wall_time": 118.82,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.57,
+      "game_loop": 13856,
+      "wall_time": 118.87,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.75,
+      "game_loop": 13860,
+      "wall_time": 118.92,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 618.93,
+      "game_loop": 13864,
+      "wall_time": 119.0,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 619.11,
+      "game_loop": 13868,
+      "wall_time": 119.05,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 619.29,
+      "game_loop": 13872,
+      "wall_time": 119.1,
+      "kind": "plan_issued",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 623.93,
+      "game_loop": 13976,
+      "wall_time": 120.45,
+      "kind": "plan_completed",
+      "detail": "wait_for_minerals"
+    },
+    {
+      "game_time": 624.11,
+      "game_loop": 13980,
+      "wall_time": 120.5,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 624.29,
+      "game_loop": 13984,
+      "wall_time": 120.57,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 624.46,
+      "game_loop": 13988,
+      "wall_time": 120.63,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 624.64,
+      "game_loop": 13992,
+      "wall_time": 120.69,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 624.82,
+      "game_loop": 13996,
+      "wall_time": 120.74,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 625.0,
+      "game_loop": 14000,
+      "wall_time": 120.79,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 625.18,
+      "game_loop": 14004,
+      "wall_time": 120.84,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 625.36,
+      "game_loop": 14008,
+      "wall_time": 120.89,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 645.89,
+      "game_loop": 14468,
+      "wall_time": 126.59,
+      "kind": "plan_issued",
+      "detail": "attack"
+    },
+    {
+      "game_time": 649.29,
+      "game_loop": 14544,
+      "wall_time": 127.56,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 657.5,
+      "game_loop": 14728,
+      "wall_time": 130.01,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 658.04,
+      "game_loop": 14740,
+      "wall_time": 130.18,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 658.21,
+      "game_loop": 14744,
+      "wall_time": 130.23,
+      "kind": "plan_completed",
+      "detail": "attack"
+    },
+    {
+      "game_time": 658.39,
+      "game_loop": 14748,
+      "wall_time": 131.03,
+      "kind": "plan_generated",
+      "detail": "stage=3, solve_time=0.73s, plan=['train_siegetank', 'train_siegetank', 'train_marauder', 'train_marauder', 'build_supply_depot', 'train_marauder', 'train_marauder', 'train_marauder', 'train_marauder', 'build_supply_depot', 'train_marauder', 'train_marauder', 'train_marauder', 'train_marauder', 'build_supply_depot', 'wait_for_minerals', 'train_marauder', 'train_marauder', 'train_marauder', 'build_supply_depot', 'train_siegetank', 'attack']",
+      "stage": 3,
+      "attempt": 0,
+      "state": {
+        "minerals": 4425,
+        "vespene": 3595,
+        "supply-used": 155,
+        "supply-cap": 165,
+        "mining-rate": 213,
+        "gas-rate": 75,
+        "depot-count": 15,
+        "barracks-count": 12,
+        "refinery-count": 6,
+        "factory-count": 3,
+        "engineeringbay-count": 1,
+        "cc-count": 3,
+        "techlab-barracks-count": 12,
+        "techlab-factory-count": 3,
+        "marine-count": 0,
+        "marauder-count": 1,
+        "tank-count": 1,
+        "weapon-upgrades": 1,
+        "stimpack": 1,
+        "armor-upgrades": 0,
+        "attacks-launched": 0,
+        "rax-time": 216,
+        "techlab-time": 252,
+        "factory-time": 96,
+        "attack-threshold": 30,
+        "total-cost": 0
+      },
+      "solve_time": 0.729,
+      "enhsp_time": 0.04,
+      "status": "SOLVED_SATISFICING",
+      "planner_config": null,
+      "goal": "(and (>= (attacks-launched) 1) (or (>= (supply-used) 190) (<= (minerals) 400)))",
+      "plan_length": 22,
+      "n_waits": 1
+    },
+    {
+      "game_time": 658.57,
+      "game_loop": 14752,
+      "wall_time": 131.08,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 658.75,
+      "game_loop": 14756,
+      "wall_time": 131.14,
+      "kind": "reactive_override",
+      "detail": "Base under attack - 1 enemy units"
+    },
+    {
+      "game_time": 658.75,
+      "game_loop": 14756,
+      "wall_time": 131.14,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 658.93,
+      "game_loop": 14760,
+      "wall_time": 131.19,
+      "kind": "plan_issued",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 659.11,
+      "game_loop": 14764,
+      "wall_time": 131.26,
+      "kind": "plan_completed",
+      "detail": "train_siegetank"
+    },
+    {
+      "game_time": 659.29,
+      "game_loop": 14768,
+      "wall_time": 131.32,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 659.46,
+      "game_loop": 14772,
+      "wall_time": 131.38,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 659.64,
+      "game_loop": 14776,
+      "wall_time": 131.44,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 659.82,
+      "game_loop": 14780,
+      "wall_time": 131.54,
+      "kind": "reactive_override",
+      "detail": "Emergency Supply Depot built"
+    },
+    {
+      "game_time": 659.82,
+      "game_loop": 14780,
+      "wall_time": 131.55,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 660.0,
+      "game_loop": 14784,
+      "wall_time": 131.64,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 660.18,
+      "game_loop": 14788,
+      "wall_time": 131.71,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 660.36,
+      "game_loop": 14792,
+      "wall_time": 131.78,
+      "kind": "plan_reordered",
+      "detail": "build_supply_depot before train_marauder",
+      "held": "train_marauder",
+      "moved": "build_supply_depot"
+    },
+    {
+      "game_time": 660.54,
+      "game_loop": 14796,
+      "wall_time": 131.88,
+      "kind": "plan_issued",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 660.71,
+      "game_loop": 14800,
+      "wall_time": 131.94,
+      "kind": "plan_completed",
+      "detail": "build_supply_depot"
+    },
+    {
+      "game_time": 677.86,
+      "game_loop": 15184,
+      "wall_time": 137.05,
+      "kind": "attack_retarget",
+      "detail": "army heads to (132, 20) at 677s"
+    },
+    {
+      "game_time": 684.82,
+      "game_loop": 15340,
+      "wall_time": 138.96,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.0,
+      "game_loop": 15344,
+      "wall_time": 139.01,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.18,
+      "game_loop": 15348,
+      "wall_time": 139.07,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.36,
+      "game_loop": 15352,
+      "wall_time": 139.14,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.54,
+      "game_loop": 15356,
+      "wall_time": 139.21,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.71,
+      "game_loop": 15360,
+      "wall_time": 139.28,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 685.89,
+      "game_loop": 15364,
+      "wall_time": 139.35,
+      "kind": "plan_issued",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 686.07,
+      "game_loop": 15368,
+      "wall_time": 139.42,
+      "kind": "plan_completed",
+      "detail": "train_marauder"
+    },
+    {
+      "game_time": 686.07,
+      "game_loop": 15368,
+      "wall_time": 139.52,
+      "kind": "game_end",
+      "detail": "Result.Victory",
+      "result": "Victory",
+      "minerals_floated": 0.546
+    }
+  ],
+  "snapshots": [
+    {
+      "game_time": 0.0,
+      "game_loop": 0,
+      "wall_time": 1.47,
+      "minerals": 0,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 12,
+      "supply_cap": 15,
+      "scvs": 12,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 0,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 10.0,
+      "game_loop": 224,
+      "wall_time": 2.66,
+      "minerals": 60,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 13,
+      "supply_cap": 15,
+      "scvs": 12,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 60,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 20.0,
+      "game_loop": 448,
+      "wall_time": 3.75,
+      "minerals": 30,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 14,
+      "supply_cap": 15,
+      "scvs": 13,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 180,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 30.0,
+      "game_loop": 672,
+      "wall_time": 4.79,
+      "minerals": 95,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 15,
+      "supply_cap": 15,
+      "scvs": 14,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 295,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 40.0,
+      "game_loop": 896,
+      "wall_time": 5.83,
+      "minerals": 210,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 15,
+      "supply_cap": 15,
+      "scvs": 15,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 410,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 50.0,
+      "game_loop": 1120,
+      "wall_time": 7.0,
+      "minerals": 195,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 16,
+      "supply_cap": 23,
+      "scvs": 15,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 545,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1,
+        "SUPPLYDEPOT": 1
+      }
+    },
+    {
+      "game_time": 60.0,
+      "game_loop": 1344,
+      "wall_time": 8.26,
+      "minerals": 175,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 16,
+      "supply_cap": 23,
+      "scvs": 16,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 675,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 1,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 70.0,
+      "game_loop": 1568,
+      "wall_time": 9.42,
+      "minerals": 315,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 16,
+      "supply_cap": 31,
+      "scvs": 16,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 815,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 80.0,
+      "game_loop": 1792,
+      "wall_time": 10.64,
+      "minerals": 155,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 17,
+      "supply_cap": 31,
+      "scvs": 16,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 930,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 90.0,
+      "game_loop": 2016,
+      "wall_time": 11.79,
+      "minerals": 230,
+      "gas": 0,
+      "minerals_floated": 0.0,
+      "supply_used": 18,
+      "supply_cap": 31,
+      "scvs": 17,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 1055,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 100.0,
+      "game_loop": 2240,
+      "wall_time": 13.06,
+      "minerals": 315,
+      "gas": 4,
+      "minerals_floated": 0.0,
+      "supply_used": 19,
+      "supply_cap": 31,
+      "scvs": 17,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 0,
+      "collected": 1194,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "REFINERY": 1,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 110.0,
+      "game_loop": 2464,
+      "wall_time": 14.21,
+      "minerals": 355,
+      "gas": 16,
+      "minerals_floated": 0.0,
+      "supply_used": 21,
+      "supply_cap": 31,
+      "scvs": 18,
+      "marines": 0,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 0,
+      "army_cost": 50,
+      "collected": 1346,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 1,
+        "REFINERY": 1,
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 120.0,
+      "game_loop": 2688,
+      "wall_time": 15.55,
+      "minerals": 450,
+      "gas": 32,
+      "minerals_floated": 0.0,
+      "supply_used": 22,
+      "supply_cap": 31,
+      "scvs": 18,
+      "marines": 1,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 1,
+      "army_cost": 100,
+      "collected": 1507,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1,
+        "REFINERY": 1,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 130.0,
+      "game_loop": 2912,
+      "wall_time": 16.93,
+      "minerals": 540,
+      "gas": 56,
+      "minerals_floated": 0.036,
+      "supply_used": 23,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 1,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 1,
+      "army_cost": 150,
+      "collected": 1671,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1,
+        "SUPPLYDEPOT": 2,
+        "BARRACKS": 2,
+        "REFINERY": 1
+      }
+    },
+    {
+      "game_time": 140.0,
+      "game_loop": 3136,
+      "wall_time": 18.15,
+      "minerals": 645,
+      "gas": 84,
+      "minerals_floated": 0.105,
+      "supply_used": 23,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 2,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 2,
+      "army_cost": 150,
+      "collected": 1854,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 1,
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 2,
+        "REFINERY": 1
+      }
+    },
+    {
+      "game_time": 150.0,
+      "game_loop": 3360,
+      "wall_time": 20.57,
+      "minerals": 705,
+      "gas": 112,
+      "minerals_floated": 0.164,
+      "supply_used": 25,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 3,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 3,
+      "army_cost": 250,
+      "collected": 2042,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1,
+        "REFINERY": 1,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 160.0,
+      "game_loop": 3584,
+      "wall_time": 21.92,
+      "minerals": 860,
+      "gas": 140,
+      "minerals_floated": 0.217,
+      "supply_used": 26,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 4,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 4,
+      "army_cost": 300,
+      "collected": 2225,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "BARRACKS": 2,
+        "COMMANDCENTER": 1,
+        "REFINERY": 1
+      }
+    },
+    {
+      "game_time": 170.0,
+      "game_loop": 3808,
+      "wall_time": 23.17,
+      "minerals": 965,
+      "gas": 143,
+      "minerals_floated": 0.263,
+      "supply_used": 26,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 5,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 5,
+      "army_cost": 300,
+      "collected": 2408,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "REFINERY": 1,
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 180.0,
+      "game_loop": 4032,
+      "wall_time": 24.48,
+      "minerals": 620,
+      "gas": 167,
+      "minerals_floated": 0.304,
+      "supply_used": 27,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 6,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 6,
+      "army_cost": 350,
+      "collected": 2587,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 1,
+        "REFINERY": 1,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 190.0,
+      "game_loop": 4256,
+      "wall_time": 25.92,
+      "minerals": 575,
+      "gas": 195,
+      "minerals_floated": 0.34,
+      "supply_used": 29,
+      "supply_cap": 31,
+      "scvs": 19,
+      "marines": 6,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 6,
+      "army_cost": 400,
+      "collected": 2745,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 2,
+        "BARRACKSTECHLAB": 1,
+        "COMMANDCENTER": 1,
+        "REFINERY": 1
+      }
+    },
+    {
+      "game_time": 200.0,
+      "game_loop": 4480,
+      "wall_time": 27.29,
+      "minerals": 575,
+      "gas": 223,
+      "minerals_floated": 0.373,
+      "supply_used": 31,
+      "supply_cap": 31,
+      "scvs": 20,
+      "marines": 7,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 7,
+      "army_cost": 450,
+      "collected": 2923,
+      "lost": 0,
+      "structures": {
+        "BARRACKSTECHLAB": 1,
+        "BARRACKS": 2,
+        "REFINERY": 1,
+        "COMMANDCENTER": 1,
+        "SUPPLYDEPOT": 2
+      }
+    },
+    {
+      "game_time": 210.0,
+      "game_loop": 4704,
+      "wall_time": 28.58,
+      "minerals": 705,
+      "gas": 251,
+      "minerals_floated": 0.403,
+      "supply_used": 31,
+      "supply_cap": 31,
+      "scvs": 21,
+      "marines": 8,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 8,
+      "army_cost": 450,
+      "collected": 3081,
+      "lost": 0,
+      "structures": {
+        "BARRACKSTECHLAB": 1,
+        "REFINERY": 2,
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 220.0,
+      "game_loop": 4928,
+      "wall_time": 30.84,
+      "minerals": 195,
+      "gas": 287,
+      "minerals_floated": 0.425,
+      "supply_used": 31,
+      "supply_cap": 31,
+      "scvs": 21,
+      "marines": 9,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 9,
+      "army_cost": 450,
+      "collected": 3257,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 2,
+        "BARRACKSTECHLAB": 1,
+        "BARRACKS": 2,
+        "REFINERY": 2,
+        "COMMANDCENTER": 1
+      }
+    },
+    {
+      "game_time": 230.0,
+      "game_loop": 5152,
+      "wall_time": 32.24,
+      "minerals": 275,
+      "gas": 311,
+      "minerals_floated": 0.407,
+      "supply_used": 32,
+      "supply_cap": 39,
+      "scvs": 21,
+      "marines": 9,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 9,
+      "army_cost": 450,
+      "collected": 3411,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 2,
+        "COMMANDCENTER": 1,
+        "SUPPLYDEPOT": 3,
+        "BARRACKSTECHLAB": 1,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 240.0,
+      "game_loop": 5376,
+      "wall_time": 33.75,
+      "minerals": 130,
+      "gas": 231,
+      "minerals_floated": 0.39,
+      "supply_used": 33,
+      "supply_cap": 39,
+      "scvs": 23,
+      "marines": 9,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 9,
+      "army_cost": 450,
+      "collected": 3561,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "COMMANDCENTER": 1,
+        "BARRACKSTECHLAB": 1,
+        "SUPPLYDEPOT": 3,
+        "REFINERY": 2
+      }
+    },
+    {
+      "game_time": 250.0,
+      "game_loop": 5600,
+      "wall_time": 35.24,
+      "minerals": 20,
+      "gas": 101,
+      "minerals_floated": 0.374,
+      "supply_used": 35,
+      "supply_cap": 47,
+      "scvs": 22,
+      "marines": 9,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 9,
+      "army_cost": 575,
+      "collected": 3721,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 3,
+        "COMMANDCENTER": 1,
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 4,
+        "BARRACKSTECHLAB": 1
+      }
+    },
+    {
+      "game_time": 260.0,
+      "game_loop": 5824,
+      "wall_time": 36.7,
+      "minerals": 5,
+      "gas": 125,
+      "minerals_floated": 0.36,
+      "supply_used": 36,
+      "supply_cap": 62,
+      "scvs": 24,
+      "marines": 9,
+      "marauders": 0,
+      "tanks": 0,
+      "army_value": 9,
+      "army_cost": 575,
+      "collected": 3880,
+      "lost": 0,
+      "structures": {
+        "BARRACKSTECHLAB": 1,
+        "REFINERY": 4,
+        "SUPPLYDEPOT": 4,
+        "COMMANDCENTER": 2,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 270.0,
+      "game_loop": 6048,
+      "wall_time": 38.12,
+      "minerals": 105,
+      "gas": 161,
+      "minerals_floated": 0.347,
+      "supply_used": 39,
+      "supply_cap": 62,
+      "scvs": 24,
+      "marines": 9,
+      "marauders": 1,
+      "tanks": 0,
+      "army_value": 11,
+      "army_cost": 625,
+      "collected": 4066,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 5,
+        "COMMANDCENTER": 2,
+        "SUPPLYDEPOT": 4,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 280.0,
+      "game_loop": 6272,
+      "wall_time": 39.56,
+      "minerals": 65,
+      "gas": 184,
+      "minerals_floated": 0.334,
+      "supply_used": 43,
+      "supply_cap": 62,
+      "scvs": 25,
+      "marines": 10,
+      "marauders": 1,
+      "tanks": 0,
+      "army_value": 12,
+      "army_cost": 750,
+      "collected": 4274,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 5,
+        "SUPPLYDEPOT": 4,
+        "COMMANDCENTER": 2,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 290.0,
+      "game_loop": 6496,
+      "wall_time": 41.06,
+      "minerals": 20,
+      "gas": 144,
+      "minerals_floated": 0.323,
+      "supply_used": 44,
+      "supply_cap": 62,
+      "scvs": 28,
+      "marines": 10,
+      "marauders": 1,
+      "tanks": 0,
+      "army_value": 12,
+      "army_cost": 750,
+      "collected": 4489,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 2,
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "BARRACKSTECHLAB": 2,
+        "SUPPLYDEPOT": 4,
+        "FACTORY": 1
+      }
+    },
+    {
+      "game_time": 300.0,
+      "game_loop": 6720,
+      "wall_time": 42.55,
+      "minerals": 85,
+      "gas": 212,
+      "minerals_floated": 0.312,
+      "supply_used": 46,
+      "supply_cap": 62,
+      "scvs": 27,
+      "marines": 10,
+      "marauders": 2,
+      "tanks": 0,
+      "army_value": 14,
+      "army_cost": 750,
+      "collected": 4722,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 2,
+        "FACTORY": 1,
+        "SUPPLYDEPOT": 4,
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 310.0,
+      "game_loop": 6944,
+      "wall_time": 44.14,
+      "minerals": 25,
+      "gas": 267,
+      "minerals_floated": 0.302,
+      "supply_used": 51,
+      "supply_cap": 77,
+      "scvs": 29,
+      "marines": 10,
+      "marauders": 2,
+      "tanks": 0,
+      "army_value": 14,
+      "army_cost": 875,
+      "collected": 4992,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 4,
+        "FACTORY": 1,
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "BARRACKSTECHLAB": 2,
+        "COMMANDCENTER": 3
+      }
+    },
+    {
+      "game_time": 320.0,
+      "game_loop": 7168,
+      "wall_time": 45.74,
+      "minerals": 15,
+      "gas": 347,
+      "minerals_floated": 0.292,
+      "supply_used": 53,
+      "supply_cap": 77,
+      "scvs": 31,
+      "marines": 10,
+      "marauders": 2,
+      "tanks": 0,
+      "army_value": 14,
+      "army_cost": 875,
+      "collected": 5262,
+      "lost": 0,
+      "structures": {
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 1,
+        "SUPPLYDEPOT": 4,
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 330.0,
+      "game_loop": 7392,
+      "wall_time": 48.11,
+      "minerals": 25,
+      "gas": 418,
+      "minerals_floated": 0.284,
+      "supply_used": 57,
+      "supply_cap": 77,
+      "scvs": 32,
+      "marines": 10,
+      "marauders": 3,
+      "tanks": 0,
+      "army_value": 16,
+      "army_cost": 1000,
+      "collected": 5568,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "BARRACKSTECHLAB": 2,
+        "SUPPLYDEPOT": 4,
+        "COMMANDCENTER": 3,
+        "FACTORY": 1
+      }
+    },
+    {
+      "game_time": 340.0,
+      "game_loop": 7616,
+      "wall_time": 49.85,
+      "minerals": 40,
+      "gas": 493,
+      "minerals_floated": 0.275,
+      "supply_used": 60,
+      "supply_cap": 85,
+      "scvs": 35,
+      "marines": 10,
+      "marauders": 3,
+      "tanks": 0,
+      "army_value": 16,
+      "army_cost": 1050,
+      "collected": 5883,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 5,
+        "REFINERY": 5,
+        "FACTORY": 2,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 350.0,
+      "game_loop": 7840,
+      "wall_time": 51.72,
+      "minerals": 120,
+      "gas": 597,
+      "minerals_floated": 0.267,
+      "supply_used": 63,
+      "supply_cap": 85,
+      "scvs": 37,
+      "marines": 10,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 18,
+      "army_cost": 1050,
+      "collected": 6217,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 5,
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "FACTORY": 2,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 360.0,
+      "game_loop": 8064,
+      "wall_time": 53.51,
+      "minerals": 50,
+      "gas": 713,
+      "minerals_floated": 0.26,
+      "supply_used": 67,
+      "supply_cap": 85,
+      "scvs": 39,
+      "marines": 11,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 19,
+      "army_cost": 1100,
+      "collected": 6588,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 5,
+        "REFINERY": 5,
+        "FACTORYTECHLAB": 1,
+        "COMMANDCENTER": 3,
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 2,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 370.0,
+      "game_loop": 8288,
+      "wall_time": 55.28,
+      "minerals": 175,
+      "gas": 833,
+      "minerals_floated": 0.253,
+      "supply_used": 70,
+      "supply_cap": 85,
+      "scvs": 42,
+      "marines": 11,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 19,
+      "army_cost": 1150,
+      "collected": 6983,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 3,
+        "REFINERY": 5,
+        "FACTORYTECHLAB": 1,
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 5,
+        "FACTORY": 2,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 380.0,
+      "game_loop": 8512,
+      "wall_time": 57.1,
+      "minerals": 375,
+      "gas": 945,
+      "minerals_floated": 0.246,
+      "supply_used": 72,
+      "supply_cap": 85,
+      "scvs": 44,
+      "marines": 13,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 21,
+      "army_cost": 1150,
+      "collected": 7395,
+      "lost": 0,
+      "structures": {
+        "COMMANDCENTER": 3,
+        "FACTORYTECHLAB": 1,
+        "BARRACKS": 2,
+        "SUPPLYDEPOT": 5,
+        "BARRACKSTECHLAB": 2,
+        "REFINERY": 5,
+        "FACTORY": 2
+      }
+    },
+    {
+      "game_time": 390.0,
+      "game_loop": 8736,
+      "wall_time": 58.92,
+      "minerals": 460,
+      "gas": 965,
+      "minerals_floated": 0.24,
+      "supply_used": 75,
+      "supply_cap": 85,
+      "scvs": 47,
+      "marines": 13,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 21,
+      "army_cost": 1150,
+      "collected": 7850,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 5,
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 2,
+        "FACTORYTECHLAB": 1,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 400.0,
+      "game_loop": 8960,
+      "wall_time": 60.82,
+      "minerals": 690,
+      "gas": 1081,
+      "minerals_floated": 0.253,
+      "supply_used": 77,
+      "supply_cap": 85,
+      "scvs": 49,
+      "marines": 13,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 21,
+      "army_cost": 1150,
+      "collected": 8296,
+      "lost": 0,
+      "structures": {
+        "FACTORY": 2,
+        "SUPPLYDEPOT": 5,
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "BARRACKSTECHLAB": 2,
+        "FACTORYTECHLAB": 1,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 410.0,
+      "game_loop": 9184,
+      "wall_time": 62.95,
+      "minerals": 675,
+      "gas": 1201,
+      "minerals_floated": 0.271,
+      "supply_used": 82,
+      "supply_cap": 85,
+      "scvs": 51,
+      "marines": 13,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 21,
+      "army_cost": 1250,
+      "collected": 8801,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 5,
+        "BARRACKSTECHLAB": 2,
+        "REFINERY": 5,
+        "ENGINEERINGBAY": 1,
+        "BARRACKS": 2,
+        "COMMANDCENTER": 3,
+        "FACTORY": 2,
+        "FACTORYTECHLAB": 1
+      }
+    },
+    {
+      "game_time": 420.0,
+      "game_loop": 9408,
+      "wall_time": 65.05,
+      "minerals": 690,
+      "gas": 1321,
+      "minerals_floated": 0.289,
+      "supply_used": 85,
+      "supply_cap": 85,
+      "scvs": 54,
+      "marines": 13,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 21,
+      "army_cost": 1250,
+      "collected": 9286,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 2,
+        "REFINERY": 5,
+        "SUPPLYDEPOT": 5,
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 2,
+        "FACTORYTECHLAB": 1,
+        "ENGINEERINGBAY": 1,
+        "COMMANDCENTER": 3
+      }
+    },
+    {
+      "game_time": 430.0,
+      "game_loop": 9632,
+      "wall_time": 67.02,
+      "minerals": 850,
+      "gas": 1424,
+      "minerals_floated": 0.305,
+      "supply_used": 89,
+      "supply_cap": 93,
+      "scvs": 56,
+      "marines": 15,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 23,
+      "army_cost": 1350,
+      "collected": 9799,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 6,
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "FACTORYTECHLAB": 1,
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 2,
+        "ENGINEERINGBAY": 1,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 440.0,
+      "game_loop": 9856,
+      "wall_time": 69.2,
+      "minerals": 935,
+      "gas": 1431,
+      "minerals_floated": 0.321,
+      "supply_used": 93,
+      "supply_cap": 93,
+      "scvs": 58,
+      "marines": 15,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 23,
+      "army_cost": 1625,
+      "collected": 10316,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 5,
+        "COMMANDCENTER": 3,
+        "SUPPLYDEPOT": 6,
+        "FACTORY": 2,
+        "BARRACKS": 2,
+        "BARRACKSTECHLAB": 2,
+        "ENGINEERINGBAY": 1,
+        "FACTORYTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 450.0,
+      "game_loop": 10080,
+      "wall_time": 71.38,
+      "minerals": 1330,
+      "gas": 1567,
+      "minerals_floated": 0.336,
+      "supply_used": 93,
+      "supply_cap": 93,
+      "scvs": 59,
+      "marines": 17,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 25,
+      "army_cost": 1625,
+      "collected": 10847,
+      "lost": 0,
+      "structures": {
+        "FACTORYTECHLAB": 2,
+        "REFINERY": 6,
+        "BARRACKSTECHLAB": 2,
+        "SUPPLYDEPOT": 6,
+        "ENGINEERINGBAY": 1,
+        "COMMANDCENTER": 3,
+        "FACTORY": 2,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 460.0,
+      "game_loop": 10304,
+      "wall_time": 75.19,
+      "minerals": 365,
+      "gas": 1494,
+      "minerals_floated": 0.346,
+      "supply_used": 99,
+      "supply_cap": 101,
+      "scvs": 60,
+      "marines": 17,
+      "marauders": 4,
+      "tanks": 0,
+      "army_value": 25,
+      "army_cost": 1900,
+      "collected": 11384,
+      "lost": 0,
+      "structures": {
+        "FACTORYTECHLAB": 2,
+        "BARRACKSTECHLAB": 2,
+        "REFINERY": 6,
+        "COMMANDCENTER": 3,
+        "SUPPLYDEPOT": 7,
+        "ENGINEERINGBAY": 1,
+        "FACTORY": 2,
+        "BARRACKS": 2
+      }
+    },
+    {
+      "game_time": 470.0,
+      "game_loop": 10528,
+      "wall_time": 79.33,
+      "minerals": 465,
+      "gas": 1585,
+      "minerals_floated": 0.339,
+      "supply_used": 101,
+      "supply_cap": 101,
+      "scvs": 65,
+      "marines": 17,
+      "marauders": 4,
+      "tanks": 1,
+      "army_value": 28,
+      "army_cost": 2025,
+      "collected": 11900,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 6,
+        "FACTORYTECHLAB": 2,
+        "SUPPLYDEPOT": 7,
+        "COMMANDCENTER": 3,
+        "FACTORY": 2,
+        "BARRACKS": 3,
+        "BARRACKSTECHLAB": 2,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 480.0,
+      "game_loop": 10752,
+      "wall_time": 81.4,
+      "minerals": 855,
+      "gas": 1725,
+      "minerals_floated": 0.352,
+      "supply_used": 101,
+      "supply_cap": 101,
+      "scvs": 62,
+      "marines": 17,
+      "marauders": 4,
+      "tanks": 1,
+      "army_value": 28,
+      "army_cost": 2025,
+      "collected": 12430,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 7,
+        "REFINERY": 6,
+        "FACTORY": 2,
+        "FACTORYTECHLAB": 2,
+        "BARRACKSTECHLAB": 2,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 490.0,
+      "game_loop": 10976,
+      "wall_time": 83.53,
+      "minerals": 1010,
+      "gas": 1865,
+      "minerals_floated": 0.365,
+      "supply_used": 105,
+      "supply_cap": 117,
+      "scvs": 63,
+      "marines": 17,
+      "marauders": 5,
+      "tanks": 2,
+      "army_value": 33,
+      "army_cost": 2075,
+      "collected": 12975,
+      "lost": 0,
+      "structures": {
+        "FACTORY": 2,
+        "SUPPLYDEPOT": 9,
+        "REFINERY": 6,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 3,
+        "ENGINEERINGBAY": 1,
+        "BARRACKSTECHLAB": 2,
+        "FACTORYTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 500.0,
+      "game_loop": 11200,
+      "wall_time": 85.53,
+      "minerals": 1205,
+      "gas": 1988,
+      "minerals_floated": 0.378,
+      "supply_used": 107,
+      "supply_cap": 117,
+      "scvs": 62,
+      "marines": 17,
+      "marauders": 5,
+      "tanks": 2,
+      "army_value": 33,
+      "army_cost": 2175,
+      "collected": 13518,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 6,
+        "BARRACKSTECHLAB": 2,
+        "BARRACKS": 3,
+        "SUPPLYDEPOT": 9,
+        "FACTORYTECHLAB": 2,
+        "COMMANDCENTER": 3,
+        "FACTORY": 2,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 510.0,
+      "game_loop": 11424,
+      "wall_time": 87.74,
+      "minerals": 1215,
+      "gas": 2115,
+      "minerals_floated": 0.39,
+      "supply_used": 112,
+      "supply_cap": 117,
+      "scvs": 65,
+      "marines": 18,
+      "marauders": 5,
+      "tanks": 2,
+      "army_value": 34,
+      "army_cost": 2275,
+      "collected": 14080,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 9,
+        "FACTORY": 3,
+        "SUPPLYDEPOT": 9,
+        "REFINERY": 6,
+        "BARRACKSTECHLAB": 2,
+        "COMMANDCENTER": 3,
+        "ENGINEERINGBAY": 1,
+        "FACTORYTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 520.0,
+      "game_loop": 11648,
+      "wall_time": 90.14,
+      "minerals": 1415,
+      "gas": 2275,
+      "minerals_floated": 0.401,
+      "supply_used": 117,
+      "supply_cap": 117,
+      "scvs": 68,
+      "marines": 20,
+      "marauders": 5,
+      "tanks": 2,
+      "army_value": 36,
+      "army_cost": 2550,
+      "collected": 14690,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 9,
+        "SUPPLYDEPOT": 9,
+        "REFINERY": 6,
+        "FACTORYTECHLAB": 2,
+        "COMMANDCENTER": 3,
+        "BARRACKSTECHLAB": 2,
+        "FACTORY": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 530.0,
+      "game_loop": 11872,
+      "wall_time": 92.51,
+      "minerals": 1870,
+      "gas": 2431,
+      "minerals_floated": 0.413,
+      "supply_used": 117,
+      "supply_cap": 117,
+      "scvs": 69,
+      "marines": 25,
+      "marauders": 5,
+      "tanks": 2,
+      "army_value": 41,
+      "army_cost": 2550,
+      "collected": 15301,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 9,
+        "SUPPLYDEPOT": 9,
+        "FACTORYTECHLAB": 2,
+        "REFINERY": 6,
+        "ENGINEERINGBAY": 1,
+        "FACTORY": 3,
+        "COMMANDCENTER": 3,
+        "BARRACKSTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 540.0,
+      "game_loop": 12096,
+      "wall_time": 94.87,
+      "minerals": 1975,
+      "gas": 2441,
+      "minerals_floated": 0.424,
+      "supply_used": 124,
+      "supply_cap": 125,
+      "scvs": 68,
+      "marines": 25,
+      "marauders": 6,
+      "tanks": 2,
+      "army_value": 43,
+      "army_cost": 3050,
+      "collected": 15916,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 9,
+        "SUPPLYDEPOT": 10,
+        "BARRACKSTECHLAB": 2,
+        "FACTORYTECHLAB": 2,
+        "REFINERY": 6,
+        "FACTORY": 3,
+        "COMMANDCENTER": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 550.0,
+      "game_loop": 12320,
+      "wall_time": 99.14,
+      "minerals": 2425,
+      "gas": 2609,
+      "minerals_floated": 0.434,
+      "supply_used": 124,
+      "supply_cap": 133,
+      "scvs": 68,
+      "marines": 26,
+      "marauders": 6,
+      "tanks": 2,
+      "army_value": 44,
+      "army_cost": 3050,
+      "collected": 16534,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 11,
+        "BARRACKS": 9,
+        "FACTORYTECHLAB": 2,
+        "REFINERY": 6,
+        "FACTORY": 3,
+        "COMMANDCENTER": 3,
+        "BARRACKSTECHLAB": 2,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 560.0,
+      "game_loop": 12544,
+      "wall_time": 102.74,
+      "minerals": 1780,
+      "gas": 2694,
+      "minerals_floated": 0.444,
+      "supply_used": 133,
+      "supply_cap": 133,
+      "scvs": 71,
+      "marines": 27,
+      "marauders": 7,
+      "tanks": 2,
+      "army_value": 47,
+      "army_cost": 3550,
+      "collected": 17149,
+      "lost": 0,
+      "structures": {
+        "SUPPLYDEPOT": 11,
+        "FACTORY": 3,
+        "FACTORYTECHLAB": 2,
+        "BARRACKS": 9,
+        "COMMANDCENTER": 3,
+        "REFINERY": 6,
+        "BARRACKSTECHLAB": 2,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 570.0,
+      "game_loop": 12768,
+      "wall_time": 105.22,
+      "minerals": 2225,
+      "gas": 2838,
+      "minerals_floated": 0.454,
+      "supply_used": 133,
+      "supply_cap": 133,
+      "scvs": 68,
+      "marines": 27,
+      "marauders": 7,
+      "tanks": 3,
+      "army_value": 50,
+      "army_cost": 3550,
+      "collected": 17738,
+      "lost": 0,
+      "structures": {
+        "BARRACKS": 9,
+        "REFINERY": 6,
+        "FACTORY": 3,
+        "FACTORYTECHLAB": 2,
+        "BARRACKSTECHLAB": 2,
+        "SUPPLYDEPOT": 11,
+        "COMMANDCENTER": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 580.0,
+      "game_loop": 12992,
+      "wall_time": 107.75,
+      "minerals": 2415,
+      "gas": 2881,
+      "minerals_floated": 0.463,
+      "supply_used": 133,
+      "supply_cap": 141,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 9,
+      "tanks": 3,
+      "army_value": 59,
+      "army_cost": 3550,
+      "collected": 18346,
+      "lost": 0,
+      "structures": {
+        "REFINERY": 6,
+        "SUPPLYDEPOT": 12,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 9,
+        "BARRACKSTECHLAB": 4,
+        "FACTORY": 3,
+        "ENGINEERINGBAY": 1,
+        "FACTORYTECHLAB": 2
+      }
+    },
+    {
+      "game_time": 590.0,
+      "game_loop": 13216,
+      "wall_time": 110.36,
+      "minerals": 2860,
+      "gas": 3037,
+      "minerals_floated": 0.472,
+      "supply_used": 132,
+      "supply_cap": 149,
+      "scvs": 68,
+      "marines": 31,
+      "marauders": 9,
+      "tanks": 3,
+      "army_value": 58,
+      "army_cost": 3500,
+      "collected": 18947,
+      "lost": 50,
+      "structures": {
+        "FACTORYTECHLAB": 2,
+        "BARRACKS": 9,
+        "SUPPLYDEPOT": 13,
+        "BARRACKSTECHLAB": 4,
+        "COMMANDCENTER": 3,
+        "FACTORY": 3,
+        "REFINERY": 6,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 600.0,
+      "game_loop": 13440,
+      "wall_time": 113.53,
+      "minerals": 3025,
+      "gas": 3051,
+      "minerals_floated": 0.481,
+      "supply_used": 135,
+      "supply_cap": 149,
+      "scvs": 69,
+      "marines": 31,
+      "marauders": 9,
+      "tanks": 3,
+      "army_value": 58,
+      "army_cost": 3775,
+      "collected": 19576,
+      "lost": 50,
+      "structures": {
+        "BARRACKSTECHLAB": 9,
+        "SUPPLYDEPOT": 13,
+        "REFINERY": 6,
+        "COMMANDCENTER": 3,
+        "BARRACKS": 9,
+        "FACTORYTECHLAB": 2,
+        "ENGINEERINGBAY": 1,
+        "FACTORY": 3
+      }
+    },
+    {
+      "game_time": 610.0,
+      "game_loop": 13664,
+      "wall_time": 116.52,
+      "minerals": 3325,
+      "gas": 3136,
+      "minerals_floated": 0.49,
+      "supply_used": 135,
+      "supply_cap": 149,
+      "scvs": 68,
+      "marines": 31,
+      "marauders": 9,
+      "tanks": 3,
+      "army_value": 58,
+      "army_cost": 3775,
+      "collected": 20186,
+      "lost": 50,
+      "structures": {
+        "REFINERY": 6,
+        "BARRACKSTECHLAB": 9,
+        "SUPPLYDEPOT": 13,
+        "BARRACKS": 12,
+        "COMMANDCENTER": 3,
+        "FACTORYTECHLAB": 2,
+        "ENGINEERINGBAY": 1,
+        "FACTORY": 3
+      }
+    },
+    {
+      "game_time": 620.0,
+      "game_loop": 13888,
+      "wall_time": 119.28,
+      "minerals": 3110,
+      "gas": 3171,
+      "minerals_floated": 0.498,
+      "supply_used": 146,
+      "supply_cap": 157,
+      "scvs": 71,
+      "marines": 31,
+      "marauders": 9,
+      "tanks": 3,
+      "army_value": 58,
+      "army_cost": 4450,
+      "collected": 20781,
+      "lost": 50,
+      "structures": {
+        "BARRACKS": 12,
+        "REFINERY": 6,
+        "COMMANDCENTER": 3,
+        "SUPPLYDEPOT": 14,
+        "FACTORY": 3,
+        "BARRACKSTECHLAB": 9,
+        "ENGINEERINGBAY": 1,
+        "FACTORYTECHLAB": 3
+      }
+    },
+    {
+      "game_time": 630.0,
+      "game_loop": 14112,
+      "wall_time": 122.38,
+      "minerals": 3115,
+      "gas": 3127,
+      "minerals_floated": 0.506,
+      "supply_used": 155,
+      "supply_cap": 157,
+      "scvs": 68,
+      "marines": 31,
+      "marauders": 9,
+      "tanks": 4,
+      "army_value": 61,
+      "army_cost": 5100,
+      "collected": 21392,
+      "lost": 50,
+      "structures": {
+        "BARRACKSTECHLAB": 12,
+        "FACTORYTECHLAB": 3,
+        "BARRACKS": 12,
+        "COMMANDCENTER": 3,
+        "SUPPLYDEPOT": 14,
+        "ENGINEERINGBAY": 1,
+        "REFINERY": 6,
+        "FACTORY": 3
+      }
+    },
+    {
+      "game_time": 640.0,
+      "game_loop": 14336,
+      "wall_time": 125.0,
+      "minerals": 3575,
+      "gas": 3295,
+      "minerals_floated": 0.514,
+      "supply_used": 155,
+      "supply_cap": 157,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 14,
+      "tanks": 4,
+      "army_value": 72,
+      "army_cost": 5100,
+      "collected": 22020,
+      "lost": 50,
+      "structures": {
+        "BARRACKSTECHLAB": 12,
+        "BARRACKS": 12,
+        "SUPPLYDEPOT": 14,
+        "FACTORY": 3,
+        "COMMANDCENTER": 3,
+        "REFINERY": 6,
+        "FACTORYTECHLAB": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 650.0,
+      "game_loop": 14560,
+      "wall_time": 127.78,
+      "minerals": 4020,
+      "gas": 3463,
+      "minerals_floated": 0.521,
+      "supply_used": 155,
+      "supply_cap": 165,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 17,
+      "tanks": 4,
+      "army_value": 78,
+      "army_cost": 5100,
+      "collected": 22633,
+      "lost": 50,
+      "structures": {
+        "BARRACKS": 12,
+        "BARRACKSTECHLAB": 12,
+        "COMMANDCENTER": 3,
+        "FACTORY": 3,
+        "REFINERY": 6,
+        "SUPPLYDEPOT": 15,
+        "FACTORYTECHLAB": 3,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 660.0,
+      "game_loop": 14784,
+      "wall_time": 131.6,
+      "minerals": 3890,
+      "gas": 3327,
+      "minerals_floated": 0.528,
+      "supply_used": 165,
+      "supply_cap": 165,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 17,
+      "tanks": 5,
+      "army_value": 81,
+      "army_cost": 5900,
+      "collected": 23267,
+      "lost": 50,
+      "structures": {
+        "BARRACKSTECHLAB": 12,
+        "SUPPLYDEPOT": 15,
+        "REFINERY": 6,
+        "BARRACKS": 12,
+        "COMMANDCENTER": 3,
+        "FACTORY": 3,
+        "ENGINEERINGBAY": 1,
+        "FACTORYTECHLAB": 3
+      }
+    },
+    {
+      "game_time": 670.0,
+      "game_loop": 15008,
+      "wall_time": 134.59,
+      "minerals": 4160,
+      "gas": 3475,
+      "minerals_floated": 0.535,
+      "supply_used": 165,
+      "supply_cap": 165,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 17,
+      "tanks": 5,
+      "army_value": 81,
+      "army_cost": 5900,
+      "collected": 23885,
+      "lost": 50,
+      "structures": {
+        "SUPPLYDEPOT": 15,
+        "BARRACKSTECHLAB": 12,
+        "REFINERY": 6,
+        "FACTORY": 3,
+        "COMMANDCENTER": 3,
+        "FACTORYTECHLAB": 3,
+        "BARRACKS": 12,
+        "ENGINEERINGBAY": 1
+      }
+    },
+    {
+      "game_time": 680.0,
+      "game_loop": 15232,
+      "wall_time": 137.62,
+      "minerals": 4600,
+      "gas": 3627,
+      "minerals_floated": 0.542,
+      "supply_used": 165,
+      "supply_cap": 165,
+      "scvs": 68,
+      "marines": 32,
+      "marauders": 17,
+      "tanks": 5,
+      "army_value": 81,
+      "army_cost": 5900,
+      "collected": 24477,
+      "lost": 50,
+      "structures": {
+        "BARRACKSTECHLAB": 12,
+        "SUPPLYDEPOT": 15,
+        "FACTORY": 3,
+        "FACTORYTECHLAB": 3,
+        "BARRACKS": 12,
+        "COMMANDCENTER": 3,
+        "REFINERY": 6,
+        "ENGINEERINGBAY": 1
+      }
+    }
+  ]
+}
