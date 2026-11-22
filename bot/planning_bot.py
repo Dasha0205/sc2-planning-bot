@@ -497,8 +497,10 @@ class PlanningBot(BotAI):
         ]
 
         # Fields every planning event carries, for the experiment aggregation.
-        # attempt is the consecutive forced replan (0 = a regular plan).
-        fields = {"stage": self.stage, "attempt": self.forced_replans}
+        # attempt is the consecutive forced replan (0 = a regular plan); state is
+        # the problem's every fluent, so a later domain can be solved on it offline.
+        state = game_state(self, home)
+        fields = {"stage": self.stage, "attempt": self.forced_replans, "state": state}
 
         # ENHSP's default search times out on a few states the fallback solves
         # (and vice versa), so a timeout gets one more try with the fallback.
@@ -521,7 +523,7 @@ class PlanningBot(BotAI):
                         objective = STAGE_GOALS[min(self.stage, len(STAGE_GOALS) - 1)]
                         path = write_classical_problem(self, objective, army=home)
                         # Its attack waits for the wave, scaled to the supply that is left.
-                        threshold = wave_value(game_state(self, home))
+                        threshold = wave_value(state)
                     else:
                         path = write_dynamic_problem(
                             self,

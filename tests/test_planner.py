@@ -22,7 +22,7 @@ from utils.run_config import RunConfig
 
 get_environment().credits_stream = None
 
-PLANNING_FIELDS = {"stage", "attempt", "solve_time", "enhsp_time", "status"}
+PLANNING_FIELDS = {"stage", "attempt", "state", "solve_time", "enhsp_time", "status"}
 
 # cc-count never decreases, so ENHSP proves this unsolvable at once.
 IMPOSSIBLE_GOAL = "(< (cc-count) 0)"

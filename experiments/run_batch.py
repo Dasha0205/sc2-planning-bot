@@ -5,10 +5,13 @@ so that a crashed or hung StarCraft II does not stop the series.
     python experiments/run_batch.py --name T8.1_medium --difficulty Medium --games 10
     python experiments/run_batch.py --name ablation --planner enhsp fast-downward --games 20
     python experiments/run_batch.py --name orava --runner experiments/orava_bot.py --runner-arg=--src=<his src>
+    python experiments/run_batch.py --name T5.2_Easy --difficulty Easy --games 20 --jobs 2
 
 Results go to runs/<name>/: <run-id>.json and .log per game, config.json for the
 series and progress.csv with one row per finished game. Running the same command
-again skips games that already have a result.
+again skips games that already have a result. --jobs plays several games at once,
+each with its own StarCraft II; with realtime=False a game's course does not
+depend on the machine's speed, only the planner's 10 s timeout does.
 """
 
 import argparse
@@ -19,8 +22,10 @@ import random
 import re
 import subprocess
 import sys
+import threading
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -57,6 +62,7 @@ def parse_args(argv=None):
                         help="game seconds until a game ends as a Tie")
     parser.add_argument("--wall-timeout", type=int, default=1200,
                         help="real seconds until a hung game is killed")
+    parser.add_argument("--jobs", type=int, default=1, help="games played at the same time")
     parser.add_argument("--out", type=Path, help="series folder (default: runs/<name>)")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="run although tracked files have uncommitted changes")
@@ -170,6 +176,7 @@ def main(argv=None, command=None):
         "seed": base_seed,
         "time_limit": args.time_limit,
         "wall_timeout": args.wall_timeout,
+        "jobs": args.jobs,
         "runner": [str(part) for part in command[1:]],
         "commit": commit,
         "started_at": datetime.now().isoformat(timespec="seconds"),
@@ -178,21 +185,31 @@ def main(argv=None, command=None):
     games = plan_games(args, base_seed)
     progress = out / "progress.csv"
     summary = Counter()
-    for i, game in enumerate(games, 1):
-        if _result_path(out, game).exists():
-            print(f"[BATCH] {i}/{len(games)} {game['run_id']}: done earlier, skipped")
-            continue
+    lock = threading.Lock()
+
+    def one(i, game):
         print(f"[BATCH] {i}/{len(games)} {game['run_id']} (seed {game['seed']}) ...", flush=True)
         row = play(game, out, args, command)
-        new_file = not progress.exists()
-        with open(progress, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-            if new_file:
-                writer.writeheader()
-            writer.writerow(row)
-        summary[row["result"] or row["status"]] += 1
-        print(f"[BATCH] {game['run_id']}: {row['status']} {row['result']} "
-              f"{row['game_time']} game s, {row['wall_seconds']} s", flush=True)
+        with lock:
+            new_file = not progress.exists()
+            with open(progress, "a", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+                if new_file:
+                    writer.writeheader()
+                writer.writerow(row)
+            summary[row["result"] or row["status"]] += 1
+            print(f"[BATCH] {game['run_id']}: {row['status']} {row['result']} "
+                  f"{row['game_time']} game s, {row['wall_seconds']} s", flush=True)
+
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        running = []
+        for i, game in enumerate(games, 1):
+            if _result_path(out, game).exists():
+                print(f"[BATCH] {i}/{len(games)} {game['run_id']}: done earlier, skipped")
+                continue
+            running.append(pool.submit(one, i, game))
+        for future in running:
+            future.result()   # re-raises an error of the harness itself
 
     print(f"[BATCH] {args.name}: {dict(summary)} -> {out}")
 

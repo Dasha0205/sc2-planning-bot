@@ -6,6 +6,7 @@ hung game is recorded and the series goes on; a rerun skips finished games.
 import csv
 import json
 import sys
+import time
 from pathlib import Path
 
 import run
@@ -41,6 +42,18 @@ def test_a_hung_game_is_killed_after_the_wall_timeout(tmp_path, monkeypatch):
 
     assert [r["status"] for r in rows] == ["timeout", "ok"]
     assert float(rows[0]["wall_seconds"]) < 30
+
+
+def test_parallel_games_overlap_and_each_is_recorded_once(tmp_path, monkeypatch):
+    # Two hung games killed after 3 s each: in parallel the series takes ~3 s, not ~6.
+    started = time.monotonic()
+    rows = batch(tmp_path, monkeypatch, "--games", "4", "--jobs", "2", "--wall-timeout", "3",
+                 fake={"VeryEasy_1": "hang", "VeryEasy_2": "hang"})
+
+    assert time.monotonic() - started < 6
+    assert {r["run_id"]: r["status"] for r in rows} == {
+        "VeryEasy_1": "timeout", "VeryEasy_2": "timeout", "VeryEasy_3": "ok", "VeryEasy_4": "ok"}
+    assert json.loads((tmp_path / "config.json").read_text())["jobs"] == 2
 
 
 def test_a_rerun_plays_only_unfinished_games_with_the_same_seeds(tmp_path, monkeypatch):

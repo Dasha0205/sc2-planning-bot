@@ -216,7 +216,12 @@ def write_dynamic_problem(bot, goal_expr: str, path=PROBLEM_PATH, domain=DOMAIN_
     minimise (total-cost), which domain v10 declares (T4.3).
     """
 
-    state = game_state(bot, army)
+    return write_state_problem(game_state(bot, army), goal_expr, path, domain, metric)
+
+
+def write_state_problem(state, goal_expr, path, domain=DOMAIN_PATH, metric=False):
+    """The problem of a game_state dict, also one recorded in a plan_generated event."""
+
     init = "\n        ".join(f"(= ({name}) {state[name]})" for name in domain_fluents(domain))
     objective = "\n    (:metric minimize (total-cost))" if metric else ""
 
