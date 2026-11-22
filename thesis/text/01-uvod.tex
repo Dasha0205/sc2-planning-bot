@@ -2,6 +2,30 @@
 \addcontentsline{toc}{chapter}{Úvod}
 \markboth{Úvod}{Úvod}
 
-% TODO (2–3 s.): motivace (RTS jako prostředí pro plánování, makromanagement, Terran);
-% cíle = tři úkoly zadání; vymezení (protivník jako dynamické prostředí, taktika mimo rozsah);
-% struktura práce.
+Strategické hry v~reálném čase (\emph{real-time strategy}, RTS) patří k~nejnáročnějším prostředím, na kterých se dnes zkouší metody umělé inteligence. Hráč v~nich současně řídí ekonomiku, výstavbu základny, výrobu armády i~boj, vše pod tlakem času a~bez úplné informace o~soupeři~\cite{Ontanon2013}. Hra StarCraft~II~\cite{Starcraft2} se díky otevřenému programovému rozhraní a~dlouholeté soutěžní scéně stala standardní platformou pro takový výzkum; nejznámějším výsledkem je systém AlphaStar, který hlubokým posilovaným učením dosáhl úrovně nejlepších lidských hráčů~\cite{VinyalsEtAl2019}.
+
+Učené přístupy však za svůj výkon platí obrovským množstvím trénovacích her a~jejich rozhodnutí nelze snadno vysvětlit ani cíleně změnit. Automatické plánování nabízí opačný kompromis: chování agenta vyplývá z~explicitního modelu světa a~ze zadaného cíle, plán je čitelná posloupnost akcí a~změna strategie znamená změnu cíle, nikoli nové učení. Pro RTS hry se plánování hodí především na úrovni \emph{makromanagementu}, tedy rozhodování o~tom, co stavět, trénovat a~zkoumat a~kdy zaútočit. Taktické řízení jednotlivých jednotek v~boji (\emph{mikromanagement}) se odehrává v~řádu zlomků sekundy a~je doménou reaktivních metod~\cite{ChurchillBuro2011,Duarte2020}.
+
+Na Fakultě informačních technologií ČVUT se plánováním pro hru StarCraft~II zabývala diplomová práce Jana Oravy~\cite{Orava2025}. Jeho agent rasy Terran plánuje klasickým plánovačem Fast Downward a~proti vestavěné umělé inteligenci na obtížnosti Medium vyhrál 75 až 90~\% her. Klíčovým rozhodnutím jeho návrhu bylo z~plánovací domény úplně vypustit suroviny: plánovač nezná ceny ani příjem a~čekání na peníze přenechává herní smyčce, protože numerické veličiny podle něj oslabují heuristiky klasických plánovačů. Důsledkem je agent, který ví, \emph{co} postavit, ale ne \emph{kdy} na to bude mít, a~jehož zásoby surovin po splnění cíle nekontrolovaně rostou.
+
+Tato práce ověřuje opačnou hypotézu: že zdroje lze ponechat v~modelu jako čísla a~že \emph{numerická rozšíření klasického plánování} přinesou realističtější práci s~ekonomikou hry, aniž by plánování přestalo být použitelné v~reálném čase.
+
+\section*{Cíle práce}
+
+Cíle odpovídají třem úkolům zadání:
+
+\begin{enumerate}
+	\item \textbf{Rešerše.} Prostudovat literaturu k~automatickému plánování~\cite{Ghallab2004}, zejména plánovače pracující s~numerickými doménami~\cite{Gerevini2008}, a~na jejím základě zvolit formalismus a~plánovač.
+	\item \textbf{Návrh agenta.} Navrhnout herního agenta pro StarCraft~II, který modeluje práci se zdroji (minerály, vespénový plyn, supply, rychlost těžby, výrobní kapacitu) pomocí numerických vlastností plánovací domény.
+	\item \textbf{Implementace a~vyhodnocení.} Agenta implementovat nad rozhraním hry, otestovat jej v~relevantních scénářích a~porovnat s~vestavěnou umělou inteligencí hry a~s~výsledky práce~\cite{Orava2025}.
+\end{enumerate}
+
+Vedle samotného agenta je výsledkem práce i~experimentální infrastruktura: každá hra se ukládá i~s~konfigurací a~náhodným semínkem, série her se spouštějí dávkově a~úspěšnost se uvádí s~95\% intervalem spolehlivosti. Vývoj modelu je zdokumentován jako řada verzí domény, z~nichž každá vznikla jako hypotéza ověřená sérií her.
+
+\section*{Vymezení}
+
+Práce se omezuje na makromanagement rasy Terran v~zápase jeden na jednoho proti vestavěné umělé inteligenci. V~souladu se zadáním je protivník chápán jako \emph{dynamické prostředí}, nikoli jako racionální soupeř: agent jeho záměry nemodeluje, pouze reaguje na to, co se ve hře skutečně stane, a~v~případě potřeby přeplánuje. Mikromanagement jednotek, průzkum a~modelování soupeře jsou mimo rozsah práce; boj se řídí jednoduchými pravidly, která jen vykonávají rozhodnutí plánovače o~útoku. Hra běží v~režimu, kdy herní čas čeká na tah agenta (\texttt{realtime=False}), takže doba výpočtu plánu se měří, ale nespotřebovává herní čas. Experimenty probíhají na jediné mapě a~proti jediné rase soupeře; tato omezení jsou rozebrána u~výsledků.
+
+\section*{Struktura práce}
+
+Kapitola~\ref{chap:teorie} shrnuje teoretický základ: klasické plánování, jazyk PDDL a~jeho numerická a~temporální rozšíření, numerické plánovače a~plánování v~dynamickém prostředí, a~popisuje ty mechaniky hry StarCraft~II, které musí model zachytit. Kapitola~\ref{chap:souvisejici} řadí práci mezi existující přístupy k~plánování v~RTS hrách a~podrobně rozebírá práci~\cite{Orava2025}, na kterou přímo navazuje. Kapitola~\ref{chap:analyza} formuluje makromanagement jako plánovací problém, ukazuje, proč propoziční model zdrojů nestačí, a~stanoví požadavky na agenta a~volbu plánovače. Kapitola~\ref{chap:navrh} popisuje návrh agenta a~numerické domény včetně jejího vývoje přes jedenáct verzí, kapitola~\ref{chap:implementace} implementaci a~experimentální infrastrukturu. Kapitola~\ref{chap:experimenty} vyhodnocuje agenta proti vestavěné umělé inteligenci, proti klasické variantě téhož agenta a~proti výsledkům práce~\cite{Orava2025}. Závěr shrnuje splnění zadání a~směry dalšího vývoje.

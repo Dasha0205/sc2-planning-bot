@@ -1,16 +1,73 @@
 \chapter{Analýza}
 \label{chap:analyza}
 
+Tato kapitola převádí makromanagement hry StarCraft~II na plánovací problém, ukazuje, co se ztrácí, když se zdroje modelují jen propozičně, a~z~toho odvozuje požadavky na agenta a~volbu plánovače.
+
 \section{Makromanagement jako plánovací problém}
-% TODO: stav, akce, cíle, horizont.
+\label{sec:problem}
+
+Z~pohledu plánovače je makromanagement úloha nad stavem, který tvoří zejména:
+\begin{itemize}
+	\item \textbf{zásoby}: minerály a~vespénový plyn v~bance,
+	\item \textbf{toky}: rychlost těžby obou surovin, daná počtem dělníků a~Refinery,
+	\item \textbf{kapacity}: obsazené a~dostupné supply a~volná výrobní kapacita budov,
+	\item \textbf{infrastruktura}: počty budov jednotlivých typů a~jejich add-onů,
+	\item \textbf{armáda a~technologie}: počty jednotek a~dokončené výzkumy.
+\end{itemize}
+Akcemi jsou stavba budovy, trénink jednotky, výzkum, expanze na další základnu a~vyslání útoku; každá z~nich stojí suroviny, některé supply a~výrobní čas. Pozice na mapě, životy jednotek ani průběh boje do stavu makromanagementu nepatří: jsou předmětem taktiky a~reaktivního řízení, o~kterých plánovač nerozhoduje (sekce~\ref{sec:rts}).
+
+Cílem hry je zničit všechny budovy soupeře. Takový cíl však plánovač nemůže přímo použít, protože výsledek boje není v~modelu a~cesta k~vítězství trvá desítky minut. Plánovací problém proto musí mít \emph{mezilehlé cíle} vyjádřené ve stavových proměnných (například \enquote{Factory s~Tech Labem a~dva Siege Tanky}) a~horizont, který odpovídá době, za kterou se svět změní natolik, že plán přestane platit. V~navrženém agentovi je horizontem jedna \emph{etapa} hry a~v~poslední etapě jedna útočná vlna (sekce~\ref{sec:etapy}).
+
+Prostředí přitom porušuje většinu předpokladů klasického plánování (sekce~\ref{sec:klasicke}). Je \emph{dynamické}: suroviny přibývají a~stavby se dokončují bez zásahu agenta a~soupeř jedná současně s~ním. Je \emph{nedeterministické} z~pohledu agenta: budova může být zničena, dělník zabit cestou na staveniště, rozkaz odmítnut, protože vedle budovy není místo pro add-on. A~je jen \emph{částečně pozorovatelné}: o~soupeři agent ví jen to, co vidí. Zadání práce tento problém zjednodušuje tím, že soupeře považuje za součást dynamického prostředí. Vlastní stav agent pozoruje úplně, a~protože model obsahuje jen vlastní ekonomiku a~armádu, lze jej před každým plánováním sestavit přesně z~aktuálního pozorování.
+
+Z~toho plyne základní tvar řešení: plánovat opakovaně z~aktuálního stavu, vykonávat plán po jednotlivých akcích, ověřovat, že se účinky skutečně dostavily, a~přeplánovat, když ne.
 
 \section{Limity propoziční modelace zdrojů}
-% TODO: planning/domain_logic.pddl a Oravova domain_baseline.pddl vs. čísla;
-% klasická baseline této práce: planning/domain_classical.pddl.
+\label{sec:limity}
+
+V~propozičním modelu jsou všechny stavové proměnné pravdivostní hodnoty. Počty lze kódovat objekty (\texttt{barracks1}, \texttt{barracks2}) a~kapacity tokeny, jak to dělá Orava~\cite{Orava2025}; zásoby a~toky surovin však propozičně vyjádřit rozumně nelze. Přirozenou volbou je tedy vypustit je a~cenu akcí ověřovat až při vykonávání.
+
+\paragraph{Generace~1 této práce.} Prototyp, ze kterého práce vychází, šel ještě dál. Doména \texttt{domain\_logic.pddl} obsahovala pět predikátů (\texttt{supply\_depot\_built}, \texttt{barracks\_built}, \texttt{second\_barracks\_built}, \texttt{has\_army}, \texttt{ready\_for\_attack}) a~pět akcí, plán se spočítal jednou na začátku hry a~vykonal jako pevný skript. Proti nejslabší vestavěné umělé inteligenci takový skript stačí; model ale neobsahuje nic, o~čem by plánovač mohl rozhodovat, a~veškerá inteligence agenta je v~pořadí, které do domény vepsal autor.
+
+\paragraph{Co se ztrácí bez čísel.} Doména s~objekty a~tokeny, jakou používá~\cite{Orava2025}, je mnohem bohatší, ale bez surovin v~modelu plánovač stále nemůže vyjádřit čtyři věci, na kterých makromanagement stojí:
+\begin{enumerate}
+	\item \textbf{Načasování.} Plán říká, v~jakém pořadí akce provést, ne kdy na ně bude mít agent suroviny. Vykonávací vrstva čeká na peníze slepě a~plán, který je logicky v~pořádku, může být ekonomicky nesmyslný, například stavět drahou technologii v~okamžiku, kdy je potřeba obrana.
+	\item \textbf{Volbu mezi čekáním a~investicí.} Rozhodnutí, zda ušetřit na dražší jednotku, nebo hned koupit levnější, je otázkou porovnání cen s~příjmem. Bez obou veličin v~modelu se nedá formulovat.
+	\item \textbf{Utrácení banky.} Cíl \enquote{přeměň nashromážděné suroviny na armádu} vyžaduje, aby plánovač věděl, kolik surovin agent má. Bez toho agent po splnění cíle přestane investovat a~banka roste; přesně tuto stagnaci popisuje~\cite[kap.~6.2]{Orava2025}.
+	\item \textbf{Výrobní kapacitu.} Kolik jednotek lze za danou dobu vyrobit, závisí na počtu výrobních budov a~na době výroby. Bez kapacity v~modelu plánovač nemá důvod postavit další Barracks, i~když banka roste.
+\end{enumerate}
+
+\paragraph{Numerický model sám nestačí.} Zařazení čísel do domény je nutnou, nikoli postačující podmínkou. V~raných verzích prototypu vykonávací vrstva považovala akce čekání za hotové v~okamžiku zadání, takže plánovač počítal se surovinami, které agent ještě neměl, a~rychlost těžby byla pevná konstanta nezávislá na počtu dělníků; numerický model tak byl jen ozdobou a~skutečné načasování určovala herní smyčka. Ani po opravě obou chyb nestačilo, že plán je v~modelu správný. První zaznamenaná hra numerické verze (\serie{2026-08-30_d7e829e}) skončila proti úrovni VeryEasy porážkou v~čase 1\,150~s s~nulovou armádou a~7\,470~minerály v~bance: plán požadoval Tech Lab u~Barracks, který ve hře nešel postavit, a~agent zůstal stát za touto jedinou akcí (18~akcí označených jako nevykonatelné, 6~vynechaných). Příčinou bylo umístění budov, které neponechávalo místo pro add-on; po zavedení modulu pro umísťování (sekce~\ref{sec:preklad}) se Tech Lab v~další hře postavil napoprvé (\serie{2026-10-25_8d754f4}). Z~toho plynou požadavky, které propoziční přístup nemá: model musí odpovídat tomu, co hra skutečně dělá (rychlost těžby z~aktuálního počtu dělníků, skutečné ceny), vykonávání musí model \emph{dodržovat} (akce čekání skončí, až když hra suroviny opravdu nastřádá) a~agent musí poznat, že akci nelze provést, a~zotavit se přeplánováním.
+
+\paragraph{Klasická srovnávací varianta.} Aby bylo možné numerický přístup srovnat s~klasickým za jinak stejných podmínek, obsahuje práce i~klasickou doménu \texttt{domain\_classical.pddl} ve stylu~\cite{Orava2025}: objekty budov a~jednotek, supply jako zásobník slotů a~žádné suroviny ani akce čekání. Pracuje se stejnými akcemi, stejnou vykonávací vrstvou a~stejnými etapovými cíli; liší se jen model (sekce~\ref{sec:klasicka}).
 
 \section{Požadavky na agenta}
-% TODO: rozhoduje plánovač; reaktivní vrstva jen pro bezpečnost (supply, obrana, dělníci),
-% loguje reactive_override.
+\label{sec:pozadavky}
+
+Z~analýzy a~ze zadání plynou následující požadavky. Jsou formulovány tak, aby je bylo možné v~kódu i~v~datech ze her ověřit.
+
+\begin{enumerate}
+	\item[P1] \textbf{Rozhoduje plánovač.} O~stavbě budov, tréninku armády, výzkumu, expanzi a~útoku rozhoduje plánovač nad numerickou doménou. Kód v~Pythonu tato rozhodnutí pouze provádí. Přesunout rozhodnutí z~domény do pevně napsaných pravidel by popřelo účel práce, i~kdyby agent hrál lépe.
+	\item[P2] \textbf{Úzká reaktivní vrstva.} Mimo plánovač smí běžet jen chování, které nemůže čekat na další plánovací cyklus: odvrácení supply blocku, obrana základny a~rozdělování dělníků na těžbu. Každý zásah této vrstvy se zaznamená (\texttt{reactive\_override}), aby šlo změřit, kolik rozhodnutí jí prochází.
+	\item[P3] \textbf{Shoda modelu a~vykonávání.} Ceny v~doméně odpovídají cenám ve hře, rychlost těžby se před každým plánováním odvozuje z~aktuálního počtu dělníků a~akce se považuje za hotovou teprve tehdy, když hra potvrdí její účinek: přibyla budova nebo jednotka, nastřádaly se suroviny, výzkum běží.
+	\item[P4] \textbf{Omezená doba plánování a~robustní zotavení.} Plánovač má pevný časový limit. Akci, kterou nelze vykonat, agent nejprve řeší přeplánováním z~aktuálního stavu a~teprve potom ji vynechá; selhání plánovače nesmí agenta zastavit.
+	\item[P5] \textbf{Měřitelnost.} Každá hra je reprodukovatelná z~uložené konfigurace (verze kódu, doména, plánovač a~jeho nastavení, obtížnost, mapa, semínko) a~zaznamenává události plánování a~pravidelné snímky stavu. Úspěšnost se uvádí s~intervalem spolehlivosti.
+	\item[P6] \textbf{Srovnatelnost.} Metriky zahrnují i~ty, které používá~\cite{Orava2025} (neutracené suroviny, hodnota armády, úspěšnost, délka hry, doba plánování, doba mezi přeplánováními), a~klasická varianta agenta se liší od numerické jen doménou a~plánovačem.
+\end{enumerate}
+
+Požadavek P2 je kompromisem, který stojí za výslovné zdůvodnění. Supply block zastaví veškerou výrobu a~řešit jej až v~příštím plánu znamená ztratit desítky sekund; obrana proti útoku na základnu musí začít v~témže kroku hry, ve kterém se soupeř objeví. Rozdělování dělníků je mikroúloha bez strategického rozměru, kterou knihovna python-sc2 řeší vestavěnou funkcí. Trénink dělníků do saturace základen je v~současné verzi také reaktivní, protože doména dělníky jako akci neobsahuje a~rychlost těžby čte z~jejich skutečného počtu; je to vědomá mezera modelu, ke které se vrací kapitola~\ref{chap:experimenty}.
 
 \section{Volba plánovače}
-% TODO: kritéria a rozhodnutí pro ENHSP přes unified-planning.
+\label{sec:volba}
+
+Plánovač musí splňovat čtyři kritéria:
+\begin{enumerate}
+	\item \textbf{Obecné numerické plánování.} Doména obsahuje efekty, které přičítají hodnotu jiného fluentu (těžba \texttt{(increase (minerals) (mining-rate))}) nebo jeho násobek (výrobní čas úměrný počtu budov). Plánovač tedy nesmí být omezen na konstantní přírůstky.
+	\item \textbf{Rychlost.} Agent plánuje během hry opakovaně, typicky při každé etapě a~každé útočné vlně, a~plán musí být k~dispozici v~řádu jednotek sekund; Oravův plánovač potřeboval 3,73 až 4,35~s~\cite{Orava2025}.
+	\item \textbf{Dostupnost a~integrace.} Plánovač musí být volně dostupný, spustitelný pod Windows i~Linuxem a~nejlépe dostupný v~knihovně unified-planning, aby šel vyměnit bez úprav agenta a~aby výsledné plány šlo validovat.
+	\item \textbf{Výhled na čas.} Pro srovnání se spojitou variantou domény je výhodou podpora temporálních rysů nebo PDDL+.
+\end{enumerate}
+
+Podle tabulky~\ref{tab:planovace} splňuje všechna kritéria ENHSP. Podporuje obecné numerické plánování i~PDDL+, je dostupný jako balíček \texttt{up-enhsp} pro unified-planning a~vyžaduje jen běhové prostředí Javy. Jeho heuristiky jsou navrženy přímo pro numerické podmínky~\cite{Scala2016,Scala2020}, takže nevzniká problém, kvůli kterému Orava suroviny z~domény vypustil: plánovač nemusí čísla obcházet, pracuje s~nimi. Výchozí konfigurace $h_{\mathrm{add}}$ s~GBFS je vyhovující, nikoli optimální, což odpovídá kritériu rychlosti; kolik kvality plánu se tím ztrácí, měří kapitola~\ref{chap:experimenty} na sadě pevných problémů.
+
+LPG~\cite{Gerevini2003,Gerevini2008} je přirozeným kandidátem na druhý numerický plánovač, protože jeho autoři jsou autory jednoho ze zdrojů uvedených v~zadání. Jako plánovač agenta se nehodí: lokální prohledávání je nedeterministické, takže tentýž stav hry může dát pokaždé jiný plán, což ztěžuje ladění i~reprodukovatelnost. Zamýšlené srovnání mimo hru se provést nepodařilo, protože integrační balíček \texttt{up-lpg} pro unified-planning není pro Windows a~Python~3.14 k~dispozici; práce to uvádí jako omezení. Metric-FF~\cite{Hoffmann2003} a~Numeric Fast Downward~\cite{Aldinger2017} by doménu vyjádřit uměly, nejsou však součástí unified-planning a~vyžadovaly by vlastní integraci. Pro klasickou srovnávací variantu je zvolen Fast Downward v~konfiguraci LAMA-first, tedy stejný plánovač i~konfigurace jako v~\cite{Orava2025}, aby se srovnání týkalo modelu, a~ne plánovače.

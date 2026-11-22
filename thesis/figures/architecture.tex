@@ -1,0 +1,46 @@
+% Agent architecture (chapter Návrh). Drawn in TikZ; module names match the repository.
+% Needs \usetikzlibrary{babel,positioning,arrows.meta,calc} in the preamble.
+\begin{tikzpicture}[
+		node distance=11mm and 12mm,
+		box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
+			minimum width=30mm, minimum height=9mm, inner sep=2pt},
+		ext/.style={box, fill=black!8},
+		flow/.style={-{Stealth[length=1.8mm]}, semithick},
+		obs/.style={flow, dashed},
+		lbl/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt},
+	]
+
+	% columns: planning | problem and verification | planner and reactive layer
+	\node[box] (bot) {\texttt{PlanningBot}\\ etapy, \texttt{on\_step}};
+	\node[box, right=of bot] (problem) {\texttt{dynamic\_problem}\\ stav hry $\to$ PDDL};
+	\node[box, right=of problem] (planner) {\texttt{planner}\\ unified-planning};
+
+	\node[box, below=of bot] (exec) {\texttt{executor}\\ akce $\to$ příkaz hry};
+	\node[box, below=of problem] (gate) {podmínky dokončení\\ vůči baseline};
+	\node[ext, below=of planner] (enhsp) {ENHSP (JVM)\\ doména \texttt{v9}};
+
+	\node[box, below=of exec] (combat) {\texttt{combat}, \texttt{placement}\\ útok, obrana, umístění};
+	\node[box, below=of gate] (reactive) {reaktivní vrstva\\ supply, obrana, dělníci};
+	\node[box, below=of enhsp] (metrics) {\texttt{metrics}\\ události, snímky};
+
+	\node[ext, below=9mm of reactive, minimum width=104mm] (sc2) {StarCraft~II (burnysc2)};
+
+	% planning
+	\draw[flow] (bot) -- node[lbl, above=1pt] {cíl} (problem);
+	\draw[flow] (problem) -- node[lbl, above=1pt] {problém} (planner);
+	\draw[flow] ([xshift=-3mm]planner.south) -- ([xshift=-3mm]enhsp.north);
+	\draw[flow] ([xshift=3mm]enhsp.north) -- ([xshift=3mm]planner.south);
+	\draw[flow] (planner.north) to[bend right=14] node[lbl, above=1pt] {plán} (bot.north);
+
+	% execution
+	\draw[flow] (bot) -- node[lbl, left=1pt] {akce} (exec);
+	\draw[flow] (exec) -- node[lbl, below=1pt] {zadáno} (gate);
+	\draw[flow] (gate.north west) -- node[lbl, pos=0.5] {další akce /\\ přeplánovat} (bot.south east);
+	\draw[flow] (exec) -- (combat);
+	\draw[flow] (combat) -- node[lbl, left=1pt] {příkazy} (combat |- sc2.north);
+	\draw[flow] (reactive) -- (sc2.north -| reactive);
+
+	% observation
+	\draw[obs] (sc2.north -| metrics) -- node[lbl, right=1pt] {stav} (metrics);
+	\draw[obs] (sc2.west) -- ++(-5mm,0) |- node[lbl, pos=0.25, left=1pt] {stav hry} (bot.west);
+\end{tikzpicture}

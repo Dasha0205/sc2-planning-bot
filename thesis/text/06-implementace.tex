@@ -1,17 +1,117 @@
 \chapter{Implementace}
 \label{chap:implementace}
 
+Tato kapitola popisuje implementaci agenta a~experimentální infrastruktury: použité technologie, strukturu kódu a~řídicí smyčku, převod akcí na příkazy hry, měření a~dávkové spouštění her, problémy prostředí, které bylo třeba vyřešit, a~testování bez spuštěné hry. Zdrojový kód je na přiloženém médiu, jehož obsah je uveden na konci práce; popis odpovídá verzi \texttt{a3cb452}, na které běží hlavní série experimentů.
+
 \section{Technologie}
-% TODO: Python, burnysc2 7.2.1, unified-planning 1.3.0, ENHSP, Fast Downward, Flask.
+\label{sec:technologie}
 
-\section{Struktura kódu a tok řízení}
-% TODO: on_step, moduly bot/ a planning/.
+Agent je napsán v~Pythonu~3.14. Rozhraní hry zprostředkovává knihovna burnysc2~7.2.1~\cite{BurnySc2}, plánovač se volá přes unified-planning~1.3.0~\cite{Micheli2025} s~balíčky \texttt{up-enhsp}~0.1.1 (ENHSP) a~\texttt{up-fast-downward}~0.5.2 (klasická varianta). ENHSP běží v~JVM a~vyžaduje Javu ve verzi alespoň~17; vývoj probíhal s~OpenJDK~25. Pro sledování hry v~průběhu slouží jednoduchý webový panel ve frameworku Flask, testy používají pytest a~běží při každém nahrání změn v~GitHub Actions. Závislosti nutné pro běh agenta jsou s~přesnými verzemi v~\texttt{requirements.txt}, vývojové (Fast Downward, pytest) v~\texttt{requirements-dev.txt}. Vývojové série se hrály na mapě AcropolisLE z~oficiálního balíčku map, hlavní série na mapě Abyssal Reef LE, kterou používá i~\cite{Orava2025} a~která je převzata z~přílohy jeho práce (adresář \texttt{maps/}).
 
-\section{Překlad akcí na příkazy SC2}
-% TODO: executor, add-ony, umístění budov (bot/placement.py).
+\section{Struktura kódu a~tok řízení}
+\label{sec:struktura}
 
-\section{Měření a experimentální harness}
-% TODO: run.py, run_batch.py, aggregate.py (Wilsonův interval), plots.py, JSON schéma.
+Tabulka~\ref{tab:moduly} shrnuje moduly. Všechny cesty k~souborům jsou odvozeny od umístění zdrojového souboru, takže agenta lze spustit z~libovolného adresáře, což využívá dávkové spouštění her.
+
+\begin{table}[ht]
+	\centering
+	\caption{Moduly agenta a~experimentální infrastruktury.}
+	\label{tab:moduly}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		\textbf{Modul} & \textbf{Odpovědnost} \\
+		\midrule
+		\texttt{run.py} & vstupní bod: konfigurace hry z~příkazové řádky, spuštění hry, uložení výsledku \\
+		\texttt{bot/planning\_bot.py} & třída \texttt{PlanningBot}: etapy, cíle, plánování, vykonávání a~podmínky dokončení, reaktivní vrstva \\
+		\texttt{bot/executor.py} & převod akce PDDL na příkaz rozhraní hry, důvod odmítnutí \\
+		\texttt{bot/placement.py} & umístění budov u~hlavní základny \\
+		\texttt{bot/combat.py} & provedení útoku a~obrany \\
+		\texttt{planning/dynamic\_problem.py} & stav hry $\to$ problém PDDL, rychlosti těžby, hodnota armády, práh útoku \\
+		\texttt{planning/classical\_problem.py} & stav hry $\to$ problém klasické domény \\
+		\texttt{planning/planner.py} & spuštění ENHSP, resp.\ Fast Downward přes unified-planning, časový limit, konfigurace ENHSP \\
+		\texttt{planning/plan\_order.py} & přeuspořádání zbytku plánu, pokud je podle simulátoru stále platný \\
+		\texttt{planning/*.pddl} & všechny verze numerické domény, klasická doména a~varianta v~PDDL+ \\
+		\texttt{utils/metrics.py} & záznam událostí a~snímků hry \\
+		\texttt{experiments/} & dávkové spouštění a~noční fronta sérií, agregace, grafy, srovnání plánovačů mimo hru, Oravův agent v~téže infrastruktuře \\
+		\texttt{tests/} & testy bez hry, simulovaný stav hry, pevné problémy \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Knihovna burnysc2 volá v~každém kroku hry asynchronní metodu \texttt{on\_step}. Její průběh ukazuje výpis~\ref{lst:onstep}: nejprve reaktivní vrstva a~sledování nasazených jednotek, potom měření a~nakonec nejvýše jeden krok plánu. Plánování probíhá synchronně uvnitř kroku; v~krokovém režimu (\texttt{realtime=False}) na něj hra čeká, takže doba výpočtu plánu se měří, ale herní čas nespotřebovává (sekce~\ref{sec:sc2}).
+
+\begin{lstlisting}[caption={Řídicí smyčka agenta (zjednodušeno).},label=lst:onstep,float,basicstyle=\ttfamily\small,mathescape=true]
+on_step():
+    distribute_workers(); train_scvs()          # reaktivni vrstva
+    manage_supply(); defend_base()
+    follow_attack()                             # nasazene jednotky
+    metrics.snapshot_if_due()                   # kazdych 10 hernich s
+    if plan vycerpan:
+        stage $\leftarrow$ min(stage + 1, 3); advance_plan(); return
+    a $\leftarrow$ plan[index]
+    if not issued:
+        baseline $\leftarrow$ snapshot_baseline(a)    # pred zadanim
+        if execute_action(a): issued $\leftarrow$ True
+        elif akce jen ceka: pull_forward(a)        # preusporadani
+        elif vyprsel limit pro zadani: handle_unissuable(a)
+    elif COMPLETION_CONDITIONS[a](baseline):
+        index $\leftarrow$ index + 1; issued $\leftarrow$ False
+\end{lstlisting}
+
+Metoda \texttt{advance\_plan} sestaví cíl etapy, zapíše problém a~zavolá plánovač. Plán spolu s~načteným problémem uloží do objektu \texttt{PlanOrder}, který umí ověřit přeuspořádání (sekce~\ref{sec:vykonavani}), a~akce převede na jejich jména (\texttt{build\_barracks}), podle kterých se hledá větev vykonávací vrstvy i~podmínka dokončení. Každé naplánování se zaznamená jako událost \texttt{plan\_generated} s~etapou, pořadím pokusu, dobou výpočtu, stavem plánovače, délkou plánu a~počtem akcí čekání. Baseline se zachycuje \emph{před} zadáním akce, protože zadaná stavba se ve hře okamžitě objeví jako rozestavěná a~baseline zachycená po zadání by ji už obsahovala a~nikdy by nebyla překročena.
+
+\section{Překlad akcí na příkazy hry}
+\label{sec:preklad}
+
+Funkce \texttt{execute\_action} rozpozná akci podle jména a~zadá odpovídající příkaz. Pro každou akci řeší, \emph{kde} a~\emph{čím} ji provést, což doména záměrně nemodeluje:
+\begin{itemize}
+	\item \textbf{Trénink} se zadá u~výrobní budovy s~nejvolnější frontou; Marine přednostně u~Barracks bez add-onu, Marauder a~Siege Tank jen u~budovy s~Tech Labem, protože budova bez něj příkaz tiše zahodí. Fronta pojme nejvýše dvě jednotky: zařazením se jednotka zaplatí, takže banka sleduje plán a~nečeká na uvolnění budovy. Plná fronta je důvodem typu \texttt{waiting}, ne selháním, a~stejně tak chybějící supply, když se právě staví depot: knihovna burnysc2 počítá supply jako součást ceny, takže by jinak jednotku odmítla jako nezaplatitelnou.
+	\item \textbf{Add-on} se staví jen u~hotové, nečinné výrobní budovy, a~to až po ověření, že je vedle ní místo; hra příkaz bez místa také tiše zahodí. Rozestavěná budova znamená čekání, nikoli selhání.
+	\item \textbf{Refinery} se staví na nejbližším volném gejzíru u~hotové základny, \textbf{expanze} na nejbližším volném místě pro základnu.
+	\item \textbf{Útok} se zadá, až když hodnota armády u~základen dosáhla prahu, se kterým plán počítal (sekce~\ref{sec:vykonavani}); vyšle všechny jednotky u~základen, které ještě nebyly nasazeny.
+	\item \textbf{Čekání} nevyžaduje žádný příkaz, hra těží sama; zadání vždy uspěje a~celou práci dělá podmínka dokončení.
+\end{itemize}
+
+\paragraph{Umístění budov.} Ostatní budovy (Supply Depot, Barracks, Factory, Engineering Bay i~nouzový depot reaktivní vrstvy) umísťuje modul \texttt{placement}. Hledá místo v~okruhu 14~polí od hlavní základny a~dodržuje čtyři pravidla: budova stojí celá mimo stranu základny s~minerály a~plynem (dokud zbývá jiné místo), kolem každé budovy i~add-onu zůstává průchod šířky jednoho pole, místo pro add-on vedle Barracks a~Factory se nezastavuje a~nezastavuje se ani plocha přislíbená budově, ke které dělník teprve jde (rezervace platí 20~s, protože hra objednanou budovu do příchodu dělníka nevidí). Pravidla vznikla po hře, ve které depoty zastavily místo pro Tech Lab (sekce~\ref{sec:limity}). Test \texttt{test\_base\_layout.py} postaví na modelu mapy celé stavební pořadí a~prohledáváním do šířky ověří, že žádná budova není obestavěna a~že cesty dělníků ke gejzírům se nezměnily.
+
+\section{Měření a~experimentální infrastruktura}
+\label{sec:harness}
+
+\paragraph{Konfigurace a~výsledek hry.} Skript \texttt{run.py} sestaví z~příkazové řádky konfiguraci hry: obtížnost a~rasu soupeře, mapu, doménu, plánovač a~jeho nastavení, časový limit a~semínko náhodného generátoru (náhodné, není-li zadáno, ale vždy zaznamenané). Spolu s~ní uloží i~verzi kódu, tj.~zkrácený hash commitu s~příznakem \texttt{-dirty}, pokud se sledované soubory liší od commitu. Výsledkem hry je soubor JSON, který obsahuje konfiguraci, časovou řadu událostí a~snímky stavu; vedle něj se ukládá záznam hry (\emph{replay}), který lze ve hře přehrát.
+
+\paragraph{Události a~snímky.} Události zaznamenávají život plánu (\nolinkurl{plan_generated}, \nolinkurl{plan_issued}, \nolinkurl{plan_completed}), potíže (\nolinkurl{action_unissuable}, \nolinkurl{action_skipped}, \nolinkurl{action_timeout}, \nolinkurl{planner_error}), přeuspořádání (\nolinkurl{plan_reordered}), útoky (\nolinkurl{attack_retarget}, \nolinkurl{attack_resolved}), zásahy reaktivní vrstvy (\nolinkurl{reactive_override}) a~konec hry. Snímek se pořizuje každých 10~herních sekund a~obsahuje suroviny, supply, počty dělníků a~bojových jednotek, hodnotu armády, hotové budovy podle typu a~podíl dosavadní hry, po který měl agent v~bance víc než 500~minerálů (\nolinkurl{minerals_floated}). Každý záznam nese herní čas, číslo herního kroku a~reálný čas od začátku hry. Formát je popsán schématem JSON a~hlídán testy.
+
+\paragraph{Série her.} Skript \texttt{experiments/run\_batch.py} spouští série her nad mřížkou konfigurací (obtížnosti, mapy, rasy, domény, nastavení plánovače) s~po sobě jdoucími semínky. Každá hra běží ve vlastním procesu, takže pád nebo zamrznutí hry sérii nezastaví. Hra, která nedoběhne do 1\,800~herních sekund, končí remízou; hra, která do 1\,200~s reálného času neskončí, se ukončí i~s~procesem hry a~zaznamená jako \texttt{timeout}. Průběh série se zapisuje do \texttt{progress.csv}, opakované spuštění téhož příkazu dohraje jen chybějící hry se stejnými semínky a~skript odmítne spustit sérii nad neuloženými změnami kódu, aby každá série odpovídala jedné verzi. Noční fronta (\texttt{experiments/night.ps1}) spouští několik sérií za sebou a~každou hned agreguje. Stejnou infrastrukturou lze spustit i~Oravova agenta z~přílohy jeho práce (\nolinkurl{experiments/orava_bot.py}): hraje na stejné mapě, proti stejnému soupeři, se stejným semínkem a~limitem a~výsledek zapisuje ve stejném formátu, takže jej agregace čte jako vlastní. Na rozdíl od našeho agenta hraje v~reálném čase, protože jeho plánovač běží v~samostatném vlákně a~v~krokovém režimu by hra během plánování běžela mnohem rychleji než v~reálném čase, pro který byl navržen.
+
+\paragraph{Agregace.} Skript \texttt{experiments/aggregate.py} sloučí výsledky jedné nebo více sérií do tabulky her a~souhrnu po bodech mřížky. Úspěšnost uvádí s~95\% Wilsonovým intervalem spolehlivosti~\cite{Wilson1927}, který je pro malý počet her a~podíly blízko 0 nebo 100~\% spolehlivější než normální aproximace:
+\[
+	\frac{\hat p + \frac{z^2}{2n} \pm z\sqrt{\frac{\hat p(1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}, \qquad z = 1{,}96,
+\]
+kde $n$ je počet her a~$\hat p$ podíl výher. Souhrn dále obsahuje medián délky hry, medián a~95.~percentil doby plánování, délku plánů a~podíl akcí čekání, počet akcí plánu a~reaktivních zásahů na hru, čas prvního útoku, dobu, po kterou plán stál, protože jeho další akci nešlo zadat (\emph{plan held}: součet mezer delších než 2~s mezi okamžikem, kdy byla akce na řadě, a~jejím zadáním, přeplánováním nebo koncem hry), podíl hry s~nevyužitou bankou a~hodnotu armády v~3., 6., 9., 12. a~15.~minutě, a~také metriky ve tvaru, který používá~\cite{Orava2025}: neutracené suroviny $R(t)$, hodnotu armády v~surovinách $V(t)$, průměrnou dobu mezi přeplánováními a~průměrnou dobu plánování. Skript \texttt{experiments/plots.py} z~týchž dat kreslí všechny grafy v~této práci; žádný graf není kreslen ručně.
+
+\paragraph{Plánovače mimo hru.} Skripty \nolinkurl{experiments/planner_configs.py} a~\nolinkurl{experiments/planners_offline.py} řeší sadu pevných problémů (sekce~\ref{sec:testovani}) se všemi pojmenovanými konfiguracemi ENHSP ($h_{\mathrm{add}}$, $h_{\mathrm{mrp}}$ a~$h_{\mathrm{radd}}$ s~GBFS, $h_{\mathrm{add}}$ s~WA$^*$, optimální $h_{\max}$ a~$h_{\mathrm{rmax}}$), s~metrikou i~bez ní, dále plánovačem Fast Downward nad klasickou doménou z~téhož stavu a~ENHSP nad variantou v~PDDL+, a~zaznamenají dobu řešení, délku plánu, počet akcí čekání a~herní čas plánu.
+
+\section{Problémy prostředí}
+\label{sec:prostredi}
+
+\paragraph{Ukončení plánovače pod Windows.} Knihovna unified-planning ukončuje plánovač, který překročil časový limit, pod Windows signálem CTRL\_BREAK. JVM na něj odpoví výpisem vláken a~počítá dál, takže každé vypršení limitu zanechalo v~systému proces ENHSP na plném výkonu procesoru a~následující hry se zpomalovaly. Agent proto nahrazuje ukončovací funkci knihovny vlastní, která proces ukončí natvrdo. Chyba se projevila a~byla opravena během sérií T8.2 (\serie{T8.2_v7_medium}).
+
+\paragraph{Režie volání plánovače.} Doba plánování, jak ji agent měří, zahrnuje celé volání: načtení domény a~problému, spuštění JVM a~samotné prohledávání. Prohledávání je z~toho malý zlomek. V~kontrolní hře proti VeryEasy byl medián celého volání 1,61~s, zatímco medián času, který ENHSP sám vykázal jako dobu plánování, 0,054~s (\serie{2026-10-31_39b50ea}); v~pilotní sérii na mapě Abyssal Reef byl 95.~percentil celého volání 3,59~s při vlastním čase ENHSP 0,07~s (\serie{T5.1_pilot}). Velkou část režie tvořilo to, že unified-planning PDDL načetl, přepsal do vlastní podoby a~ENHSP jej pak načítal znovu. Agent proto spouští ENHSP přímo nad souborem problému a~unified-planning jen souběžně načte týž soubor, aby šlo plán ověřovat v~modelu. V~hlavní sérii proti Medium tak klesl medián celého volání na 0,64~s a~95.~percentil na 1,64~s (\serie{E5_numeric_Medium}). Doba plánování je i~tak dána hlavně režií spuštění procesu, nikoli obtížností problému; agent proto zaznamenává obě hodnoty zvlášť.
+
+\paragraph{Nulové rychlosti.} Když agent nemá Refinery, je skutečná rychlost těžby plynu nulová a~akce čekání by plyn nezvyšovala. ENHSP v~takovém případě některé problémy prohlásil za neřešitelné a~na verzi~7 domény vyčerpal časový limit; generátor proto zapisuje obě rychlosti nejméně jako~1. Jedna jednotka plynu za pět sekund je zanedbatelná chyba modelu, kterou vykonávací vrstva vyrovná, protože čekání na plyn skončí až po skutečném nastřádání.
+
+\paragraph{Zamrznutí a~zpomalení hry.} Klient hry se ve dvou sériích zasekl při startu hry (\serie{T8.3_attack_departs_medium}, \serie{T8.3_v9_medium}). Ochrana reálným časem takovou hru ukončí a~zaznamená jako \texttt{timeout}; hra se pak dohraje znovu se stejným semínkem. Během hlavní série proti Medium měl počítač kvůli jiné aplikaci volných jen přibližně 0,5~GB z~16~GB paměti, hra odkládala na disk a~reálná doba hry vzrostla z~přibližně 290~s na přibližně 750~s; tři starty proto ukončila ochrana reálným časem (\serie{E5_numeric_Medium}). V~krokovém režimu to zaznamenané hry neovlivňuje, protože herní čas na agenta čeká, prodloužilo to však některá volání plánovače (sekce~\ref{sec:rezie}) a~vyžádalo si pravidlo pro zastavené starty (sekce~\ref{sec:metodika}).
 
 \section{Testování bez hry}
-% TODO: pytest, fake-bot, fixtury, validátor plánů, replay plánu, CI.
+\label{sec:testovani}
+
+Chování agenta nelze ověřit jinak než hrou, plánovací vrstvu však ano. Sada testů v~adresáři \texttt{tests/} obsahuje ve verzi \texttt{a3cb452} 368~testů, které nepotřebují hru, jen Javu pro ENHSP a~Fast Downward. Hlavní skupiny jsou:
+\begin{itemize}
+	\item \textbf{Simulovaný stav hry.} Testovací náhrada (\texttt{tests/fakes.py}) napodobuje rozhraní \texttt{BotAI} v~rozsahu, který agent používá (jednotky, budovy, fronty, suroviny), a~testuje se nad ní vykonávací vrstva: trénink, add-ony, umístění budov, útok a~obrana.
+	\item \textbf{Pevné problémy.} Šest problémů PDDL odvozených ze skutečných stavů her (jeden pro každou etapu, začátek bez Refinery a~stav se zablokovaným supply, který ENHSP dokáže prohlásit za neřešitelný). Test ověří, že plán každého řešitelného problému projde validátorem unified-planning a~že po odstranění akcí čekání validací neprojde, tedy že čekání jsou v~plánu skutečně potřeba.
+	\item \textbf{Kontrakt domény.} Každá akce každé numerické domény má větev ve vykonávací vrstvě a~podmínku dokončení, a~každá cena v~aktivní doméně odpovídá ceně ve hře.
+	\item \textbf{Přehrání plánu.} Celý plán etapy~0 projde cyklem zadání a~ověření nad simulovaným stavem hry, který mezi kroky těží, staví a~trénuje; zvlášť se testuje, že přeuspořádání nikdy nepřipustí plán, který v~modelu neplatí.
+	\item \textbf{Infrastruktura.} Konfigurace a~výsledek hry, dávkové spouštění (s~náhradní \enquote{hrou}, která jen zapíše výsledek), agregace včetně starších formátů výsledků a~grafy.
+\end{itemize}
+Rychlou kontrolou celého plánovacího řetězce je příkaz \texttt{python -m bot.smoke}, který sestaví problém z~počátečního stavu hry, vyřeší jej ENHSP a~vypíše plán etapy~0.

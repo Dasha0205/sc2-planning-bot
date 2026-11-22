@@ -1,16 +1,68 @@
 \chapter{Související práce}
 \label{chap:souvisejici}
 
-\section{Plánování v~RTS hrách}
-% TODO: \cite{ChurchillBuro2011}, \cite{Ontanon2013}, \cite{VinyalsEtAl2019}.
+Tato kapitola řadí práci mezi existující přístupy k~umělé inteligenci v~RTS hrách. Nejvíce prostoru dostává práce Jana Oravy~\cite{Orava2025}, na kterou zadání přímo odkazuje a~se kterou se výsledky srovnávají v~kapitole~\ref{chap:experimenty}.
 
-\section{Klasické plánování ve hře StarCraft~2}
-% TODO: Orava \cite{Orava2025}: Basic/Expert doména, Fast Downward LAMA \cite{Helmert2006,Richter2010},
-% výsledky 100 / 75--90 / 5--15~\% (VeryEasy / Medium / Hard), stagnace po 16. minutě,
-% latence FD 3,7--4,4~s. Fakta se stránkami: docs/PLAN.md §2.
+\section{Plánování v~RTS hrách}
+\label{sec:rts}
+
+Přehledová studie Ontañóna a~kol.~\cite{Ontanon2013} dělí rozhodování v~RTS hrách do tří úrovní podle časového horizontu: \emph{strategie} (minuty: co stavět, kdy expandovat, kdy útočit), \emph{taktika} (desítky sekund: kde a~jak vést střet) a~\emph{reaktivní řízení} (zlomky sekundy: pohyb a~střelba jednotlivých jednotek). Plánovací techniky se nejčastěji uplatňují na strategické úrovni, protože jen tam je dost času na výpočet a~stav lze dostatečně abstrahovat. Studie zároveň upozorňuje, že většina tehdejších agentů kombinovala více technik a~že žádný přístup nezvládal všechny úrovně najednou.
+
+Nejbližší úlohou k~této práci je \emph{optimalizace stavebního pořadí} (\emph{build order}): pro zadaný cíl (například určitý počet jednotek a~budov) najít posloupnost akcí, která ho dosáhne v~nejkratším čase. Churchill a~Buro~\cite{ChurchillBuro2011} ji řeší prohledáváním do hloubky s~ořezáváním (\emph{branch and bound}) nad abstraktním modelem hry, ve kterém jsou zdroje, doby výroby a~výrobní kapacita explicitní čísla, a~nalézají v~reálném čase plány srovnatelné s~pořadími profesionálních hráčů. Jejich model je v~podstatě numerický a~temporální; řešič je však specializovaný na tuto jednu úlohu a~nevyjadřuje doménu v~obecném jazyce. Tato práce si klade podobnou otázku: jak dobře lze modelovat ekonomiku čísly, ale odpovídá na ni doménově nezávislým plánovačem nad doménou v~PDDL.
+
+Opačný přístup reprezentují učené systémy. AlphaStar~\cite{VinyalsEtAl2019} dosáhl úrovně Grandmaster kombinací učení z~lidských záznamů a~multiagentního posilovaného učení s~ligou soupeřů~\cite{AlphaStar2019b}; jeho rozhodnutí ale nejsou vysvětlitelná a~jeho trénink vyžadoval výpočetní zdroje, které jsou mimo dosah akademické práce tohoto rozsahu. Novější práce zkoušejí velké jazykové modely jako strategický modul nad textovou reprezentací stavu hry~\cite{MaEtAl2024,MaEtAl2025}. Oba směry jsou zajímavým srovnáním, ale neřeší otázku této práce, totiž co přinese explicitní numerický model zdrojů v~plánovači.
+
+\section{Klasické plánování ve hře StarCraft~II}
+\label{sec:orava}
+
+Orava~\cite{Orava2025} navrhl agenta rasy Terran, jehož strategická rozhodnutí určuje plánovač Fast Downward v~konfiguraci LAMA-first~\cite{Helmert2006,Richter2010} volaný přes knihovnu unified-planning. Doména je zapsána v~PDDL s~rozšířením ADL (typování, kvantifikátory \texttt{forall} a~\texttt{exists}, negativní předpoklady) a~pracuje s~objekty: každá budova je objekt (\texttt{barracks1}, \texttt{supply1}) a~akce jako \texttt{build\_factory} kontrolují technologické předpoklady existenčními kvantifikátory. Plánovač neřeší umístění budov ani boj; o~ty se starají vykonávací moduly v~Pythonu.
+
+\paragraph{Model zdrojů.} Pro tuto práci je nejdůležitější, jak Orava zachází s~ekonomikou. Minerály a~plyn jsou z~domény \emph{zcela vypuštěny}: plánovač neověřuje, zda si agent akci může dovolit, a~předpokládá, že suroviny časem přijdou. Kontrola ceny probíhá až ve vykonávací vrstvě; nemá-li agent na akci, příkaz selže a~v~dalším kroku hry se zopakuje. Autor tuto volbu zdůvodňuje tím, že numerické fluenty buď většina výkonných plánovačů nepodporuje, nebo s~nimi ztrácí schopnost efektivně prořezávat stavový prostor~\cite[kap.~5.3]{Orava2025}. Supply je modelováno \emph{tokeny}: každý postavený Supply Depot uvolní jeden token a~akce \texttt{recruit} jej spotřebuje na skupinu jednotek \texttt{troop} o~velikosti osmi supply. Počet dělníků je binární vlastnost základny (\texttt{has\_full\_workers}).
+
+\paragraph{Architektura.} Hlavní třída agenta v~každém kroku synchronizuje stav, ověří platnost plánu, vyžádá si další akci a~předá ji vykonávacímu modulu (stavba, výzkum, jednotky). Akce se považuje za hotovou, jakmile ji modul úspěšně zadá; přeplánování se spouští při událostech, které plán narušují, například při zničení budovy. Mimo plán běží iterativní rutiny, například rozdělování dělníků. Orava porovnává dvě domény: \emph{Basic}, která obsahuje jen fyzické a~technologické předpoklady, a~\emph{Expert}, která navíc vynucuje osvědčené herní postupy, například dřívější obranu před stavbou drahých technologií.
+
+\paragraph{Výsledky.} Experimenty proběhly na mapách Abyssal Reef LE ($152 \times 136$) a~Flat64 ($64 \times 64$) proti vestavěné umělé inteligenci na obtížnostech VeryEasy, Medium a~Hard, s~dvaceti hrami na konfiguraci. Na velké mapě vyhrály obě domény všechny hry proti VeryEasy; proti Medium dosáhla doména Basic úspěšnosti 75~\% a~doména Expert 90~\%, proti Hard 5~\%, resp. 15~\%. Na malé mapě klesla doména Expert proti Medium na 15~\% a~se složitějším cílem (tři základny, dvě Refinery, pokročilé výzkumy) na velké mapě na 40~\%. Průměrná doba výpočtu jednoho plánu byla 3,73 až 4,35~s nezávisle na mapě a~jeden plán vydržel v~průměru 228 až 249~s na velké mapě a~kolem 150~s na malé~\cite[kap.~6]{Orava2025}.
+
+\paragraph{Zjištěná omezení.} Autor sám identifikuje dvě hlavní slabiny. První je důsledkem předpokladu uzavřeného světa: doména obsahuje konečný počet objektů, a~jakmile agent splní cíl, přestane rozšiřovat základnu, nevyužité suroviny začnou růst a~hry delší než přibližně 16~minut se vyvíjejí v~jeho neprospěch, protože vestavěná umělá inteligence dále roste. Druhou je absence mikromanagementu, kvůli které agent proti Hard prohrává i~s~materiální převahou. Jako budoucí práci navrhuje hybridní systém, v~němž by boj řídilo posilované učení a~strategii plánovač~\cite[kap.~7]{Orava2025}.
+
+Pro tuto práci jsou podstatné tři věci. Za prvé, Oravův agent je \emph{funkční referencí} se zveřejněnou metodikou, se kterou lze srovnávat. Za druhé, jeho rozhodnutí vypustit suroviny je přesně tím předpokladem, který tato práce testuje: jeho první slabina, hromadění nevyužitých surovin po splnění cíle, je přímým projevem toho, že plánovač o~surovinách nic neví. Za třetí, obě práce sdílejí řadu architektonických prvků (knihovny python-sc2 a~unified-planning, vykonávání plánu po jednotlivých akcích, reaktivní rutiny mimo plán); rozdíl je v~tom, \emph{co} plánovač zná, a~právě to je předmětem srovnání.
 
 \section{Hierarchické plánování pro RTS}
-% TODO: Kameník \cite{Kamenik2023}.
+\label{sec:kamenik}
 
-\section{Shrnutí}
-% TODO: mezera -- numerická modelace zdrojů a času + kvantitativní vyhodnocení s~CI.
+Kameník~\cite{Kamenik2023} zkoumal ve své diplomové práci hierarchické plánování pomocí sítí úloh (\emph{Hierarchical Task Network}, HTN) pro strategické řízení v~RTS hře Dune~2000 v~prostředí OpenRA. HTN plánovač rozkládá složené úlohy pomocí metod na primitivní akce, takže znalost o~tom, \emph{jak} se úlohy plní, je zapsána návrhářem přímo v~doméně. Agent dokázal porazit vestavěnou umělou inteligenci hry, autor však upozorňuje na pracnost návrhu a~ladění domény~\cite{Kamenik2023}. Ve srovnání s~klasickým a~numerickým plánováním je HTN expresivnější v~tom, že dovoluje zakódovat strategii, ale méně doménově nezávislé: kvalita chování závisí na ručně napsaných metodách víc než na plánovači.
+% TODO: ověřit shrnutí podle plného textu Kameníkovy práce (docs/PLAN.md §0, bod 9).
+
+\section{Shrnutí a~mezera}
+\label{sec:mezera}
+
+Existující práce pokrývají dva krajní body. Specializované řešiče stavebního pořadí~\cite{ChurchillBuro2011} modelují ekonomiku čísly a~časem, ale nejsou obecnými plánovači a~neřeší celou hru. Doménově nezávislé plánování v~SC2~\cite{Orava2025} řídí celou hru, ale ekonomiku z~modelu vypouští. Chybí práce, která by ponechala zdroje, těžbu a~výrobní kapacitu v~doméně jako numerické fluenty, nechala obecný numerický plánovač rozhodovat i~o~načasování, změřila, kolik to stojí na době výpočtu, a~porovnala výsledek s~klasickým přístupem za jinak stejných podmínek. Tabulka~\ref{tab:orava-vs-tato} shrnuje, v~čem se tato práce od~\cite{Orava2025} liší a~v~čem s~ní záměrně shoduje.
+
+\begin{table}[ht]
+	\centering
+	\caption{Návrh agenta v~práci~\cite{Orava2025} a~v~této práci.}
+	\label{tab:orava-vs-tato}
+	\begin{tabularx}{\textwidth}{@{} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		 & \textbf{Orava~\cite{Orava2025}} & \textbf{Tato práce} \\
+		\midrule
+		Formalismus & PDDL~2.1 s~ADL, objekty & PDDL~2.1 úroveň~2, numerické fluenty \\
+		\addlinespace
+		Plánovač & Fast Downward, LAMA-first & ENHSP; Fast Downward pro klasickou variantu \\
+		\addlinespace
+		Suroviny & mimo model, čekání řeší herní smyčka & fluenty \texttt{minerals}, \texttt{vespene} a~rychlosti těžby \\
+		\addlinespace
+		Supply & tokeny po 8~supply & fluenty \texttt{supply-used}, \texttt{supply-cap} \\
+		\addlinespace
+		Čas & nemodelován & akce čekání po 5~herních sekundách, výrobní kapacita budov \\
+		\addlinespace
+		Cíle & jeden cíl problému & etapové cíle, poslední etapa se opakuje \\
+		\addlinespace
+		Dokončení akce & úspěšné zadání příkazu & potvrzení účinku ve hře \\
+		\addlinespace
+		Přeplánování & při narušení plánu událostí & po vyčerpání plánu a~při nevykonatelné akci \\
+		\addlinespace
+		Vyhodnocení & 20~her na konfiguraci, průměry & série her s~95\% intervalem spolehlivosti, ablace numerická vs.\ klasická doména \\
+		\bottomrule
+	\end{tabularx}
+\end{table}

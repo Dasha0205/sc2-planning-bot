@@ -1,19 +1,134 @@
 \chapter{Teoretický základ}
 \label{chap:teorie}
 
-\section{Klasické plánování}
-% TODO: STRIPS, PDDL, stavový prostor, heuristiky \cite{Ghallab2004}.
+Tato kapitola shrnuje pojmy, na kterých stojí zbytek práce. Nejprve je popsáno klasické plánování a~heuristické prohledávání, poté jazyk PDDL a~jeho numerická a~temporální rozšíření, plánovače, které tato rozšíření podporují, a~způsoby, jak plánování nasadit v~prostředí, které se mění nezávisle na agentovi. Kapitolu uzavírá popis těch mechanik hry StarCraft~II, které musí plánovací model zachytit. Výklad plánování vychází z~\cite{Ghallab2004}, pokud není uvedeno jinak.
 
-\section{Numerická rozšíření PDDL}
-% TODO: PDDL~2.1, numeric fluents, numerické podmínky a efekty; durativní akce; PDDL+.
+\section{Klasické plánování}
+\label{sec:klasicke}
+
+Automatické plánování hledá posloupnost akcí, která převede systém z~daného počátečního stavu do stavu splňujícího cíl. Obecným modelem je \emph{přechodový systém} $\Sigma = (S, A, E, \gamma)$, kde $S$ je množina stavů, $A$ množina akcí, které ovládá agent, $E$ množina událostí, které přicházejí z~prostředí, a~$\gamma: S \times A \times E \to 2^{S}$ přechodová funkce. Plánování probíhá v~trojici komponent: \emph{plánovač} z~popisu systému a~cíle vytvoří plán, \emph{řídicí jednotka} plán vykonává a~sleduje skutečný stav systému a~\emph{systém} se mění podle akcí i~událostí~\cite{Ghallab2004}. Právě rozdíl mezi modelem, se kterým pracuje plánovač, a~skutečným systémem je místem, kde vzniká potřeba přeplánování (sekce~\ref{sec:dynamicke}).
+
+\emph{Klasické plánování} tento model zjednodušuje řadou předpokladů: stavový prostor je konečný, systém je plně pozorovatelný a~deterministický, množina událostí je prázdná (systém se mění jen akcemi agenta), akce nemají trvání a~cílem je dosáhnout některého z~cílových stavů. Plánovací problém je pak trojice $\mathcal{P} = (\Sigma, s_0, g)$ a~jeho řešením je plán $\pi = \langle a_1, \dots, a_k \rangle$, pro který posloupnost stavů $s_i = \gamma(s_{i-1}, a_i)$ končí ve stavu $s_k$ splňujícím $g$.
+
+\subsection{Reprezentace STRIPS}
+
+Stavový prostor se plánovači nepředává výčtem, ale kompaktně. Nejrozšířenější je reprezentace odvozená z~plánovače STRIPS~\cite{Fikes1971}: stav je množina pravdivých atomů a~akce~$a$ je dána množinou předpokladů $\mathit{pre}(a)$, přidávaných atomů $\mathit{add}(a)$ a~odebíraných atomů $\mathit{del}(a)$. Akce je použitelná ve stavu~$s$, pokud $\mathit{pre}(a) \subseteq s$, a~výsledný stav je
+\[
+	\gamma(s, a) = (s \setminus \mathit{del}(a)) \cup \mathit{add}(a).
+\]
+Atomy vznikají dosazením objektů do predikátů a~akce dosazením objektů do parametrizovaných \emph{operátorů}; převodu na konkrétní akce se říká \emph{grounding}. Rozhodnout, zda klasický plánovací problém v~reprezentaci STRIPS má řešení, je PSPACE-úplné~\cite{Ghallab2004}, takže prakticky použitelné plánovače stojí na heuristikách.
+
+\subsection{Heuristické prohledávání}
+
+Moderní plánovače většinou prohledávají stavový prostor dopředně od počátečního stavu a~řídí se heuristikou $h(s)$, odhadem vzdálenosti stavu~$s$ od cíle. Heuristiky se odvozují z~\emph{relaxace} problému, typicky z~vypuštění odebíraných atomů: v~relaxovaném problému se množina pravdivých atomů jen zvětšuje, a~ten je proto řešitelný v~polynomiálním čase. Heuristika $h_{\max}$ odhaduje cenu cíle jako cenu jeho nejdražšího podcíle, $h_{\mathrm{add}}$ jako součet cen podcílů~\cite{BonetGeffner2001}. První je \emph{přípustná} (nikdy nepřecení skutečnou cenu), ale málo informativní; druhá je informativnější, avšak přípustná není. Heuristika FF počítá délku relaxovaného plánu extrahovaného z~plánovacího grafu~\cite{Hoffmann2001,Blum1997} a~plánovač LAMA ji kombinuje s~heuristikou založenou na \emph{landmarcích}, tj.~faktech, které musí platit v~každém řešení~\cite{Richter2010}. Obě jsou součástí systému Fast Downward~\cite{Helmert2006}.
+
+Podle použitého algoritmu se plánovače dělí na \emph{optimální} a~\emph{vyhovující} (\emph{satisficing}). Algoritmus $A^*$ s~přípustnou heuristikou nalezne plán s~nejnižší cenou, ale za cenu rozsáhlého prohledávání. Hladové prohledávání (\emph{greedy best-first search}, GBFS) rozšiřuje vždy stav s~nejnižším $h(s)$, plán nalezne zpravidla rychle, kvalitu však nezaručuje. Mezi nimi leží vážené $A^*$ (WA$^*$), které hodnotí stavy podle $g(s) + w \cdot h(s)$ pro $w > 1$ a~nalezený plán je nejvýše $w$-krát dražší než optimální. Pro agenta, který plánuje opakovaně během hry, je rozhodující doba výpočtu; tato volba se v~práci měří v~kapitole~\ref{chap:experimenty}.
+
+\section{Jazyk PDDL a~jeho numerická rozšíření}
+\label{sec:pddl}
+
+\emph{Planning Domain Definition Language} (PDDL)~\cite{Ghallab1998} je společný vstupní jazyk doménově nezávislých plánovačů, vzniklý pro mezinárodní plánovací soutěž IPC. Odděluje popis \emph{domény} (typy, predikáty, funkce a~operátory) od popisu \emph{problému} (objekty, počáteční stav a~cíl). Doména deklaruje v~sekci \texttt{:requirements}, které rysy jazyka používá, a~plánovač podle ní pozná, zda ji umí zpracovat. Výpis~\ref{lst:strips} ukazuje operátor v~čistě propoziční podobě: stavbu kasáren (Barracks), která vyžaduje postavený Supply Depot.
+
+\begin{lstlisting}[caption={Propoziční operátor v~PDDL.},label=lst:strips,float,basicstyle=\ttfamily\small]
+(:action build_barracks
+  :parameters (?b - barracks ?d - depot)
+  :precondition (and (built ?d) (not (built ?b)))
+  :effect (built ?b))
+\end{lstlisting}
+
+Takový model zná jen to, \emph{zda} budova stojí. Nezná její cenu, dobu stavby ani to, kolik surovin agent právě má a~jak rychle je získává. Tyto veličiny jsou ve hře spojité, nebo alespoň mají příliš mnoho hodnot na to, aby je bylo rozumné kódovat atomy.
+
+\subsection{Numerické fluenty v~PDDL~2.1}
+
+Verze PDDL~2.1~\cite{FoxLong2003} zavádí \emph{numerické fluenty}: funkce deklarované v~sekci \texttt{:functions}, jejichž hodnota je racionální číslo a~mění se akcemi. Předpoklad akce může obsahovat \emph{numerickou podmínku} $\xi \bowtie 0$, kde $\xi$ je aritmetický výraz nad fluenty a~$\bowtie \in \{<, \le, =, \ge, >\}$, a~efekt může fluent přiřadit (\texttt{assign}), zvětšit (\texttt{increase}), zmenšit (\texttt{decrease}) nebo vynásobit (\texttt{scale-up}, \texttt{scale-down}) o~hodnotu výrazu. Problém může navíc stanovit \emph{metriku}, tj.~výraz, který má plán minimalizovat nebo maximalizovat (\texttt{:metric minimize (total-cost)}).
+
+Stav numerického plánovacího problému je dvojice $(s_P, s_V)$: množina pravdivých atomů a~ohodnocení numerických proměnných. Akce je použitelná, platí-li ve stavu její propoziční i~numerické předpoklady, a~její numerické efekty se vyhodnocují nad hodnotami \emph{před} provedením akce. Výpis~\ref{lst:numeric} ukazuje tentýž operátor jako výpis~\ref{lst:strips}, tentokrát s~cenou ve fluentu \texttt{minerals} a~s~počtem budov jako číslem místo objektů.
+
+\begin{lstlisting}[caption={Numerický operátor v~PDDL~2.1.},label=lst:numeric,float,basicstyle=\ttfamily\footnotesize]
+(:action build_barracks
+  :parameters ()
+  :precondition (and (>= (minerals) 150) (>= (depot-count) 1))
+  :effect (and (decrease (minerals) 150)
+               (increase (barracks-count) 1)))
+\end{lstlisting}
+
+Numerické plánování je výrazně těžší než klasické. Jakmile proměnné mohou nabývat neomezeně mnoha hodnot, stavový prostor přestává být konečný a~problém existence plánu je obecně nerozhodnutelný; jak připomínají Scala a~kol.~\cite{Scala2020}, rozhodnutelné zůstávají jen silně omezené třídy. V~literatuře se proto rozlišuje \emph{jednoduché} numerické plánování, v~němž efekty mění proměnné jen o~konstantu a~podmínky jsou lineární, a~\emph{obecné} numerické plánování s~efekty závislými na jiných proměnných nebo nelineárními výrazy~\cite{Scala2016,Scala2020}. Pro tuto práci je rozdíl podstatný: efekt typu \texttt{(increase (minerals) (mining-rate))}, kterým doména v~kapitole~\ref{chap:navrh} modeluje těžbu, přičítá hodnotu jiného fluentu, a~doména tedy do jednoduché třídy nepatří.
+
+\subsection{Čas: durativní akce a~PDDL+}
+
+PDDL~2.1 je rozděleno do úrovní~\cite{FoxLong2003}. Úroveň~2 přidává numerické fluenty k~okamžitým akcím, úroveň~3 zavádí \emph{durativní akce} s~dobou trvání a~podmínkami a~efekty vázanými na začátek, konec a~celé trvání akce a~úroveň~4 \emph{spojité efekty}, kdy se fluent mění úměrně uplynulému času, například \texttt{(increase (minerals) (* \#t (mining-rate)))}. Plánem je pak rozvrh akcí v~čase a~jeho kvalitu typicky měří celková doba (\emph{makespan}).
+
+PDDL+~\cite{FoxLong2006} jde dál a~odděluje změny, které působí agent, od změn, které působí svět. \emph{Procesy} probíhají, kdykoli platí jejich podmínka, a~spojitě mění fluenty (například těžba, dokud pracují dělníci); \emph{události} nastávají okamžitě, jakmile platí jejich podmínka, a~agent je nemůže odmítnout. To je pro hry přirozený model: těžba surovin ani dokončení stavby nejsou akce agenta, ale děje prostředí. Cenou je výpočetní náročnost: plánovač musí uvažovat o~čase jako o~spojité veličině a~podporu PDDL+ nabízí jen malá část plánovačů.
+
+Mezi okamžitými akcemi úrovně~2 a~spojitým časem úrovně~4 existuje prostřední cesta, kterou volí i~tato práce: diskretizovat čas pomocí explicitní akce \enquote{čekání}, která v~jednom kroku přičte k~fluentům to, co by se za pevný časový úsek nastřádalo. Plán zůstává posloupností okamžitých akcí a~stačí na něj plánovač úrovně~2, přitom ale nese informaci o~tom, \emph{kdy} si agent danou akci může dovolit. Důvody této volby a~její cena jsou rozebrány v~sekci~\ref{sec:cas}.
 
 \section{Plánovače pro numerické domény}
-% TODO: ENHSP (hadd, hmrp, hmax), LPG \cite{Gerevini2008}, Metric-FF, Numeric Fast Downward;
-% tabulka: podporované rysy, heuristiky, dostupnost v~unified-planning.
+\label{sec:planovace}
+
+Numerické plánovače rozšiřují myšlenky heuristického prohledávání tak, aby relaxace dávala smysl i~pro čísla. Ignorovat odebírané atomy nestačí; je třeba rozhodnout, co znamená relaxovat efekt \texttt{decrease} nebo podmínku $\ge$. Následující přehled se omezuje na plánovače, které jsou dlouhodobě udržované a~v~úvahu připadaly pro tuto práci.
+
+\paragraph{Metric-FF}~\cite{Hoffmann2003} přenáší heuristiku FF na numerické proměnné. V~relaxaci ignoruje efekty, které hodnotu proměnné vzhledem k~podmínkám zhoršují, takže se hodnoty mohou jen přibližovat ke splnění podmínek, a~počítá délku relaxovaného plánu. Prohledává algoritmem \emph{enforced hill-climbing} s~návratem k~úplnému best-first prohledávání. Podporuje lineární podmínky a~efekty PDDL~2.1 úrovně~2, nikoli durativní akce.
+
+\paragraph{LPG}~\cite{Gerevini2003,Gerevini2008} je plánovač založený na lokálním prohledávání v~prostoru částečných plánů reprezentovaných \emph{numerickým grafem akcí}. Podporuje numerické fluenty i~durativní akce a~pracuje v~režimu \emph{anytime}: po nalezení prvního plánu jej dále zlepšuje vzhledem k~metrice, která může kombinovat více kritérií~\cite{Gerevini2008}. Lokální prohledávání je rychlé, ale nedeterministické a~neúplné.
+
+\paragraph{ENHSP} (\emph{Expressive Numeric Heuristic Search Planner})~\cite{ENHSPweb} je dopředný heuristický plánovač pro obecné numerické plánování včetně nelineárních výrazů a~PDDL+. Nabízí několik rodin heuristik: heuristiku AIBR založenou na intervalové relaxaci~\cite{Scala2016}, numerické zobecnění $h_{\mathrm{add}}$ a~$h_{\max}$ pomocí \emph{subgoalingu}, tedy rozkladu numerických podmínek na podcíle, a~jejich varianty $h_{\mathrm{radd}}$ a~$h_{\mathrm{rmax}}$ s~redundantními omezeními~\cite{Scala2020}, heuristiku $h_{\mathrm{mrp}}$ založenou na extrakci relaxovaného plánu, v~němž se akce mohou opakovat, a~numerické landmarky~\cite{Scala2017}. Heuristiky lze kombinovat s~GBFS, $A^*$ i~WA$^*$; výchozí konfigurace je $h_{\mathrm{add}}$ s~GBFS. ENHSP je napsán v~Javě.
+
+\paragraph{Numeric Fast Downward}~\cite{Aldinger2017} rozšiřuje systém Fast Downward o~numerické proměnné a~intervalové relaxační heuristiky s~cenami akcí. Těží z~vyspělé infrastruktury Fast Downward, je ale výzkumným prototypem bez oficiálních distribucí.
+
+\paragraph{Fast Downward}~\cite{Helmert2006} sám je plánovač klasický. Numerické fluenty nepodporuje (s~výjimkou ceny akcí \texttt{total-cost}), a~proto jej použil Orava jen nad doménou bez surovin~\cite{Orava2025}. V~této práci slouží jako plánovač klasické srovnávací varianty agenta.
+
+Tabulka~\ref{tab:planovace} plánovače shrnuje. Posledním sloupcem je dostupnost v~knihovně \emph{unified-planning}~\cite{Micheli2025}, která poskytuje jednotné rozhraní v~Pythonu pro načtení PDDL, volání plánovačů a~validaci plánů; díky ní lze plánovač vyměnit bez zásahu do agenta.
+
+\begin{table}[ht]
+	\centering
+	\caption{Plánovače uvažované pro numerickou doménu.}
+	\label{tab:planovace}
+	\begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X l @{}}
+		\toprule
+		\textbf{Plánovač} & \textbf{Vyjadřovací síla} & \textbf{Prohledávání a~heuristiky} & \textbf{unified-planning} \\
+		\midrule
+		Metric-FF & PDDL~2.1 úr.~2, lineární výrazy & EHC, best-first; numerická heuristika FF & ne \\
+		\addlinespace
+		LPG & PDDL~2.1 úr.~2--3, metrika & lokální prohledávání, anytime & ano$^{*}$ \\
+		\addlinespace
+		ENHSP & obecné numerické plánování, PDDL+ & GBFS, $A^*$, WA$^*$; AIBR, $h_{\mathrm{add}}$, $h_{\max}$, $h_{\mathrm{mrp}}$, landmarky & ano \\
+		\addlinespace
+		Numeric FD & PDDL~2.1 úr.~2 & intervalové relaxace s~cenami akcí & ne \\
+		\addlinespace
+		Fast Downward & klasické (STRIPS, ADL), \texttt{total-cost} & GBFS, $A^*$; FF, landmarky (LAMA) & ano \\
+		\bottomrule
+	\end{tabularx}
+	\par\smallskip\raggedright\footnotesize $^{*}$\,Balíček \texttt{up-lpg} není k~dispozici pro Windows a~Python~3.14.
+\end{table}
 
 \section{Plánování v~dynamickém prostředí}
-% TODO: přeplánování, monitorování provádění, oddělení plánu a reaktivní vrstvy \cite{Fox2006}.
+\label{sec:dynamicke}
+
+Předpoklady klasického plánování ve hře neplatí: soupeř jedná současně s~agentem, část mapy je skrytá a~výsledky akcí se projeví až po čase. Plán je proto jen předpovědí, která platí, dokud se svět chová podle modelu. Řídicí jednotka musí plán \emph{monitorovat}, tedy porovnávat očekávané účinky akcí se skutečným stavem, a~při odchylce reagovat~\cite{Ghallab2004}.
+
+Na odchylku lze reagovat dvěma způsoby. \emph{Oprava plánu} (\emph{plan repair}) zachová co nejvíce z~původního plánu a~upraví jen jeho porušenou část, \emph{přeplánování} (\emph{replanning}) vytvoří nový plán z~aktuálního stavu. Fox a~kol.~\cite{Fox2006} ukazují, že oprava dává stabilnější plány, tedy nové plány bližší původním, zatímco přeplánování je jednodušší a~nepotřebuje znát historii. Pro hru, ve které se stav mění rychle a~nový plán se dá spočítat v~řádu sekund, je přirozenou volbou přeplánování z~aktuálního stavu; otázkou zůstává, \emph{kdy} přeplánovat. Příliš časté přeplánování zahazuje rozpracované plány dřív, než přinesou výsledek, příliš vzácné nechává agenta vykonávat plán, který už neplatí.
+
+Druhou společnou technikou je oddělení plánovací vrstvy od \emph{reaktivní} vrstvy. Plánovač rozhoduje o~dlouhodobých krocích, zatímco reaktivní pravidla obsluhují situace, které nemohou čekat na další plánovací cyklus, například obranu proti útoku~\cite{Duarte2020}. Takové hybridní architektury jsou v~RTS hrách běžné. Pro práci, jejímž předmětem je plánovač, je však důležité hranici mezi vrstvami držet úzkou a~měřit, kolik rozhodnutí kterou vrstvou prochází; jinak hrozí, že hru ve skutečnosti řídí pravidla a~plánovač jen přihlíží.
 
 \section{StarCraft~II}
-% TODO: zdroje, supply, technologický strom, add-ony, produkční čas; SC2 API, burnysc2,
-% vestavěná AI a obtížnosti.
+\label{sec:sc2}
+
+StarCraft~II~\cite{Starcraft2} je RTS hra pro dva a~více hráčů, v~níž každý hráč volí jednu ze tří ras (Terran, Zerg, Protoss). Hra končí, když jeden z~hráčů přijde o~všechny budovy. Tato sekce popisuje mechaniky rasy Terran, které ovlivňují makromanagement; vychází z~herní wiki~\cite{Starcraft2wiki} a~z~cen, které hra skutečně účtuje (v~práci jsou ověřeny testem, sekce~\ref{sec:domena}).
+
+\subsection{Zdroje a~supply}
+
+Hra má dvě suroviny. \emph{Minerály} těží dělníci (u~Terranů SCV) z~minerálních polí u~každé základny; těžba roste s~počtem dělníků zhruba lineárně do saturace dvou dělníků na pole, tedy šestnácti na základnu s~osmi poli, a~dál už prakticky ne. \emph{Vespénový plyn} lze těžit až po postavení budovy Refinery na gejzíru; u~základny bývají dva gejzíry a~na jednu Refinery připadají nejvýše tři dělníci. Suroviny se účtují v~okamžiku zadání příkazu, nikoli po jeho dokončení.
+
+Třetí veličinou je \emph{supply}, kapacita pro jednotky. Každá jednotka spotřebovává určitý počet supply (Marine~1, Marauder~2, Siege Tank~3, SCV~1), kapacitu zvyšuje Command Center (o~15) a~Supply Depot (o~8) a~celkový limit je 200. Nemá-li hráč volnou kapacitu, nemůže trénovat žádné jednotky; takovému stavu se říká \emph{supply block}.
+
+\subsection{Technologický strom a~výroba}
+
+Budovy Terranů se odemykají postupně. Supply Depot je předpokladem pro Barracks a~Barracks pro Factory, která navíc stojí vespénový plyn; Engineering Bay, kde se zkoumají vylepšení pěchoty, vyžaduje jen Command Center. Výrobní budovy (Barracks, Factory, Starport) lze rozšířit o~\emph{add-on}: Tech Lab odemyká pokročilé jednotky (Marauder v~Barracks, Siege Tank ve Factory) a~výzkumy (Stimpack), Reactor umožňuje vyrábět dvě základní jednotky současně. Budova nese nejvýše jeden add-on a~add-on potřebuje volné místo vedle ní.
+
+Výroba trvá: Marine se trénuje 18~herních sekund, Marauder 21 a~Siege Tank~32; stavby a~výzkumy trvají desítky sekund. Každá výrobní budova vyrábí jednu jednotku po druhé a~další příkazy řadí do fronty, jejíž obsah je zaplacen hned při zařazení. Výrobní kapacita je tak vedle surovin a~supply třetím omezením, které rozhoduje o~tom, jak rychle lze peníze přeměnit na armádu.
+
+\subsection{Rozhraní hry a~vestavěná umělá inteligence}
+
+Hra poskytuje rozhraní pro programové ovládání, nad kterým existují knihovny pro více jazyků; tato práce, stejně jako~\cite{Orava2025}, používá knihovnu \emph{python-sc2} ve variantě \emph{burnysc2}~\cite{BurnySc2}. Agent je v~ní třída odvozená od \texttt{BotAI}, jejíž metoda \texttt{on\_step} se volá v~každém kroku hry a~má přístup k~úplnému pozorování (vlastní jednotky a~budovy, suroviny, viditelní nepřátelé). Hra může běžet v~reálném čase, nebo v~krokovém režimu (\texttt{realtime=False}), ve kterém herní čas pokračuje teprve tehdy, když agent dokončí svůj tah. Na nejrychlejším herním tempu odpovídá jedna herní sekunda 22,4 herním krokům (\emph{game loops}); všechny časy v~této práci jsou herní sekundy.
+
+Soupeřem v~experimentech je vestavěná umělá inteligence hry, skriptovaný agent s~úrovněmi obtížnosti VeryEasy, Easy, Medium, MediumHard, Hard, Harder, VeryHard a~třemi podvádějícími úrovněmi (CheatVision, CheatMoney, CheatInsane), které vidí celou mapu nebo dostávají suroviny navíc. Nižší úrovně útočí v~předem daných vlnách bez taktického řízení jednotek, vyšší úrovně hrají ekonomicky efektivněji a~řídí jednotky v~boji~\cite{Orava2025}. Vestavěná umělá inteligence je pro výzkum makromanagementu vhodným soupeřem: je součástí hry, mezi hrami se neučí ani nemění a~nabízí odstupňovanou sílu, takže výsledky různých prací jsou vůči ní srovnatelné.

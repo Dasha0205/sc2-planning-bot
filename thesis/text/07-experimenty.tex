@@ -1,13 +1,199 @@
-\chapter{Experimenty a vyhodnocení}
+\chapter{Experimenty a~vyhodnocení}
 \label{chap:experimenty}
 
-% Každé číslo z~runs/<série>/ a experiments/LOG.md; grafy jen z~experiments/plots.py.
+% Každé číslo z~runs/<série>/ a~experiments/LOG.md; grafy jen z~experiments/plots.py.
+
+Tato kapitola vyhodnocuje agenta ve hře a~mimo ni. Nejprve popisuje metodiku, potom vývojové série proti obtížnosti Medium, ze kterých vznikla současná podoba domény, hlavní série proti vestavěné umělé inteligenci, srovnání s~klasickou variantou agenta, režii plánování, kvalitu plánů různých konfigurací plánovače a~srovnání s~prací~\cite{Orava2025}. Kapitolu uzavírá diskuse a~hrozby validity.
+% TODO (T5.2, T5.3, T5.5): sekce s~obtížnostmi Easy a~Hard, ablace a~přímé srovnání s~Oravovým agentem doplnit po dohrání sérií.
 
 \section{Metodika}
+\label{sec:metodika}
+
+\paragraph{Konfigurace.} Hlavní série běží na zmrazené verzi kódu \texttt{a3cb452} s~doménou \texttt{domain\_numeric\_v11.pddl} a~plánovačem ENHSP ve výchozí konfiguraci ($h_{\mathrm{add}}$, GBFS) se záložní konfigurací $h_{\mathrm{mrp}}$ a~časovým limitem 10~s (kapitola~\ref{chap:navrh}). Hraje se na mapě Abyssal Reef LE ($152 \times 136$), na které měřil i~Orava~\cite{Orava2025}, proti vestavěné umělé inteligenci rasy Terran s~výchozí volbou strategie. Hra běží v~krokovém režimu (\texttt{realtime=False}), takže doba plánování nespotřebovává herní čas. Hra, která nedoběhne do 1\,800~herních sekund, končí remízou.
+% TODO: doplnit parametry počítače (procesor), na kterém série běžely.
+
+\paragraph{Série a~semínka.} Na každou obtížnost připadá blok 20~her s~po sobě jdoucími semínky náhodného generátoru (od 5\,200\,000 pro VeryEasy, od 5\,220\,000 pro Medium). Klasická varianta agenta hraje na týchž semínkách. Při stejném semínku je hra deterministická až do prvního útoku, tedy přibližně do 550.~sekundy; dvě varianty agenta na stejném semínku se proto do té doby liší jen svým rozhodováním, což umožňuje porovnat změny přesně na malém počtu her (\serie{T4.7_attack_precondition_veryeasy}).
+
+\paragraph{Zastavené starty.} Hra, která neskončí v~limitu reálného času (1\,200~s, později 2\,400~s), se ukončí a~nemá výsledek. Takový start se jednou zopakuje se stejným semínkem a~úspěšnost se uvádí dvojím způsobem: z~dokončených her a~se zastavenými starty počítanými jako prohry. Opakování není nestranné, protože zastavené hry byly v~okamžiku zastavení delší než všechny dokončené a~hra je deterministická jen do prvního útoku; proto se uvádějí oba údaje.
+
+\paragraph{Vývojové série.} Série proti obtížnosti Medium, ze kterých vznikly verze domény v5 až v9 (sekce~\ref{sec:iterace}), se hrály na mapě AcropolisLE po 5 až 10~hrách s~náhodnými semínky. Slouží k~doložení vývoje modelu, ne jako hlavní výsledek.
+
+\paragraph{Metriky.} Pro každý blok se uvádí úspěšnost s~95\% Wilsonovým intervalem spolehlivosti~\cite{Wilson1927}, délka hry, doba plánování (medián, 95.~percentil, průměr), průměrná doba mezi přeplánováními, délka plánů a~podíl akcí čekání, doba, po kterou plán stál, protože jeho další akci nešlo zadat, čas prvního útoku, podíl hry s~bankou nad 500~minerály a~časové řady hodnoty armády a~neutracených surovin (sekce~\ref{sec:harness}). Časové řady se průměrují přes hry, které v~daném okamžiku ještě běží.
+
 \section{Iterace proti obtížnosti Medium}
+\label{sec:iterace}
+
+Cílem vývojových sérií bylo dostat agenta proti obtížnosti Medium na úspěšnost alespoň 75~\%. Každá série ověřovala jednu změnu domény nebo vykonávání; tabulka~\ref{tab:iterace} je uvádí v~pořadí, v~jakém vznikly.
+
+\begin{table}[ht]
+	\centering
+	\caption[Vývojové série proti obtížnosti Medium.]{Vývojové série proti obtížnosti Medium (AcropolisLE, kromě posledního řádku); série jsou složky v~\texttt{runs/}. V/P/R~=~výhry, prohry, remízy.}
+	\label{tab:iterace}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} >{\raggedright\arraybackslash}p{4.5cm} c >{\raggedright\arraybackslash}X c r @{}}
+		\toprule
+		\textbf{Série} & \textbf{Doména} & \textbf{Změna} & \textbf{V/P/R} & \textbf{Úspěšnost (CI)} \\
+		\midrule
+		\nolinkurl{T8.1_medium} & v5 & výchozí stav & 3/6/1 & 30~\% (11--60) \\
+		\nolinkurl{T8.2_v7_medium} & v7 & výrobní kapacita, jedny hodiny & 8/2/0 & 80~\% (49--94) \\
+		\nolinkurl{T8.3_v8_medium} & v8 & práh 30, útok končí plán & 8/0/2 & 80~\% (49--94) \\
+		\nolinkurl{T8.3_mineral_ceiling_medium} & v8 & bez stropu na plyn & 8/2/0 & 80~\% (49--94) \\
+		\nolinkurl{T8.3_attack_wait_medium} & v8 & útok čeká na jednotky ve výrobě & 5/5/0 & 50~\% (24--76) \\
+		\nolinkurl{T8.3_saturation_medium} & v8 & dělníci do saturace & 6/3/1 & 60~\% (31--83) \\
+		\nolinkurl{T8.3_attack_departs_medium} & v8 & útok hotov odchodem armády & 4/0/1 & 80~\% (38--96) \\
+		\nolinkurl{T8.3_v9_medium} & v9 & práh jako fluent & 1/1/2 & -- \\
+		\nolinkurl{T8.3_reachable_cap_medium} & v9 & práh z~dosažitelného supply & 4/1/0 & 80~\% (38--96) \\
+		\addlinespace
+		\nolinkurl{E5_numeric_Medium} & v11 & hlavní série, Abyssal Reef & 20/0/0 & 100~\% (84--100) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\paragraph{Výchozí stav.} Na doméně v5 vyhrál agent tři z~deseti her (\serie{T8.1_medium}). Rozbor porážek ukázal tři společné příčiny: útok s~prahem hodnoty armády 20 posílal malé armády po částech a~každá přišla zhruba o~polovinu, model neznal výrobní kapacitu, takže příjem se neproměňoval v~jednotky (banka byla nad 500~minerály 87 až 95~\% každé hry), a~ekonomika byla omezena na 22~dělníků a~dvě základny. Hodnota armády v~9.~minutě byla v~průměru 17,4.
+
+\paragraph{Model výroby a~času.} Doména v7 přidala výrobní kapacitu budov a~sjednotila hodiny obou akcí čekání. Úspěšnost vzrostla na 80~\% (CI 49--94~\%), medián délky hry klesl z~1\,063 na 690~s a~podíl hry s~nevyužitou bankou z~0,90 na 0,69 (\serie{T8.2_v7_medium}). Byla to jediná změna, po které se interval spolehlivosti s~výchozím stavem překrývá jen částečně (49--60~\%).
+
+\paragraph{Nasazení armády.} Série T8.3 řešily, jak armádu nasazovat. Doména v8 zvýšila práh útoku na 30 a~útok učinila poslední akcí plánu, takže banka se utratí za armádu dřív, než vyrazí; agent přestal prohrávat, dvě hry ale skončily remízou na časový limit. Další změny vykonávání (strop banky jen na minerály, útok až po vyjetí jednotek, trénink dělníků do saturace, útok dokončený odchodem armády, nasazené jednotky sledované podle identifikátoru) a~doména v9 s~prahem omezeným dosažitelným supply odstraňovaly konkrétní chyby nalezené v~prohraných hrách. Úspěšnost se v~těchto sériích pohybovala mezi 50 a~80~\% a~všechny intervaly spolehlivosti se překrývají: na 5 až 10~hrách nelze rozdíly mezi nimi prokázat a~o~ponechání změny rozhodoval rozbor příčin porážek, ne úspěšnost.
+
+\paragraph{Hlavní série.} Na zmrazené verzi s~doménou v11 vyhrál agent všech 20 dokončených her (\serie{E5_numeric_Medium}). Výsledek ale nelze s~vývojovými sériemi srovnávat přímo, protože se změnila mapa, verze domény i~vykonávání (přeuspořádání plánu, útok podle předpokladu modelu, utrácení celé banky). Podrobně jej rozebírá sekce~\ref{sec:vs-ai}.
+
 \section{Numerický agent proti vestavěné AI}
+\label{sec:vs-ai}
+
+Tabulka~\ref{tab:vs-ai} shrnuje hlavní série. Proti obtížnosti VeryEasy vyhrál agent všech 20~her, žádný start nebyl zastaven (\serie{E5_numeric_VeryEasy}). Proti obtížnosti Medium proběhlo 23~startů: 20~her agent vyhrál a~tři starty ukončila ochrana reálným časem na přetíženém počítači (sekce~\ref{sec:prostredi}); hry 6 (dvakrát) a~16 pak při opakování se stejným semínkem vyhrál (\serie{E5_numeric_Medium}). Úspěšnost je tedy 100~\% (CI 84--100~\%) z~dokončených her a~87~\% (CI 68--95~\%), počítají-li se zastavené starty jako prohry. Obě hodnoty splňují cílovou úspěšnost 75~\%.
+% TODO (T5.2): doplnit řádky Easy a Hard.
+
+\begin{table}[ht]
+	\centering
+	\caption[Numerický agent proti vestavěné AI.]{Numerický agent proti vestavěné AI (Abyssal Reef LE, doména v11, 20~her na obtížnost). Délka hry je průměr (medián).}
+	\label{tab:vs-ai}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		 & \textbf{VeryEasy} & \textbf{Medium} \\
+		\midrule
+		Starty / dokončené hry & 20 / 20 & 23 / 20 \\
+		Úspěšnost (CI) & 100~\% (84--100~\%) & 100~\% (84--100~\%); 87~\% (68--95~\%) se zastavenými \\
+		Délka hry & 769~s (683~s) & 884~s (882~s) \\
+		První útok (medián) & 524~s & 552~s \\
+		Hodnota armády v~6.~/ 9.~/ 12.~min & 22,9 / 44,5 / 99,7 & 16,0 / 31,5 / 78,5 \\
+		$R(t)$ v~6.~/ 9.~/ 12.~min & 1\,284 / 3\,678 / 6\,788 & 1\,343 / 4\,013 / 6\,334 \\
+		Podíl hry s~bankou nad 500 & 0,54 & 0,63 \\
+		Plán stál (průměr na hru) & 365~s & 414~s \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=\textwidth]{army_value_over_time}
+	\caption[Hodnota armády v~čase.]{Hodnota armády (Marine~1, Marauder~2, Siege Tank~3) v~čase, průměr a~mezikvartilové rozpětí přes hry, které ještě běží (\serie{E5_numeric_VeryEasy}, \serie{E5_numeric_Medium}).}
+	\label{fig:armada}
+\end{figure}
+
+Obrázek~\ref{fig:armada} ukazuje, jak agent armádu staví. Do šesté minuty roste pomalu, protože etapy 0 až 2 budují technologii, potom v~etapě~3 strmě: proti Medium z~31,5 v~9.~minutě na 78,5 ve 12.~minutě. Pokles po vrcholu odpovídá nasazeným vlnám, které z~výpočtu armády doma vypadávají a~v~boji ztrácejí jednotky.
+
+\paragraph{Nevyužitá banka.} Numerický model nestačil na to, aby banka přestala růst. Neutracené suroviny $R(t)$ proti Medium rostou od šesté minuty a~v~15.~minutě dosahují v~průměru 9\,435 (devět her, které ještě běžely). Zdroje této banky jsou tři. Plán stál v~průměru 414~s z~884~s hry, protože jeho další akci nešlo zadat (Tech Lab čekal na Barracks, fronty byly plné, armáda doma nedosahovala prahu útoku), a~příjem těchto sekund model neviděl. Po přibližně 190~supply se do armády nic dalšího nevejde a~většina plánů etapy~3 je jediné čekání na uvolnění supply; medián délky plánu je proto proti Medium jen 2~akce. A~model výroby je hrubší než hra (sekce~\ref{sec:cas}). Jev se podobá stagnaci, kterou popisuje~\cite{Orava2025}, má ale jinou příčinu: Oravův plánovač o~surovinách neví, náš o~nich ví, ale v~dlouhých hrách je nemá za co utratit nebo je nedokáže utratit tak rychle, jak předpokládá model.
+
+\paragraph{Dlouhé hry proti VeryEasy.} Tři hry proti VeryEasy trvaly 1\,115 až 1\,452~s a~nesou celý průměr délky hry (769~s proti mediánu 683~s). Ve hře~8 agent dlouho hledal poslední budovy soupeře (8~útoků, 52~přesměrování útoku). Ve hrách 7 a~10 však agent stál v~plánu s~50, resp. 57~akcemi, který obsahoval 25, resp. 28~Marauderů při 12, resp. 10~Barracks a~jediném Tech Labu; první útok hry~7 přišel až v~1\,206.~sekundě. Příčinou je mezera modelu: výrobní čas \texttt{rax-time} roste podle počtu všech Barracks, Marauder ale vzniká jen u~Barracks s~Tech Labem, takže plánovač počítal s~výrobou, kterou hra neposkytla (\serie{E5_numeric_VeryEasy}).
+% TODO (T4.9): výsledek domény v12, která tuto mezeru odstraňuje.
+
 \section{Ablace: numerická vs.\ klasická doména}
+\label{sec:ablace}
+
+Ablace porovnává numerického agenta s~klasickým, který se liší jen doménou bez surovin a~času a~plánovačem Fast Downward (sekce~\ref{sec:klasicka}). Hraje na stejných semínkách, mapě a~obtížnostech, se stejnou vykonávací i~reaktivní vrstvou a~stejnými metrikami, takže rozdíl ve výsledcích lze připsat modelu. Klasický agent je funkční: kontrolní hru proti VeryEasy vyhrál v~744.~sekundě (\serie{T4.1_classical_check}).
+% TODO (T5.3): bloky klasického agenta (VeryEasy, Easy, Medium po 20 hrách, Hard 10), tabulka úspěšností s CI a graf classical_vs_numeric.pdf.
+
 \section{Režie plánování}
-\section{Kvalita plánů a konfigurace plánovače}
-\section{Srovnání s~prací \cite{Orava2025}}
-\section{Diskuse a hrozby validity}
+\label{sec:rezie}
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=\textwidth]{solve_time_by_stage}
+	\caption[Doba plánování podle etapy.]{Doba celého volání plánovače podle etapy (krabicový graf) a~medián doby vlastního prohledávání ENHSP (\serie{E5_numeric_VeryEasy}, \serie{E5_numeric_Medium}).}
+	\label{fig:solve}
+\end{figure}
+
+Doba plánování zahrnuje celé volání plánovače: načtení domény a~problému, spuštění JVM a~prohledávání (sekce~\ref{sec:prostredi}). Proti Medium byl medián 0,64~s, 95.~percentil 1,64~s a~průměr 0,92~s; proti VeryEasy medián 0,75~s, 95.~percentil 4,87~s a~průměr 1,48~s (\serie{E5_numeric_Medium}, \serie{E5_numeric_VeryEasy}). Vysoký 95.~percentil a~průměr proti VeryEasy způsobilo několik volání trvajících 11 až 24~s během série, kdy počítači docházela paměť; ENHSP sám přitom hledal nejvýše 1,14~s. Na nevytíženém počítači řeší ENHSP pevné problémy všech etap s~mediánem 0,5 až 0,7~s a~95.~percentilem pod 0,9~s (\serie{T5.4_planners_offline}). Obrázek~\ref{fig:solve} ukazuje, že doba plánování na etapě téměř nezávisí: dominuje režie spuštění procesu.
+
+Agent plánuje často: průměrná doba mezi dvěma plány byla 49~s proti Medium a~82~s proti VeryEasy. Plán se počítá na začátku každé etapy, po každé útočné vlně a~po každé nevykonatelné akci; v~pozdní hře, kdy se do supply nic nevejde, je navíc mnoho jednoakčních plánů s~jediným čekáním. Akce čekání tvořily 30~\% akcí plánů proti Medium a~34~\% proti VeryEasy.
+
+Rozhodující časovou ztrátou tedy není plánování, ale vykonávání: plán stál v~průměru 414~s hry proti Medium a~365~s proti VeryEasy, protože jeho další akci nešlo zadat. Změny vykonávání z~úloh T4.7 a~T4.8 (přeuspořádání plánu, útok podle předpokladu modelu, utrácení celé banky, čekání jednotek na rozestavěný depot) tuto dobu na stejných pěti semínkách proti VeryEasy snížily jen málo, z~313 na 298~s na hru (prvních pět her \serie{T5.2_VeryEasy}, \serie{T4.8_supply_wait_veryeasy}). Samotné přeuspořádání se uplatní zřídka, protože plán je v~modelu těsný na suroviny a~platných přesunů je málo (\serie{T4.7_reorder_veryeasy}).
+
+\section{Kvalita plánů a~konfigurace plánovače}
+\label{sec:kvalita}
+
+Šest pevných problémů z~reálných stavů her (sekce~\ref{sec:testovani}) bylo vyřešeno všemi konfiguracemi ENHSP, plánovačem Fast Downward nad klasickou doménou z~téhož stavu a~ENHSP nad variantou v~PDDL+, každý desetkrát (\serie{T5.4_planners_offline}). Tabulka~\ref{tab:konfigurace} uvádí modelovaný herní čas plánu (počet akcí čekání krát 5~s, u~PDDL+ délku rozvrhu) a~medián doby řešení.
+
+\begin{table}[ht]
+	\centering
+	\caption[Plánovače na pevných problémech.]{Plánovače na pevných problémech etap 0--3: modelovaný herní čas plánu v~sekundách a~v~závorce medián doby řešení v~sekundách; -- znamená, že plán nebyl nalezen do 10~s.}
+	\label{tab:konfigurace}
+	\footnotesize
+	\begin{tabular}{@{} l l l l l @{}}
+		\toprule
+		\textbf{Plánovač} & \textbf{Etapa 0} & \textbf{Etapa 1} & \textbf{Etapa 2} & \textbf{Etapa 3} \\
+		\midrule
+		ENHSP $h_{\mathrm{add}}$, GBFS & 90 (0,72) & 70 (0,55) & 90 (0,56) & 0 (0,52) \\
+		ENHSP $h_{\mathrm{mrp}}$, GBFS & 90 (0,61) & 85 (0,58) & 85 (0,64) & 0 (0,49) \\
+		ENHSP $h_{\mathrm{radd}}$, GBFS & 95 (0,65) & 85 (0,59) & 115 (0,63) & 0 (0,48) \\
+		ENHSP $h_{\mathrm{add}}$, WA$^*$ & 75 (0,92) & 60 (2,92) & -- & 0 (0,50) \\
+		ENHSP $h_{\max}$, $A^*$ & 75 (2,20) & -- & -- & 0 (0,84) \\
+		ENHSP $h_{\mathrm{rmax}}$, $A^*$ & 75 (4,96) & -- & -- & 0 (1,04) \\
+		ENHSP, PDDL+ & 76 (0,57) & 73 (0,60) & 122 (0,62) & 0 (0,47) \\
+		\addlinespace
+		Fast Downward$^{*}$ & 10 (1,05) & 11 (1,18) & 15 (2,17) & 3 (1,60) \\
+		\bottomrule
+	\end{tabular}
+	\par\smallskip\footnotesize $^{*}$\,Nad klasickou doménou, která čas nemodeluje; uveden je počet akcí plánu.
+\end{table}
+
+Z~tabulky plynou tři závěry. Za prvé, hladové konfigurace ($h_{\mathrm{add}}$, $h_{\mathrm{mrp}}$, $h_{\mathrm{radd}}$ s~GBFS) vyřeší všechny řešitelné problémy za méně než sekundu, a~proto agent používá $h_{\mathrm{add}}$ se záložní $h_{\mathrm{mrp}}$. Za druhé, WA$^*$ a~optimální konfigurace najdou plány o~15 až 25~\% kratší v~herním čase (v~etapě~0 75 místo 90~s), ale v~etapě~2 (optimální už v~etapě~1) nenajdou plán do 10~s; ve hře by tedy vyžadovaly kombinaci s~hladovou konfigurací jako zálohou. Za třetí, metrika plánu \texttt{total-cost}, která každé čekání oceňuje jeho pěti sekundami, žádný plán nezlepšila: hladové plány s~ní byly delší (v~etapě~1 48 místo 26~akcí, 140 místo 70~s) a~WA$^*$ s~ní nevyřešil ani etapu~1 (\serie{T4.2_planner_configs}).
+
+Fast Downward řeší klasickou doménu s~mediánem doby řešení 1,0 až 2,2~s, tedy pomaleji než ENHSP bohatší numerickou doménu; klasické plány jsou kratší (3 až 15~akcí), protože neobsahují čekání a~o~čase neříkají nic. Obava, kvůli které~\cite{Orava2025} suroviny z~domény vypustil, se tedy pro plánovač navržený pro numerické domény nepotvrdila: numerický model s~akcemi čekání je řešitelný rychleji, než byla doba plánování v~jeho práci. Stav se zablokovaným supply prokázaly jako neřešitelný všechny plánovače do 1~s. Druhý numerický plánovač LPG nebylo možné porovnat (sekce~\ref{sec:volba}).
+
+\section{Srovnání s~prací~\cite{Orava2025}}
+\label{sec:srovnani-orava}
+
+Tabulka~\ref{tab:orava-cisla} staví vedle sebe Oravovy zveřejněné výsledky na velké mapě a~hlavní série této práce na téže mapě. Srovnání je zatím nepřímé: obě práce měřily na jiném hardwaru a~jiné verzi hry, Oravův agent hrál v~reálném čase a~náš v~krokovém režimu.
+% TODO (T5.5): přímé srovnání — Oravův agent v~naší infrastruktuře na stejných semínkách.
+
+\begin{table}[ht]
+	\centering
+	\caption[Srovnání s~prací~\cite{Orava2025}.]{Srovnání s~prací~\cite{Orava2025} na mapě Abyssal Reef LE: jeho zveřejněné hodnoty (doména Expert, v~závorce Basic) a~hlavní série této práce.}
+	\label{tab:orava-cisla}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		 & \textbf{Orava~\cite{Orava2025}} & \textbf{Tato práce} \\
+		\midrule
+		Úspěšnost proti VeryEasy & 100~\% (100~\%), 20~her & 100~\% (CI 84--100~\%), 20~her \\
+		Úspěšnost proti Medium & 90~\% (75~\%), 20~her & 100~\% (CI 84--100~\%) z~20 dokončených; 87~\% (CI 68--95~\%) z~23~startů \\
+		Úspěšnost proti Hard & 15~\% (5~\%) & -- \\
+		Délka hry proti Medium & 877~s & 884~s \\
+		Doba plánování & 3,73--4,35~s & 0,92~s (Medium), 1,48~s (VeryEasy) \\
+		Doba mezi přeplánováními & 228--249~s & 49~s (Medium), 82~s (VeryEasy) \\
+		Nevyužité suroviny & hromadí se po splnění cíle, stagnace po $\sim$16.~min & $R(t)$ roste od 6.~min, v~15.~min 9\,435 (Medium) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Proti obtížnosti Medium dosahuje numerický agent alespoň srovnatelné úspěšnosti s~Oravovou doménou Expert; vzhledem k~šířce intervalů (20~her) ale rozdíl mezi 90~\% a~87 až 100~\% prokázat nelze. Podstatnější je, že numerický agent dosahuje tohoto výsledku bez expertních pravidel: o~pořadí staveb, načasování útoku i~utrácení banky rozhoduje plánovač nad modelem ekonomiky. Doba plánování je přibližně čtyřikrát kratší, i~když plánovač řeší bohatší model, a~agent proto může plánovat častěji: nový plán vzniká v~průměru každých 49~s, zatímco Oravův vydržel 228 až 249~s. Hromadění nevyužitých surovin se ani v~numerickém modelu nepodařilo odstranit (sekce~\ref{sec:vs-ai}).
+% TODO (T5.2): doplnit srovnání proti Hard.
+
+\section{Diskuse a~hrozby validity}
+\label{sec:diskuse}
+% TODO: dokončit po ablaci (T5.3) a~sériích Easy/Hard (T5.2).
+
+\paragraph{Co ukázaly dosavadní výsledky.} Numerický model ekonomiky je s~plánovačem navrženým pro numerické domény použitelný v~reálném čase: plán vzniká za méně než sekundu a~prohledávání samo trvá desítky až stovky milisekund. Rozhodující pro sílu agenta nebyla volba plánovače ani jeho konfigurace, ale věrnost modelu: verze domény, které přidaly výrobní kapacitu a~sjednotily čas, zvýšily úspěšnost proti Medium z~30 na 80~\%, a~zbývající slabiny (nevyužitá banka, dlouhé plány Marauderů) mají příčinu v~tom, co model nezná: dobu staveb, vazbu výroby na add-ony a~zdržení při vykonávání.
+
+\paragraph{Hrozby validity.}
+\begin{itemize}
+	\item \textbf{Malé série.} Vývojové série mají 5 až 10~her a~jejich intervaly spolehlivosti se překrývají; slouží k~doložení vývoje, ne ke srovnání verzí mezi sebou. I~hlavní série s~20~hrami nerozliší úspěšnost 90 a~100~\%.
+	\item \textbf{Jedna mapa a~jeden soupeř.} Hlavní série běží na jedné mapě proti vestavěné umělé inteligenci rasy Terran; vývojové série na jiné mapě. Výsledky nelze bez dalších měření zobecnit na jiné mapy a~rasy.
+	\item \textbf{Krokový režim.} Hra na agenta čeká, takže doba plánování nemá vliv na výsledek hry. Oravův agent hrál v~reálném čase; přímé srovnání úspěšnosti je proto vůči našemu agentovi příznivější, než by bylo v~reálném čase.
+	\item \textbf{Zastavené starty.} Tři starty proti Medium byly zastaveny a~zopakovány se stejným semínkem; protože opakování vybírá podle délky hry, uvádí se úspěšnost i~se zastavenými starty jako prohrami.
+	\item \textbf{Zatížení počítače.} Část sérií běžela při nedostatku paměti. Výsledky her to v~krokovém režimu neovlivňuje, doby plánování ale ano; jejich průměr proti VeryEasy je proto nadhodnocen.
+	\item \textbf{Reaktivní trénink dělníků.} O~počtu dělníků nerozhoduje plánovač, ale reaktivní vrstva (sekce~\ref{sec:reaktivni}); ekonomika agenta tedy není celá výsledkem plánování.
+	\item \textbf{Nepřímé srovnání s~Oravou.} Do dokončení přímého srovnání v~téže infrastruktuře se srovnání opírá o~zveřejněná čísla z~jiného hardwaru a~verze hry.
+\end{itemize}

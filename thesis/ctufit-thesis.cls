@@ -1,7 +1,7 @@
 %% This is the ctufit-thesis document class. It is used to produce theses
-%% for submission to Czech Technical University, Faculty of Information Technology.
+%% for submission to the Czech Technical University, Faculty of Information Technology.
 %%
-%% This is version 1.5.9, built 2. 9. 2025.
+%% This is version 1.8.1, built 27. 10. 2026.
 %%
 %% Get the newest version from
 %% https://gitlab.fit.cvut.cz/theses-templates/FITthesis-LaTeX
@@ -32,21 +32,28 @@
 \ProvidesClass{ctufit-thesis}[2021/08/06 CTU FIT thesis template]
 
 % preliminary declarations
+\newif\ifctufitthesisdoctorate
+\newif\ifctufitthesisbachelormaster
 
 % options
-\DeclareOption{bachelor}{\def\@ctufitthesistype{B}}
-\DeclareOption{master}{\def\@ctufitthesistype{M}}
-\DeclareOption{dissertation}{\def\@ctufitthesistype{D}}
+\DeclareOption{bachelor}{\def\@ctufitthesistype{B}\ctufitthesisbachelormastertrue}
+\DeclareOption{master}{\def\@ctufitthesistype{M}\ctufitthesisbachelormastertrue}
+\DeclareOption{dissertation}{\def\@ctufitthesistype{D}\ctufitthesisdoctoratetrue}
+\DeclareOption{doctoral-report}{\def\@ctufitthesistype{R}\ctufitthesisdoctoratetrue}
 \DeclareOption{czech}{
 	\AtBeginDocument{\selectlanguage{czech}}
 	\PassOptionsToPackage{english,main=czech}{babel}
 	\def\@ctufitlang{C}
+	\def\@ctufitlogopath{images/logos/logo_CVUT.pdf}
 	\newcommand{\ctufitthesistypename}{
 		\if\@ctufitthesistype B(Bakalářská práce)%
+    	\else
+			\if\@ctufitthesistype M(Diplomová práce)%
     		\else
-				\if\@ctufitthesistype M(Diplomová práce)%
-    			\else(Disertační práce)%
-    			\fi
+				\if\@ctufitthesistype D(Disertační práce)%
+    			\else(Odborná studie)%
+				\fi
+			\fi
 		\fi
 	}
 }
@@ -54,12 +61,16 @@
 	\AtBeginDocument{\selectlanguage{english}}
 	\PassOptionsToPackage{czech,main=english}{babel}
 	\def\@ctufitlang{E}
+	\def\@ctufitlogopath{images/logos/logo_CVUT_en.pdf}
 	\newcommand{\ctufitthesistypename}{
 		\if\@ctufitthesistype B(Bachelor's thesis)%
-    		\else
-				\if\@ctufitthesistype M(Masters's thesis)%
-    			\else(Dissertation thesis)%
-    			\fi
+		\else 
+			\if\@ctufitthesistype M(Masters's thesis)%
+			\else
+				\if\@ctufitthesistype D(Dissertation thesis)
+				\else(Doctoral study report)%
+				\fi
+			\fi
 		\fi
 	}
 }
@@ -67,12 +78,16 @@
 	\AtBeginDocument{\selectlanguage{slovak}}
 	\PassOptionsToPackage{english,main=slovak}{babel}
 	\def\@ctufitlang{S}
+	\def\@ctufitlogopath{images/logos/logo_CVUT.pdf}
 	\newcommand{\ctufitthesistypename}{
 		\if\@ctufitthesistype B(Bakalárska práca)%
-    		\else
-				\if\@ctufitthesistype M(Diplomová práca)%
-    			\else(Disertačná práca)%
+		\else
+			\if\@ctufitthesistype M(Diplomová práca)%
+			\else
+				\if\@ctufitthesistype D(Disertačná práca)%
+				\else(Odborná štúdia)%
     			\fi
+			\fi
 		\fi
 	}
 }
@@ -82,37 +97,100 @@
 \DeclareOption{paragraph}{
 	\def\@ctufitsecdepth{4}
 }
-\DeclareOption{bw}{\def\@ctufitthesisblackandwhite}
+
+\newif\ifctufitthesisblackandwhite
+\DeclareOption{bw}{
+	\ctufitthesisblackandwhitetrue 
+}
 \PassOptionsToPackage{svgnames}{xcolor}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{book}}
 \ExecuteOptions{subsubsection}
 \ProcessOptions\relax
 
+\RequirePackage{iftex}[2020/03/06]
+\iftutex % XeLaTeX and LuaLaTeX
+    \RequirePackage{ellipsis}[2020/05/22] %ellipsis workaround for XeLaTeX
+\else
+    \errmessage{Only compilation with XeLaTeX or LuaLaTeX is allowed}
+    \stop
+\fi
+
+\ifctufitthesisdoctorate
+ 	\if\@ctufitlang E
+	\else
+		\ClassError{ctufit-thesis}{Doctoral report and dissertation thesis are not supported in Czech or Slovak language}{Please use English language for doctoral report and dissertation thesis}
+	\fi
+\fi
 % main declarations, loading files
 \LoadClass[a4paper,11pt]{book}[2020/04/10]
 \RequirePackage{xcolor}[2023/11/15]
 \RequirePackage{newfloat}[2023/10/01]
 \usepackage{silence}
 \WarningFilter{pdfx}{Setting all color commands to rgb}
+\WarningFilter{latex}{Command \showhyphens has changed.}
+\RequirePackage{iftex}
+\ifLuaTeX
+  \RequirePackage{luavlna}
+\else\ifXeTeX
+  \RequirePackage{xevlna}
+\fi\fi
+\newcommand{\vlnaon}{%
+  \ifLuaTeX
+    \ifdefined\preventsingleon\preventsingleon\fi
+    % for parity with xevlna
+    \ifdefined\noinitials\noinitials\fi
+    \ifdefined\nounits\nounits\fi
+    \ifdefined\nopredegrees\nopredegrees\fi
+    \ifdefined\nosufdegrees\nosufdegrees\fi
+  \else\ifXeTeX
+    \ifdefined\xevlnaEnable\xevlnaEnable\fi
+  \fi\fi
+}
+\newcommand{\vlnaoff}{%
+  \ifLuaTeX
+    \ifdefined\preventsingleoff\preventsingleoff\fi
+  \else\ifXeTeX
+    \ifdefined\xevlnaDisable\xevlnaDisable\fi
+  \fi\fi
+}
 \RequirePackage{babel}[2021/03/03]
+
+\addto\extrasenglish{\vlnaoff}
+\addto\noextrasenglish{\vlnaoff}
+\addto\extrasczech{\vlnaon}
+\addto\noextrasczech{\vlnaoff}
+\addto\extrasslovak{\vlnaon}
+\addto\noextrasslovak{\vlnaoff}
+
 \if@twoside
     \RequirePackage[top=4.6cm,bottom=4cm,footskip=4em,inner=4.7cm,outer=3.25cm]{geometry}[2020/01/02] %page layout
+	\raggedbottom
 \else
     \RequirePackage[left=3.95cm,right=4.0cm,top=4.6cm,bottom=4cm,footskip=4em]{geometry}[2020/01/02] %page layout
 \fi
 \RequirePackage{setspace}[2011/12/19] %line spacing in title page
 \RequirePackage[labelsep=space,singlelinecheck=false,font={up,small},labelfont={sf,bf}]{caption}[2020/05/30]
 \RequirePackage{fancyhdr}[2019/01/31]
-\RequirePackage{multicol}[2019/12/09] % summary page
 \RequirePackage{titlesec}[2019/10/16]
+\RequirePackage[hyphens]{url}
+\def\UrlBreaks{\do\/\do-\do\.\do\_}
+\def\UrlBigBreaks{\do\:}
+\Urlmuskip=0mu plus 1mu
 
-\ifdefined\@ctufitthesisblackandwhite
+\ifctufitthesisblackandwhite
 	\definecolor{decoration}{RGB}{0, 0, 0} %CTU blue
 	\definecolor{heading}{RGB}{0, 0, 0}
 	\definecolor{headbackgroundgray}{RGB}{208, 208, 208} %light blue
 	\definecolor{backgroundgray}{RGB}{240, 240, 240} %CTU light blue
 	\definecolor{headgray}{rgb}{0.50,0.50,0.50}
 	\definecolor{enumgray}{RGB}{0, 0, 0} %CTU blue
+
+	\def\temp@E{E}
+    \if\@ctufitlang\temp@E%
+        \def\@ctufitlogopath{images/logos/logo_CVUT_en_bw.pdf}
+    \else%
+        \def\@ctufitlogopath{images/logos/logo_CVUT_bw.pdf}
+    \fi%
 \else
 	\definecolor{decoration}{RGB}{0, 122, 195} %CTU blue
 	\definecolor{heading}{RGB}{0, 122, 195}
@@ -173,12 +251,40 @@
 \DeclareRobustCommand{\ctufitkeywordsENG}[1]{
 	\def\thectufitkeywords{#1}
 }
+
+\newcounter{ctufitsupervisors}
+\newcounter{ctufitsupervisorspecialists}
+
+\newcommand{\ctufitsupervisorinfo}[8]{%
+    \gappto{\@ctufitsupervisors}{%
+		\par\noindent\textbf{#1:}\par
+		#2\par
+		#3\par
+		#4\par
+		#5\par
+		#6\par
+		#7\par
+		#8\par
+		\vspace{1cm}
+	}%
+	\ifstrequal{#1}{Supervisor-Specialist}{%
+		\stepcounter{ctufitsupervisorspecialists}%
+		\gappto{\@ctufitsupervisorspecialists}{%
+			#2\\%
+		}%
+	}
+}
+
 \DeclareRobustCommand{\thectufitthesistype}{%
 	\if\@ctufitthesistype B{%
 		\if\@ctufitlang C{Bakal{\' a}{\v r}sk{\' a} pr{\' a}ce}\else\if\@ctufitlang S{Bakal{\' a}rska pr{\' a}ca}\else{Bachelor's thesis}\fi\fi
 	}\else\if\@ctufitthesistype M{%
 		\if\@ctufitlang C{Diplomov{\' a} pr{\' a}ce}\else\if\@ctufitlang S{Diplomov{\' a} pr{\' a}ca}\else{Master's thesis}\fi\fi
-	}\else\if\@ctufitthesistype D\if\@ctufitlang C{Disertačn{\' i} pr{\' a}ce}\else\if\@ctufitlang S{Disertačn{\' a} pr{\' a}ca}\else{Dissertation thesis}\fi\fi\else{\ClassError{ctufit-thesis}{Thesis type not specified}{Add either `bachelor', `master', or `dissertation' option to this document class}}\fi\fi\fi
+	}\else\if\@ctufitthesistype D{%
+		\if\@ctufitlang C{Disertační práce}\else\if\@ctufitlang S{Disertačná práca}\else{Dissertation thesis}\fi\fi
+	}\else\if\@ctufitthesistype R{%
+		\if\@ctufitlang C{Odborná studie}\else\if\@ctufitlang S{Odborná štúdia}\else{Doctoral study report}\fi\fi
+	}\else{\ClassError{ctufit-thesis}{Thesis type not specified}{Add either `bachelor', `master', `dissertation', or `doctoral-report' option to this document class}}\fi\fi\fi\fi
 }
 
 \DeclareRobustCommand{\thectufituniversity}{\if\@ctufitlang C{{\v C}esk{\' e} vysok{\' e} u{\v c}en{\' i} technick{\' e} v~Praze}\else\if\@ctufitlang S{{\v C}esk{\' e} vysok{\' e} u{\v c}en{\' i} technick{\' e} v~Praze}\else{Czech Technical University in Prague}\fi\fi}
@@ -197,7 +303,7 @@
 
 \DeclareRobustCommand{\thectufitlistinglabel}{\if\@ctufitlang C{V{\'y}pis k{\'o}du}\else\if\@ctufitlang S{V{\'y}pis k{\'o}du}\else{Code listing}\fi\fi}
 
-\DeclareRobustCommand{\thectufitlollabel}{\if\@ctufitlang C{Seznam v{\'y}pis{\r u} k{\'o}du}\else\if\@ctufitlang S{Zoznam v{\'y}pisov k{\'o}du}\else{List of Code listings}\fi\fi}
+\DeclareRobustCommand{\thectufitlollabel}{\if\@ctufitlang C{Seznam v{\'y}pis{\r u} k{\'o}du}\else\if\@ctufitlang S{Zoznam v{\'y}pisov k{\'o}du}\else{List of Code Listings}\fi\fi}
 
 \DeclareRobustCommand{\thectufitalgorithmlabel}{\if\@ctufitlang C{Pseudokód}\else\if\@ctufitlang S{Pseudokód}\else{Algorithm}\fi\fi}
 
@@ -205,9 +311,19 @@
 
 \DeclareRobustCommand{\thectufitdeclarationlabel}{\if\@ctufitlang C{Prohlášení}\else\if\@ctufitlang E{Declaration}\else{Vyhlásenie}\fi\fi}
 
-\DeclareRobustCommand{\thectufitabbreviationlabel}{\if\@ctufitlang C{Seznam zkratek}\else\if\@ctufitlang E{List of abbreviations}\else{Zoznam skratiek}\fi\fi}
+\DeclareRobustCommand{\thectufitabbreviationlabel}{\if\@ctufitlang C{Seznam zkratek}\else\if\@ctufitlang E{List of Abbreviations}\else{Zoznam skratiek}\fi\fi}
 
-\DeclareRobustCommand{\thectufitcopyrighttext}{\if\@ctufitlang C{Tato pr{\' a}ce vznikla jako {\v s}koln{\' i} d{\' i}lo na {\v C}esk{\' e}m vysok{\' e}m u{\v c}en{\' i} technick{\' e}m v~Praze, Fakult{\v e} informa{\v c}n{\' i}ch technologi{\' i}. Pr{\' a}ce je chr{\' a}n{\v e}na pr{\' a}vn{\' i}mi p{\v r}edpisy a~mezin{\' a}rodn{\' i}mi {\' u}mluvami o~pr{\' a}vu autorsk{\' e}m a~pr{\' a}vech souvisej{\' i}c{\' i}ch s~pr{\' a}vem autorsk{\' y}m. K~jej\'\i{}mu u\v zit\'\i{}, s~v\'yjimkou bez\'uplatn\'ych z\'akonn\'ych licenc\'\i{} a nad r\'amec opr\'avn\v en\'\i{} uveden\'ych v~Prohl\'a\v sen\'\i{}, je nezbytn\'y souhlas autora.}\else\if\@ctufitlang S{T\'ato pr\'aca vznikla ako \v skolsk\'e dielo na FIT \v CVUT v Prahe. Pr\'aca je chr\'anen\'a medzin\'arodn\'ymi predpismi a~zmluvami o~autorskom pr\'ave a~pr\'avach s\'uvisiacich s~autorsk\'ym pr\'avom. Na jej vyu\v zitie, s~v\'ynimkou bezodplatn\'ych z\'akonn\'ych licenci\'\i{} a nad r\'amec opr\'avnen\'\i{} uveden\'ych vo~Vyhl\'asenie, je nutn\'y s\'uhlas autora.}\else{This thesis is school work as defined by Copyright Act of the Czech Republic. It has been submitted at Czech Technical University in Prague, Faculty of Information Technology. The thesis is protected by the Copyright Act and its use, with the exception of free statutory licenses and beyond the scope of the authorizations specified in the Declaration, requires the consent of the author.}\fi\fi}
+\DeclareRobustCommand{\thectufitcopyrighttext}{\if\@ctufitlang C{Tato pr{\' a}ce vznikla jako {\v s}koln{\' i} d{\' i}lo na {\v C}esk{\' e}m vysok{\' e}m u{\v c}en{\' i} technick{\' e}m v~Praze, Fakult{\v e} informa{\v c}n{\' i}ch technologi{\' i}. Pr{\' a}ce je chr{\' a}n{\v e}na pr{\' a}vn{\' i}mi p{\v r}edpisy a~mezin{\' a}rodn{\' i}mi {\' u}mluvami o~pr{\' a}vu autorsk{\' e}m a~pr{\' a}vech souvisej{\' i}c{\' i}ch s~pr{\' a}vem autorsk{\' y}m. K~jej\'\i{}mu u\v zit\'\i{}, s~v\'yjimkou bez\'uplatn\'ych z\'akonn\'ych licenc\'\i{} a nad r\'amec opr\'avn\v en\'\i{} uveden\'ych v~Prohl\'a\v sen\'\i{}, je nezbytn\'y souhlas autora.}\else\if\@ctufitlang S{T\'ato pr\'aca vznikla ako \v skolsk\'e dielo na FIT \v CVUT v Prahe. Pr\'aca je chr\'anen\'a medzin\'arodn\'ymi predpismi a~zmluvami o~autorskom pr\'ave a~pr\'avach s\'uvisiacich s~autorsk\'ym pr\'avom. Na jej vyu\v zitie, s~v\'ynimkou bezodplatn\'ych z\'akonn\'ych licenci\'\i{} a nad r\'amec opr\'avnen\'\i{} uveden\'ych vo~Vyhl\'asenie, je nutn\'y s\'uhlas autora.}\else{This thesis is school work as defined by the Copyright Act of the Czech Republic. It has been submitted to the Czech Technical University in Prague, Faculty of Information Technology. The thesis is protected by the Copyright Act and its use, with the exception of free statutory licenses and beyond the scope of the authorisations specified in the Declaration, requires the consent of the author.}\fi\fi}
+
+\DeclareRobustCommand{\Thesis}{\thectufitthesistype}
+\DeclareRobustCommand{\thesis}{%
+	\begingroup
+    \edef\x{\endgroup
+        \noexpand\MakeLowercase{\thectufitthesistype}%
+    }\x
+}
+
+\AddToHook{begindocument/before}{\RequirePackage{csquotes}}
 
 % Generate metadata file
 \AtBeginDocument{%
@@ -220,26 +336,69 @@
 	\immediate\closeout\metadatafile
 }
 
+
+\newcommand{\printctufitsupervisors}{%
+  \ifcsdef{@ctufitsupervisors}{%
+    \@ctufitsupervisors
+  }{
+	Empty list of supervisors/supervisor-specialists. Add/uncomment the ctufitsupervisorinfo commands and fill it with information about your supervisors.
+  }%
+}
+
 % title page
-\renewcommand{\maketitle}{\begin{titlepage}%
+\renewcommand{\maketitle}{
+\pagenumbering{Alph}
+\begin{titlepage}%
 \newgeometry{left=67mm,top=80mm,right=40mm}%\thispagestyle{empty}%
 \noindent
-\includegraphics[width=3cm]{images/logoCVUT.pdf}
+\includegraphics[height=2.5cm]{\@ctufitlogopath}
 \vskip 1cm
 \noindent{\noindent\huge\bfseries\color{black}\begin{flushleft}\begin{onehalfspace}\MakeUppercase{\thectufittitle}\end{onehalfspace}\end{flushleft}}
 \noindent{\large  \bfseries \thectufitauthorfull}
 
 \vfill
 
-\noindent{\thectufitthesistype\\
-\thectufitfaculty\\
+\ifctufitthesisdoctorate
+\noindent{A\if\@ctufitthesistype D dissertation thesis\else\if\@ctufitthesistype R doctoral study report\fi\fi\
+submitted to\\the Faculty of Information Technology, Czech Technical University in Prague,
+in partial fulfilment of the requirements for the degree of Doctor.}
+	\vspace{3em}
+\fi
+
+\noindent{\ifctufitthesisbachelormaster
+	\thectufitthesistype\\
+\fi
 \thectufituniversity\\
-\thectufitdepartment\\
+\thectufitfaculty\\
+\ifctufitthesisbachelormaster
+	\thectufitdepartment\\
+\fi
 \thectufitprogramlabelcapital: \thectufitprogram\\
-\thectufitspecialisationlabelcapital: \thectufitspecialisation\\
+\ifctufitthesisbachelormaster
+	\thectufitspecialisationlabelcapital: \thectufitspecialisation\\
+\fi
 \thectufitsupervisorlabelcapital: \thectufitsupervisor\\
-\today}\end{titlepage}
+\ifctufitthesisdoctorate
+	\ifnum\value{ctufitsupervisorspecialists}>0%
+		Supervisor-specialist%
+		\ifnum\value{ctufitsupervisorspecialists}>1%
+			s%
+		\fi%
+		: \parbox[t]{0.6\textwidth}{\raggedright \@ctufitsupervisorspecialists}\\
+	\fi%
+\fi
+\today}
+\end{titlepage}
 \restoregeometry
+\pagenumbering{roman}
+\thispagestyle{empty}
+\ifctufitthesisdoctorate
+	\pagebreak
+	\vspace*{\fill}
+	\printctufitsupervisors
+\else
+	\cleardoublepage
+\fi
 }
 %title page end
 
@@ -264,6 +423,14 @@
    }
 }
 % IMPRINT END
+
+\DeclareRobustCommand{\ctufitincludeassignment}[2][]{%
+	\ifctufitthesisbachelormaster
+  		\includepdf[#1]{#2}%
+	\else
+		\ClassWarning{ctufit-thesis}{Assignment is not required for doctoral report and dissertation thesis. Please remove the \string\ctufitincludeassignment\space command from your document}{}
+	\fi
+}
 
 % captions settings
 \DeclareCaptionLabelFormat{boxed}{%0.61,0.61,0.61
@@ -396,18 +563,33 @@
 \renewcommand{\headrulewidth}{0pt}
 % headers and footers end
 
+\DeclareRobustCommand{\englishabstractname}{%
+	\if\@ctufitthesistype D{%
+		Abstract and contributions
+	}\else{%
+		Abstract
+	}\fi
+}
+
+\DeclareRobustCommand{\czechabstractname}{%
+	\if\@ctufitthesistype D{%
+		Abstrakt a přínosy práce
+	}\else{%
+		Abstrakt
+	}\fi
+}
 
 \newenvironment{abstrakt}[1]{%
   \vspace*{#1}
   \noindent
-  {{\frontchapterfont\begin{flushleft}{\color{heading}Abstrakt}\end{flushleft}}}%
+  {{\frontchapterfont\begin{flushleft}{\color{heading}\czechabstractname}\end{flushleft}}}%
   \bigskip
   \noindent\ignorespaces}
 
 \newenvironment{abstract}[1]{%
   \vspace*{#1}
   \noindent
-  {{\frontchapterfont\begin{flushleft}{\color{heading}Abstract}\end{flushleft}}}%
+  {{\frontchapterfont\begin{flushleft}{\color{heading}\englishabstractname}\end{flushleft}}}%
   \bigskip
   \noindent\ignorespaces}
   
@@ -423,7 +605,7 @@
 \vfill
 
 \vfill}
-% acknowledgment page END
+% acknowledgement page END
 
 % declaration page
 \newenvironment{declarationpage}{\frontchapternotprinted{\thectufitdeclarationlabel}
@@ -435,18 +617,50 @@
   \noindent\ignorespaces
 }{\vskip 1cm
 \noindent
-\if\@ctufitlang E{In}\else{V}\fi~\thectufitdeclarationplace{} \if\@ctufitlang C{dne}\else\if\@ctufitlang S{dňa}\else{on}\fi\fi~\thectufitdeclarationdate{} \hspace{.3\textwidth} \null\hfill Jan Orava}
+\if\@ctufitlang E{In}\else{V}\fi~\thectufitdeclarationplace{} \if\@ctufitlang C{dne}\else\if\@ctufitlang S{dňa}\else{on}\fi\fi~\thectufitdeclarationdate{}}
+
+\DeclareRobustCommand{\printdeclarationAIused}{%
+	\if\@ctufitlang E{%	
+		I declare that I have used AI tools during the preparation and writing of my thesis. I have verified
+the generated content. I confirm that I am aware that I am fully responsible for the content of the
+thesis.
+	}\else{%
+		\if\@ctufitlang S{%	
+			Prehlasujem, že som v priebehu prípravy a písania záverečnej práce použil(a) nástroje umelé
+inteligencia. Vygenerovaný obsah som overil(a). Potvrdzujem, že som si vedomý/á, že za obsah
+záverečnej práce plne odpovedám.
+		}\else{%
+			Prohlašuji, že jsem v průběhu příprav a psaní závěrečné práce použil(a) nástroje umělé
+inteligence. Vygenerovaný obsah jsem ověřil(a). Stvrzuji, že jsem si vědom(a), že za obsah
+závěrečné práce plně zodpovídám.
+		}\fi
+	}\fi
+}
+
+\DeclareRobustCommand{\printdeclarationAInotused}{%
+	\if\@ctufitlang E{%	
+		I declare that I have not used any AI tools during the preparation and writing of the thesis. I am
+aware of the consequences of apparently unacknowledged use of these tools in the production
+of any part of my thesis.
+	}\else{%
+		\if\@ctufitlang S{%	
+			Prehlasujem, že som počas príprav a písania záverečnej práce nepoužil(a) žiadny z nástrojov
+umelej inteligencie. Som si vedomý/á dôsledkov, kedy bude zjavne nepriznané použitie týchto
+nástrojov pri tvorbe akejkoľvek časti mojej záverečnej práce.
+		}\else{%
+			Prohlašuji, že jsem v průběhu příprav a psaní závěrečné práce nepoužil(a) žádný z nástrojů
+umělé inteligence. Jsem si vědom(a) důsledků, kdy bude zjevně nepřiznané použití těchto
+nástrojů při tvorbě jakékoli části mé závěrečné práce.
+		}\fi
+	}\fi
+}
+
 % declaration page END
 
 % abstract page
 \newenvironment{abstractpage}[1]{\frontchapternotprinted{#1}
 }{}
 % abstract page END
-
-\newenvironment{summarypage}{\chapter{\if\@ctufitlang C{Shrnutí}\else\if\@ctufitlang E{Summary}\else{Zhrnutie}\fi\fi}
-\setlength{\columnsep}{1cm}
-\begin{multicols}{2}\small
-}{\end{multicols}}
 
 %%%%%%%%%%%%%%%%%%%%
 % MAINMATTER SETTINGS
@@ -547,7 +761,15 @@
 
 \DeclareRobustCommand{\printczechabstractpage}[1][18mm]{%
 	\begin{abstrakt}{#1}%
-		\thectufitabstrakt
+        \if\@ctufitlang S{%
+            \begin{otherlanguage}{slovak}
+                \thectufitabstrakt
+            \end{otherlanguage}
+        }\else{%
+             \begin{otherlanguage}{czech}
+                \thectufitabstrakt
+            \end{otherlanguage}
+        }\fi
 	\end{abstrakt}
 		
 	\vskip 0.5cm
@@ -557,7 +779,9 @@
 
 \DeclareRobustCommand{\printenglishabstractpage}[1][18mm]{%
 	\begin{abstract}{#1}%
-		\thectufitabstract
+		\begin{otherlanguage}{english}
+			\thectufitabstract
+		\end{otherlanguage}
 	\end{abstract}
 	
 	\vskip 0.5cm
@@ -567,12 +791,12 @@
 
 \DeclareRobustCommand{\printonepageabstract}[1][18mm]{%
 	\if\@ctufitlang E{%	
-		\begin{abstractpage}{Abstract}
+		\begin{abstractpage}{\englishabstractname}
 			\printenglishabstractpage[#1]
 			\printczechabstractpage[#1]
 		\end{abstractpage}
 	}\else{%
-		\begin{abstractpage}{Abstrakt}
+		\begin{abstractpage}{\czechabstractname}
 			\printczechabstractpage[#1]
 			\printenglishabstractpage[#1]
 		\end{abstractpage}
@@ -581,17 +805,17 @@
 
 \DeclareRobustCommand{\printtwopageabstract}{%
 	\if\@ctufitlang E{%	
-		\begin{abstractpage}{Abstract}
+		\begin{abstractpage}{\englishabstractname}
 			\printenglishabstractpage
 		\end{abstractpage}
-		\begin{abstractpage}{Abstrakt}
+		\begin{abstractpage}{\czechabstractname}
 			\printczechabstractpage
 		\end{abstractpage}
 	}\else{%
-		\begin{abstractpage}{Abstrakt}
+		\begin{abstractpage}{\czechabstractname}
 			\printczechabstractpage
 		\end{abstractpage}
-		\begin{abstractpage}{Abstract}
+		\begin{abstractpage}{\englishabstractname}
 			\printenglishabstractpage
 		\end{abstractpage}
 	}\fi
@@ -615,7 +839,7 @@
 		\DeclareRobustCommand{\listoflistingscaption}{\thectufitlollabel}%
 		\DeclareRobustCommand{\listlistingname}{\thectufitlollabel}%
 		\DeclareRobustCommand{\thectufitlistingscommand}{\listoflistings}%
-		\ifdefined\@ctufitthesisblackandwhite
+		\ifctufitthesisblackandwhite
  			\usemintedstyle{bw}%
 			\setminted{bgcolor=backgroundgray}%
 		\fi
@@ -631,5 +855,23 @@
 	}%
 }
 
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+
+\RequirePackage{microtype}
+\microtypesetup{nopatch=item}
+
 % Should be last because of hyperref
-\RequirePackage[a-1b]{pdfx}  % PDF/A-1b compliance
+\RequirePackage[a-3b]{pdfx}  % PDF/A-3b compliance
+\RequirePackage{pdfpages}[2025/03/12]
+
+\ifXeTeX
+	\special{pdf:minorversion=7}
+\fi
+\ifluatex
+	\directlua{
+		pdf.setmajorversion(1)
+		pdf.setminorversion(7)
+	}
+\fi

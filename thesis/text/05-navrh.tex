@@ -1,30 +1,247 @@
 \chapter{Návrh}
 \label{chap:navrh}
 
+Tato kapitola popisuje návrh agenta: jeho architekturu, numerickou doménu \texttt{sc2-terran-macro}, způsob, jakým doména modeluje čas, etapové cíle, vykonávací a~reaktivní vrstvu a~vývoj domény přes jednotlivé verze. Na konci je popsána klasická doména, se kterou se numerický agent srovnává. Popis odpovídá verzi kódu \texttt{a3cb452}, na které běží hlavní série experimentů (kapitola~\ref{chap:experimenty}), a~doméně \texttt{domain\_numeric\_v11.pddl}, jejíž úplné znění je v~příloze~\ref{app:domena}.
+
 \section{Architektura agenta}
-% TODO: plán -> vydání -> ověření -> přeplánování; diagram komponent (TikZ).
+\label{sec:architektura}
+
+Agent je rozdělen na plánovací vrstvu, která rozhoduje, vykonávací vrstvu, která rozhodnutí převádí na příkazy hry a~ověřuje jejich účinek, a~úzkou reaktivní vrstvu pro situace, které nemohou čekat na plánovač (obrázek~\ref{fig:architektura}). Řízení probíhá v~cyklu \emph{plán $\to$ zadání $\to$ ověření $\to$ přeplánování}:
+
+\begin{enumerate}
+	\item Třída \texttt{PlanningBot} určí cíl aktuální etapy (sekce~\ref{sec:etapy}).
+	\item Modul \texttt{dynamic\_problem} přečte z~pozorování hry hodnoty všech fluentů a~zapíše je spolu s~cílem jako problém PDDL. Problém se generuje znovu před každým voláním plánovače, takže plánovač vždy vychází ze skutečného stavu.
+	\item Modul \texttt{planner} spustí nad doménou a~problémem plánovač ENHSP s~časovým limitem 10~s a~souběžně problém načte knihovnou unified-planning, aby šlo plán dále ověřovat v~modelu. Výsledkem je posloupnost akcí bez parametrů, například \texttt{wait\_for\_minerals}, \texttt{build\_barracks}, \texttt{train\_marine}.
+	\item Akce se vykonávají po jedné. Modul \texttt{executor} akci převede na příkaz rozhraní hry a~ohlásí, zda jej mohl zadat. Zadaná akce se považuje za hotovou teprve tehdy, když její \emph{podmínka dokončení} potvrdí účinek ve hře (sekce~\ref{sec:vykonavani}). Když hra akci zadržuje, smí se před ni posunout pozdější akce téhož plánu, pokud model potvrdí, že přeuspořádaný plán stále platí.
+	\item Když se plán vyčerpá, agent postoupí do další etapy a~naplánuje znovu; když akci nelze zadat, přeplánuje aktuální etapu.
+\end{enumerate}
+
+\begin{figure}[ht]
+	\centering
+	\input{figures/architecture.tex}
+	\caption[Architektura agenta.]{Architektura agenta. Plné šipky jsou tok řízení, čárkované tok pozorování. Šedé bloky jsou externí systémy.}
+	\label{fig:architektura}
+\end{figure}
+
+Oproti~\cite{Orava2025} se architektura liší ve dvou bodech. Plánovač dostává úplný numerický stav (suroviny, toky, kapacity), ne jen fakta o~existenci budov, a~akce se neodškrtává zadáním příkazu, ale až potvrzeným účinkem. Druhý bod je nutný právě kvůli prvnímu: numerický plán obsahuje předpoklady o~tom, kolik surovin v~kterém okamžiku bude, a~ty musí vykonávání dodržet, jinak se plán a~hra rozejdou (sekce~\ref{sec:limity}).
 
 \section{Numerická doména}
-% TODO: sc2-terran-macro v9: 24 fluentů, 16 akcí, ceny ze hry (tests/test_domain_costs.py);
-% úplná doména v~příloze.
+\label{sec:domena}
+
+Doména \texttt{sc2-terran-macro} je zapsána v~PDDL~2.1 úrovně~2 a~deklaruje jen požadavky \texttt{:typing} a~\texttt{:numeric-fluents}. Nemá objekty ani predikáty: veškerý stav je ve 24~numerických fluentech (tabulka~\ref{tab:fluenty}) a~akce jsou bez parametrů. Volba počtů místo objektů je záměrná. Agent nepotřebuje rozlišovat jednotlivé budovy téhož typu, protože výběr konkrétní budovy, na kterou se příkaz zadá, je úlohou vykonávací vrstvy, a~akce bez parametrů nemusí plánovač instancovat přes všechny objekty, takže groundovaný problém zůstává malý bez ohledu na velikost armády.
+
+\begin{table}[ht]
+	\centering
+	\caption{Fluenty domény \texttt{domain\_numeric\_v11.pddl}.}
+	\label{tab:fluenty}
+	\begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		\textbf{Skupina} & \textbf{Fluenty} \\
+		\midrule
+		Suroviny a~toky & \texttt{minerals}, \texttt{vespene}, \texttt{mining-rate}, \texttt{gas-rate} \\
+		Supply & \texttt{supply-used}, \texttt{supply-cap} \\
+		Budovy & \texttt{depot-count}, \texttt{barracks-count}, \texttt{refinery-count}, \texttt{factory-count}, \texttt{engineeringbay-count}, \texttt{cc-count}, \texttt{techlab-barracks-count}, \texttt{techlab-factory-count} \\
+		Armáda & \texttt{marine-count}, \texttt{marauder-count}, \texttt{tank-count} \\
+		Technologie & \texttt{weapon-upgrades}, \texttt{armor-upgrades}, \texttt{stimpack} \\
+		Výrobní kapacita & \texttt{rax-time}, \texttt{factory-time} \\
+		Útok & \texttt{attacks-launched}, \texttt{attack-threshold} \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Doména má 16~akcí (tabulka~\ref{tab:akce}). Ceny všech akcí odpovídají cenám, které hra skutečně účtuje; kontroluje to automatický test, který z~domény vyčte efekty \texttt{decrease} nad fluenty \texttt{minerals} a~\texttt{vespene} a~porovná je s~tabulkou cen hry (\texttt{tests/test\_domain\_costs.py}). Test vznikl poté, co se ukázalo, že všechny verze až po čtvrtou účtovaly stavbu Factory bez jejích 100~jednotek plynu (sekce~\ref{sec:vyvoj}).
+
+\begin{table}[ht]
+	\centering
+	\caption[Akce domény \texttt{domain\_numeric\_v11.pddl}.]{Akce domény \texttt{domain\_numeric\_v11.pddl}. Cena je v~minerálech/plynu; všechny akce kromě akcí čekání navíc vyžadují \texttt{(< (attacks-launched) 1)}.}
+	\label{tab:akce}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} l r >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		\textbf{Akce} & \textbf{Cena} & \textbf{Další předpoklady} & \textbf{Efekty mimo cenu} \\
+		\midrule
+		\texttt{wait\_for\_minerals} & -- & -- & $+$\texttt{mining-rate} minerálů, $+$\texttt{gas-rate} plynu, $+5$\,s výroby na budovu \\
+		\texttt{wait\_for\_vespene} & -- & Refinery & totéž \\
+		\texttt{build\_supply\_depot} & 100/0 & cap $\le 192$, volné supply $< 16$ & cap $+8$ \\
+		\texttt{build\_barracks} & 150/0 & depot, Barracks $< 4\cdot$CC & Barracks $+1$ \\
+		\texttt{build\_refinery} & 75/0 & Refinery $< 2\cdot$CC & \texttt{gas-rate} $+25$ \\
+		\texttt{expand} & 400/0 & CC $< 3$ & CC $+1$, \texttt{mining-rate} $+40$ \\
+		\texttt{build\_factory} & 150/100 & Barracks, Factory $<$ CC & Factory $+1$ \\
+		\texttt{build\_engineeringbay} & 125/0 & depot, žádná EBay & EBay $+1$ \\
+		\texttt{build\_techlab\_barracks} & 50/25 & Barracks bez add-onu & Tech Lab $+1$ \\
+		\texttt{build\_techlab\_factory} & 50/25 & Factory bez add-onu & Tech Lab $+1$ \\
+		\texttt{train\_marine} & 50/0 & Barracks, \texttt{rax-time} $\ge 18$, 1~supply & Marine $+1$ \\
+		\texttt{train\_marauder} & 100/25 & Tech Lab, \texttt{rax-time} $\ge 21$, 2~supply & Marauder $+1$ \\
+		\texttt{train\_siegetank} & 150/125 & Tech Lab u~Factory, \texttt{factory-time} $\ge 32$, 3~supply & Tank $+1$ \\
+		\texttt{research\_weapons} & 100/100 & EBay, úroveň $< 1$ & úroveň $+1$ \\
+		\texttt{research\_stimpack} & 100/100 & Tech Lab u~Barracks & Stimpack \\
+		\texttt{attack} & -- & hodnota armády $\ge$ \texttt{attack-threshold} & armáda $:= 0$, \texttt{attacks-launched} $+1$ \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Model zjednodušuje hru v~několika ohledech, které je třeba znát při čtení výsledků. Doména neobsahuje dělníky jako akci; rychlost těžby se před každým plánováním odvozuje z~jejich skutečného počtu a~nová základna nebo Refinery ji zvýší pevným odhadem (\texttt{mining-rate} $+40$, \texttt{gas-rate} $+25$). Expanze je omezena na tři základny. Engineering Bay vyžaduje v~modelu Supply Depot, ač ve hře stačí Command Center. Fluent \texttt{armor-upgrades} je deklarován, ale žádná akce ho nemění, a~výzkum zbraní je jen jedné úrovně, protože Armory potřebná pro další úrovně v~modelu není. Limity výroby (nejvýše čtyři Barracks a~jedna Factory na základnu, jedna Engineering Bay, depoty jen do kapacity 192 a~jen při méně než 16~volných supply) nejsou pravidla hry, ale ořez stavového prostoru: bez nich plánovač stavěl budovy, které pak neměl čím zaplnit, a~s~příliš těsnými limity zase neměl za co utratit nastřádanou banku (sekce~\ref{sec:vyvoj}).
+
+Akce \texttt{attack} (výpis~\ref{lst:attack}) vyžaduje, aby vážená hodnota armády, Marine~1, Marauder~2 a~Siege Tank~3, dosáhla prahu \texttt{attack-threshold}, a~armádu \enquote{spotřebuje}: vynuluje počty jednotek a~zvýší počet vyslaných útoků. Protože všechny ostatní akce kromě čekání vyžadují \texttt{(< (attacks-launched) 1)}, je útok v~každém plánu nejvýše jeden a~je jeho poslední akcí; vše, co plán postaví a~vytrénuje, se odehraje před ním.
+
+\begin{lstlisting}[caption={Akce útoku v~doméně v11.},label=lst:attack,float,basicstyle=\ttfamily\small]
+(:action attack
+  :parameters ()
+  :precondition (and (< (attacks-launched) 1)
+    (>= (+ (marine-count) (+ (* 2 (marauder-count))
+                             (* 3 (tank-count))))
+        (attack-threshold)))
+  :effect (and (assign (marine-count) 0)
+               (assign (marauder-count) 0)
+               (assign (tank-count) 0)
+               (increase (attacks-launched) 1)))
+\end{lstlisting}
 
 \section{Modelace času}
-% TODO: wait_for_* jako diskrétní hodiny (WAIT_SECONDS = 5 s, mining-rate z~živého počtu
-% dělníků); produkční čas (v6); jedny hodiny (v7); durativní akce (T4.4).
+\label{sec:cas}
 
-\section{Etapové cíle a generování problému}
-% TODO: STAGE_GOALS, goal_for_stage (strop banky), útok jako poslední akce plánu (v8),
-% práh útoku podle volného supply (v9).
+Doména neobsahuje durativní akce; čas do ní vstupuje dvěma akcemi čekání (výpis~\ref{lst:wait}). Jedna akce čekání představuje pevný úsek $\Delta = 5$~herních sekund (\texttt{WAIT\_SECONDS}) a~přičte k~fluentům to, co se za tento úsek nastřádá: minerály podle \texttt{mining-rate}, plyn podle \texttt{gas-rate} a~výrobní sekundy podle počtu výrobních budov. Plán je díky tomu nejen pořadím akcí, ale i~hrubým rozvrhem: počet akcí čekání mezi dvěma akcemi říká, kolik herního času mezi nimi uplyne, než si je agent může dovolit.
+
+\begin{lstlisting}[caption={Akce čekání (\enquote{hodiny}) v~doméně v11.},label=lst:wait,float,basicstyle=\ttfamily\footnotesize]
+(:action wait_for_minerals
+  :parameters () :precondition ()
+  :effect (and (increase (minerals) (mining-rate))
+               (increase (vespene) (gas-rate))
+               (increase (rax-time) (* 5 (barracks-count)))
+               (increase (factory-time) (* 5 (factory-count)))))
+\end{lstlisting}
+
+\paragraph{Rychlost těžby.} Hodnoty \texttt{mining-rate} a~\texttt{gas-rate} jsou množství suroviny, které hra skutečně vytěží za $\Delta$, a~počítají se z~dělníků právě přiřazených k~těžbě:
+\[
+	\texttt{mining-rate} = \left\lfloor \Delta \cdot r_m \cdot \sum_{b} \min(h_b, 16) \right\rfloor,
+	\qquad
+	\texttt{gas-rate} = \left\lfloor \Delta \cdot r_g \cdot \sum_{r} h_r \right\rfloor,
+\]
+kde $h_b$ je počet dělníků na minerálech u~základny~$b$, $h_r$ počet dělníků u~Refinery~$r$ a~$r_m = 0{,}93$ a~$r_g = 0{,}84$ jsou rychlosti těžby jednoho dělníka za sekundu. Hodnota~$r_g$ byla kalibrována podle her sérií T8.1 a~T8.2 a~platí od verze~7 domény (\serie{T8.2_v7_medium}). Při dvanácti dělnících na začátku hry vychází 55~minerálů na jedno čekání. Obě hodnoty jsou nejméně~1, protože akce s~nulovým přírůstkem nic nemění a~plánovač by problém, ve kterém je potřeba čekat, prohlásil za neřešitelný. Stejnou funkci používá i~vykonávací vrstva, když rozhoduje, zda čekání skončilo, takže to, co předpokládá doména, a~to, co se ve hře testuje, se nemůže rozejít.
+
+\paragraph{Výrobní kapacita.} Od verze~6 nese doména dva fluenty výrobního času, \texttt{rax-time} a~\texttt{factory-time}: kolik sekund výroby mají Barracks, resp. Factory k~dispozici. Každé čekání přidá 5~s za každou výrobní budovu a~trénink jednotky spotřebuje její dobu výroby (Marine~18~s, Marauder~21~s, Siege Tank~32~s). Na začátku plánu se fluenty nastaví podle budov, které jsou právě volné. Plán, který chce utratit velkou banku rychle, tak musí postavit víc výrobních budov; jinak by mohl naplánovat dvacet tanků z~jedné Factory, které by se ve hře vyráběly déle než deset minut. Model je přitom hrubý: výrobní čas \texttt{rax-time} roste o~5~s za \emph{každé} Barracks, i~když Marauder potřebuje Barracks s~Tech Labem. Plánovač proto může počítat s~Maraudery ze všech Barracks, zatímco hra je vyrábí jen u~jednoho; v~hlavní sérii proti VeryEasy to ve dvou hrách vedlo k~plánům s~25 a~28~Maraudery, které držely armádu doma přes deset minut (sekce~\ref{sec:vs-ai}).
+% TODO (T4.9): doménu v12 s výrobním časem Tech Labů doplnit, až bude změřena.
+
+\paragraph{Jedny hodiny.} Ve verzi~6 přičítala akce \texttt{wait\_for\_vespene} jen plyn a~výrobní čas, nikoli minerály vytěžené za stejnou dobu, a~plánovač ji používal jako levný zdroj výrobního času. Od verze~7 přičítají obě akce čekání všechny tři veličiny současně; liší se jen tím, že \texttt{wait\_for\_vespene} vyžaduje Refinery. Model má tedy jedny hodiny a~každé čekání je pět sekund pro celou ekonomiku.
+
+\paragraph{Proč ne durativní akce.} Spojitý model těžby, buď durativní akcí se spojitým efektem \texttt{(increase (minerals) (* \#t (mining-rate)))}, nebo procesem PDDL+~\cite{FoxLong2006}, by byl věrnější: plán by byl rozvrhem s~makespanem a~čekání by nebylo třeba plánovat. Diskrétní hodiny byly zvoleny ze tří důvodů. Plán zůstává posloupností okamžitých akcí, takže vykonávání i~podmínky dokončení jsou jednoduché a~každou akci čekání lze ve hře přímo ověřit. Na doménu stačí plánovač úrovně~2, kterých je víc a~jsou rychlejší než plánovače se spojitým časem. A~rozlišení pěti sekund je vůči době výroby jednotek (18 až 32~s) a~staveb (desítky sekund) dostatečně jemné. Cenou je délka plánů: akce čekání tvoří velkou část každého plánu (na pevných problémech etap 0 až 2 jde o~18 z~28, 14 z~26 a~18 z~36 akcí, \serie{T5.4_planners_offline}) a~vyhovující plánovač bez metriky někdy čeká víc, než je nutné. Akce čekání přitom nelze z~domény odstranit: bez nich by čísla v~doméně jen omezovala pořadí akcí a~numerický model by se zredukoval na klasický.
+
+Spojitou variantu práce ověřila mimo hru. Doména \texttt{domain\_temporal.pddl} je doména v11 zapsaná v~PDDL+: akce čekání nahrazuje proces, který po celou dobu spojitě zvyšuje suroviny a~výrobní čas, a~ENHSP ji plánuje s~rozhodovacím krokem 1~s. Na pevných problémech etap 0 až 2 našel plány za přibližně 0,6~s s~délkou rozvrhu (\emph{makespan}) 76, 73 a~122~herních sekund, zatímco diskrétní plány téhož plánovače odpovídají 90, 70 a~90~sekundám (\serie{T5.4_planners_offline}). Spojitý model je tedy řešitelný stejně rychle; v~etapě~0 dává kratší plán, v~etapě~2 delší, protože obě varianty hledají vyhovující, nikoli nejkratší plán. Ve hře se spojitá varianta nepoužívá: plán s~časovými značkami by vyžadoval jiný druh vykonávání, který akce nespouští po jedné, ale podle času, a~ten práce neimplementuje. Ani jedna z~variant zatím nemodeluje dobu staveb a~výzkumů; ve hře se to projevuje například tím, že depot přidá supply v~modelu okamžitě, ve hře až po 21~s stavby (\serie{T4.8_supply_wait_veryeasy}). Spojitý čas by takové trvání vyjádřit uměl, což je přirozené pokračování práce.
+
+\section{Etapové cíle a~generování problému}
+\label{sec:etapy}
+
+Hra je rozdělena do čtyř etap s~cíli v~tabulce~\ref{tab:etapy}. Etapy 0 až 2 budují technologii a~armádu po krocích, které odpovídají technologickému stromu; etapa~3 je poslední a~opakuje se. Její cíl \texttt{(>= (attacks-launched) 1)} je splněn akcí \texttt{attack} a~generátor problému nastavuje \texttt{attacks-launched} vždy na~0, takže cíl znamená \enquote{vyšli ještě jednu vlnu}. Aby plánovač mohl zaútočit, musí nejprve postavit armádu s~hodnotou alespoň \texttt{attack-threshold}; po vyčerpání plánu se etapa~3 naplánuje znovu. Pozdní hra je tak cyklem shromáždění, útoku a~nového shromáždění, o~jehož načasování i~složení rozhoduje plánovač.
+
+\begin{table}[ht]
+	\centering
+	\caption{Etapové cíle (\texttt{STAGE\_GOALS}).}
+	\label{tab:etapy}
+	\begin{tabularx}{\textwidth}{@{} c >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		\textbf{Etapa} & \textbf{Cíl} \\
+		\midrule
+		0 & $\ge 1$ Barracks, $\ge 6$ Marine \\
+		1 & $\ge 1$ Refinery, $\ge 1$ Tech Lab u~Barracks, $\ge 4$ Marauder, $\ge 8$ Marine \\
+		2 & $\ge 1$ Factory, $\ge 1$ Tech Lab u~Factory, $\ge 2$ Siege Tank, zbraně úrovně~1, Stimpack, $\ge 14$ Marine \\
+		3 (opakuje se) & $\ge 1$ vyslaný útok \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\paragraph{Strop banky.} Samotné cíle etap neříkají nic o~surovinách, které agent nastřádal navíc. Kdyby plánovač jen splnil cíl, banka by rostla, což je stagnace popsaná v~\cite{Orava2025}. Každý cíl je proto rozšířen o~podmínku na zůstatek minerálů na konci plánu:
+\[
+	\textit{cíl etapy} \wedge \big(\texttt{supply-used} \ge 190 \vee \texttt{minerals} \le c\big).
+\]
+Agent nejprve plánuje s~přísným stropem $c = 400$, takže plán musí utratit celou banku nad tento zůstatek a~rozhodnout, za co. Když pro přísný cíl plán nenajde, zkusí slabší strop $c = \max(400,\; m_0 - 1\,500)$, kde $m_0$ je stav banky při plánování, tedy utratit nejvýše 1\,500~minerálů. Do verze kódu, na které běžely série T8, platil jen slabší strop; část příjmu jednoho plánovacího cyklu pak v~bance zůstávala (\serie{T4.8_spend_bank_veryeasy}). Podmínka odpadá, když už se do supply nevejdou další jednotky. Na plyn strop není: s~několika Refinery přinese každé čekání zhruba tolik plynu, kolik jednotka stojí, takže plynový strop byl nedosažitelný a~prodlužoval plány na stovky akcí (\serie{T8.3_v8_medium}).
+
+\paragraph{Práh útoku.} Útok vyžaduje armádu s~hodnotou 30. Jednotky vyslané do útoku ale dál drží supply, a~když armáda v~poli zabírá většinu kapacity, doma se armáda s~hodnotou 30 postavit nedá a~plánovač by marně hledal plán, dokud nevyprší limit. Generátor problému proto nastavuje
+\[
+	\texttt{attack-threshold} = \max\big(0, \min(30,\; v_{\mathrm{doma}} + c_{\mathrm{dosažitelná}} - \texttt{supply-used})\big),
+\]
+kde $v_{\mathrm{doma}}$ je hodnota armády u~základen a~$c_{\mathrm{dosažitelná}}$ kapacita supply, kterou lze ještě postavit depoty (193 až 200 podle aktuální kapacity). Když je práh nulový, nevejde se doma nic a~cílem etapy~3 je jen jedno čekání.
+
+Problém PDDL vzniká přímo z~pozorování: každý fluent je funkcí stavu hry (počty budov a~jednotek, banka, rychlosti těžby, volné výrobní budovy). Armáda se počítá jen z~jednotek, které jsou u~základen a~nebyly vyslány do probíhajícího útoku; ty už plánovač nevidí (sekce~\ref{sec:vykonavani}). Generátor zapisuje jen fluenty, které daná doména deklaruje, takže agent může hrát s~libovolnou starší verzí domény, což je podmínkou reprodukovatelnosti historických sérií.
 
 \section{Vykonávací vrstva}
-% TODO: baseline, completion conditions, timeouty, eskalace replan -> skip -> abandon;
-% útok mimo plán (committed units).
+\label{sec:vykonavani}
+
+Vykonávací vrstva odděluje dvě otázky: zda lze akci \emph{zadat} a~zda se akce \emph{dokončila}. Na první odpovídá \texttt{executor}: vrátí, zda příkaz zadal, a~pokud ne, uvede důvod (například \enquote{cannot afford}, \enquote{no free geyser}). Důvod začínající slovem \texttt{waiting} znamená, že akce jen čeká na dokončení rozestavěné budovy nebo na uvolnění fronty, což je postup, nikoli selhání.
+
+Na druhou otázku odpovídá \emph{podmínka dokončení} (tabulka~\ref{tab:podminky}). Podmínky se vyhodnocují proti \emph{baseline}, stavu zachycenému těsně před zadáním akce. Díky tomu plán se čtyřmi akcemi \texttt{build\_supply\_depot} postaví čtyři depoty, a~ne jeden, který by splnil podmínku \enquote{nějaký depot existuje}, a~čekání skončí, až banka vzroste o~\texttt{mining-rate} proti stavu při zadání. Vykonávací vrstva tedy nikdy nepostoupí na základě předpokladu, že akce vyšla; vždy čeká, až to potvrdí hra.
+
+\begin{table}[ht]
+	\centering
+	\caption{Podmínky dokončení akcí vůči baseline zachycené při zadání.}
+	\label{tab:podminky}
+	\begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X @{}}
+		\toprule
+		\textbf{Akce} & \textbf{Akce je hotová, když} \\
+		\midrule
+		stavba, expanze, add-on & počet budov daného typu (hotových i~rozestavěných) přesáhl baseline \\
+		trénink & počet jednotek daného typu (živých i~ve frontě) přesáhl baseline \\
+		výzkum & vylepšení je dokončené nebo prokazatelně probíhá \\
+		čekání & banka dosáhla stavu při zadání $+$ \texttt{mining-rate} (resp.\ \texttt{gas-rate}) \\
+		útok & žádná z~vyslaných jednotek nestojí nečinně u~základen \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\paragraph{Časové limity a~eskalace.} Zadaná akce, která se do 30~s nedokončí (například dělník zahynul cestou na staveniště), se uvolní a~zaznamená jako \texttt{action\_timeout}. Akci, kterou nelze zadat 30~s, řeší agent eskalací ve třech krocích: nejprve etapu přeplánuje z~aktuálního stavu, takže plánovač sám uvidí, co chybí, a~buď to postaví, nebo cíl obejde. Po třech takových přeplánováních bez mezilehlého postupu se další nevykonatelné akce vynechávají a~po dalších třech agent opustí celou etapu. Akce, která čeká jen na dokončení stavby, smí čekat až 120~s. Počítadlo pokusů se nuluje jen skutečným postupem, tedy zadáním nebo dokončením akce; nulování při vynechání dovolilo agentovi v~jedné z~dřívějších verzí donekonečna cyklit mezi dvěma nevykonatelnými akcemi.
+
+\paragraph{Přeuspořádání plánu.} Plán se vykonává po jedné akci, ale hra některou akci často zadrží: Barracks pro Tech Lab se ještě staví, všechny výrobní fronty jsou plné, jednotka čeká na rozestavěný depot. Dokud se taková akce nedala zadat, stál celý plán; v~sérii proti VeryEasy na doméně v9 to bylo přibližně 290~s z~přibližně 810~s hry a~příjem těchto sekund model neviděl (\serie{T5.2_VeryEasy}). Když vykonávací vrstva hlásí, že akce jen čeká, posune agent před ni první pozdější akci téhož plánu, ale jen tehdy, když přeuspořádaný plán z~počátečního stavu problému podle simulátoru knihovny unified-planning stále projde všemi předpoklady a~skončí v~cíli (modul \texttt{plan\_order}). Akce čekání se nepřesouvají. Agent tak nerozhoduje o~ničem novém: mění se jen pořadí akcí, které vybral plánovač, a~jen tam, kde to dovoluje jeho vlastní model. Každý posun se zaznamená jako \texttt{plan\_reordered}.
+
+\paragraph{Selhání plánovače.} Agent zkouší cíle od nejsilnějšího: nejprve cíl s~přísným stropem banky, potom se slabším (sekce~\ref{sec:etapy}). Pro každý cíl spustí ENHSP ve výchozí konfiguraci ($h_{\mathrm{add}}$, GBFS) a~při vypršení časového limitu ještě jednou s~konfigurací $h_{\mathrm{mrp}}$ a~GBFS; během vývoje se ukázalo, že obě konfigurace selhávají na různých stavech. Teprve když plán nenajde žádná kombinace, přejde agent do nouzového režimu: trénuje Marine a~při šesti Marinech zaútočí. Nouzový režim je jediným místem, kde o~útoku nerozhoduje plánovač, a~každý neúspěšný pokus se zaznamená jako \texttt{planner\_error}.
+
+\paragraph{Útok mimo plán.} Akce \texttt{attack} v~doméně armádu spotřebuje a~vykonávání to dodržuje doslova. Vykonávací vrstva útok zadá, až když ve hře platí jeho předpoklad z~modelu: hodnota armády u~základen dosáhla prahu, se kterým plán počítal. Trénink se totiž považuje za hotový už zařazením do fronty, takže část jednotek, se kterými plán počítal, ještě nemusí existovat; jednotky, které jsou při útoku stále ve výrobě, zůstanou doma pro další vlnu. Útok je hotový, jakmile všechny vyslané jednotky opustily základny; jejich identifikátory se uloží jako \emph{nasazené} a~plánovač je v~dalších problémech nevidí. Agent tak hned začne shromažďovat další vlnu, zatímco nasazené jednotky bojují mimo plán: postupují k~nejbližší známé budově soupeře, a~když žádnou neznají, prohledávají místa možných expanzí. Jakmile nasazené jednotky ztratí polovinu vyslané hodnoty, přeživší se vrátí domů a~připojí se k~další vlně. Rozhodnutí \emph{kdy} a~\emph{s~čím} zaútočit tedy patří plánovači; průběh boje je provedením tohoto rozhodnutí.
 
 \section{Reaktivní vrstva}
-% TODO: co a proč je mimo plánovač.
+\label{sec:reaktivni}
 
-\section{Vývoj domény v1--v9}
-% TODO: tabulka verze / změna / hypotéza / série / výsledek (README, experiments/LOG.md).
+V~každém kroku hry před plánovací vrstvou běží čtyři reaktivní rutiny:
+\begin{itemize}
+	\item \textbf{rozdělování dělníků} na minerály a~plyn vestavěnou funkcí knihovny,
+	\item \textbf{trénink dělníků} do saturace: 16 na Command Center a~3 na Refinery, nejvýše 66,
+	\item \textbf{nouzový Supply Depot}, když zbývá méně než 2~volné supply a~žádný depot se nestaví,
+	\item \textbf{obrana základny}: nepřátelské jednotky v~okruhu 35 od kterékoli vlastní základny napadne celá armáda, která je v~tom okruhu (jednotky útočící jinde se nevolají zpět); Siege Tanky se v~dosahu nepřítele rozloží.
+\end{itemize}
+
+Každá z~rutin řeší situaci, na kterou nelze čekat do dalšího plánu (sekce~\ref{sec:pozadavky}). Nouzový depot a~obrana se zaznamenávají jako \texttt{reactive\_override}, obrana jednou za střet, ne za každý krok hry, takže jejich rozsah je měřitelný: v~hlavní sérii proti obtížnosti Medium připadalo na hru v~průměru 219,8~zadaných akcí plánu a~24,1 takových zásahů (\serie{E5_numeric_Medium}). Rozdělování a~trénink dělníků se nezaznamenávají a~v~tomto poměru nejsou. Trénink dělníků je ze čtyř rutin nejméně obhajitelný, protože jde o~ekonomické rozhodnutí; jeho přesun do domény je otevřeným bodem (kapitola~\ref{chap:experimenty}).
+
+\section{Vývoj domény v1--v11}
+\label{sec:vyvoj}
+
+Doména vznikala iterativně. Každá verze je samostatný soubor v~adresáři \texttt{planning/} (od \texttt{domain\_numeric.pddl} po \texttt{domain\_numeric\_v11.pddl}), vznikla jako odpověď na konkrétní pozorování z~her a~byla ověřena další sérií her. Tabulka~\ref{tab:vyvoj} shrnuje změny domény; změny vykonávací vrstvy v~rámci téže verze a~podrobný rozbor sérií proti obtížnosti Medium jsou v~kapitole~\ref{chap:experimenty}. Všechna čísla pocházejí z~uvedených sérií a~z~deníku experimentů \texttt{experiments/LOG.md}.
+
+\begin{table}[p]
+	\centering
+	\caption[Vývoj numerické domény.]{Vývoj numerické domény. V~=~výhra, P~=~prohra, R~=~remíza (limit 1\,800 herních sekund); CI je 95\% Wilsonův interval.}
+	\label{tab:vyvoj}
+	\footnotesize
+	\begin{tabularx}{\textwidth}{@{} c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.6cm} @{}}
+		\toprule
+		\textbf{Verze} & \textbf{Změna} & \textbf{Výsledek} & \textbf{Série} \\
+		\midrule
+		v1 & 21 fluentů, 16 akcí; suroviny, supply, rychlosti těžby, počty budov a~jednotek & po opravách vykonávání výhry proti VeryEasy, v~etapě~3 se ale hromadí banka (4\,625 minerálů, 1\,344 plynu na konci hry) & \serie{2026-10-25_8d754f4}, \serie{2026-10-25_d8a042d} \\
+		v2 & limity výroby, strop banky & etapa~3 vyrábí (Siege Tanky 0 $\to$ 12), banka ale roste dál (3\,975 $\to$ 5\,005 minerálů): jedna Factory nestačí, model nemá výrobní kapacitu & \serie{2026-10-25_e002cbb} \\
+		v3 & zbraně jen 1.~úroveň, depot jen při $< 16$ volných supply; útok uvolňuje supply armády & hypotéza vyvrácena: model uvolnil supply, které přeživší armáda dál drží, a~jednotky byly odmítnuty při 77/79 supply & \serie{2026-10-26_8f239e5} \\
+		v4 & útok supply neuvolňuje & výhry proti VeryEasy; porážka, když \texttt{build\_factory} odmítnuto při 3\,000 minerálech: doména neúčtovala plyn Factory & \serie{2026-10-26_bbf1fa4}, \serie{2026-10-26_06116be} \\
+		v5 & Factory stojí 100 plynu; test všech cen & VeryEasy a~Easy 6/6~V; Medium 3~V / 6~P / 1~R, 30~\% (CI 11--60~\%); banka nad 500 minerály 87--95~\% hry & \serie{2026-10-30_T1.6_85bd1dc}, \serie{T8.1_medium} \\
+		v6 & výrobní kapacita (\texttt{rax-time}, \texttt{factory-time}) & VeryEasy 3/3~V; recenze odhalila plynové čekání jako volný výrobní čas & \serie{T8.2_veryeasy}, \serie{T8.2_medium} \\
+		v7 & jedny hodiny pro obě čekání, $r_g = 0{,}84$ & Medium 8~V / 2~P, 80~\% (CI 49--94~\%); medián délky hry 690~s (v5: 1\,063~s) & \serie{T8.2_v7_veryeasy}, \serie{T8.2_v7_medium} \\
+		v8 & práh útoku 30 (dříve 20), útok končí plán & Medium 8~V / 0~P / 2~R, 80~\% (CI 49--94~\%), bez porážek & \serie{T8.3_v8_medium} \\
+		v9 & práh útoku jako fluent omezený dosažitelným supply & Medium 4~V / 1~P, 80~\% (CI 38--96~\%) & \serie{T8.3_v9_medium}, \serie{T8.3_reachable_cap_medium} \\
+		v10 & v9 $+$ \texttt{total-cost} pro pokusy s~metrikou plánu & metrika nezlepšila žádný plán; jen pro experimenty mimo hru & \serie{T4.2_planner_configs} \\
+		v11 & Barracks $\le 4\cdot$CC, až 3~CC; plány utrácejí banku do 400 & VeryEasy 20/20~V; Medium 20/20 dokončených her~V, 3~starty zastaveny (sekce~\ref{sec:vs-ai}) & \serie{T4.8_spend_bank_veryeasy}, \serie{E5_numeric_VeryEasy}, \serie{E5_numeric_Medium} \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Z~vývoje plynou dvě obecnější zjištění. Za prvé, většina verzí neopravovala plánovač, ale \emph{model}: chybějící cenu (v4 $\to$ v5), chybějící výrobní kapacitu (v5 $\to$ v6), nekonzistentní hodiny (v6 $\to$ v7). Teprve s~realistickým modelem kapacity a~času začal agent proti Medium vyhrávat většinu her. Za druhé, chyby modelu se projevovaly jako ekonomické symptomy, nejčastěji jako rostoucí banka, a~ty šly odhalit jen proto, že se ekonomika měřila (podíl hry s~bankou nad 500~minerály, hodnota armády v~čase). Stejný symptom, který~\cite{Orava2025} pozoruje jako stagnaci, je v~numerickém modelu diagnostickým signálem, který ukazuje na konkrétní chybějící část domény.
 
 \section{Klasická doména pro ablaci}
-% TODO: po T4.1.
+\label{sec:klasicka}
+
+Klasická doména \texttt{domain\_classical.pddl} slouží k~odpovědi na otázku, co přinášejí samotná čísla. Obsahuje stejné makroakce jako numerická doména kromě akcí čekání a~je zapsána v~propozičním stylu Oravovy domény~\cite{Orava2025}: každá budova a~jednotka je objekt, technologické předpoklady jsou existenční kvantifikátory a~stav jsou predikáty (\texttt{built}, \texttt{has-techlab}, \texttt{trained}, \texttt{weapons-researched}, \texttt{stim-researched}, \texttt{attacked}). Supply je zásobník slotů po dvou supply: každý depot \enquote{odemkne} čtyři sloty a~jednotka obsadí jeden slot bez ohledu na velikost. Suroviny, rychlosti těžby a~výrobní kapacita v~doméně nejsou a~cenu akcí hlídá až vykonávací vrstva, která příkaz odmítne, dokud na něj banka nestačí.
+
+Generátor problému \texttt{classical\_problem.py} převádí stav hry na objekty a~fakta a~numerické etapové cíle na objekty, které je třeba postavit nebo vytrénovat; limity výroby verze~2 jsou vyjádřeny počtem deklarovaných objektů budov. Útočná vlna etapy~3 má pevné složení s~hodnotou 30 (12~Marine, 6~Marauder, 2~Siege Tanky), zmenšené stejně jako práh numerické domény, když se doma nevejde; vykonávací vrstva pak útok zadá při hodnotě této vlny. Plánovačem je Fast Downward v~konfiguraci LAMA-first, stejně jako v~\cite{Orava2025}. Vykonávací vrstva, podmínky dokončení, reaktivní vrstva i~metriky jsou sdílené, takže srovnání numerického a~klasického agenta se liší jen modelem a~plánovačem. Klasický agent je funkční: proti úrovni VeryEasy vyhrál kontrolní hru v~čase 744~s s~mediánem 13~akcí na plán (\serie{T4.1_classical_check}); systematické srovnání je v~kapitole~\ref{chap:experimenty}.
