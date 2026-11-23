@@ -11,7 +11,8 @@ His code is not part of this repository; --src points at the unpacked attachment
 It plays in real time, as his own experiments did: his planner runs in a thread
 (asyncio.to_thread) while the bot idles, so with realtime=False the game would
 run on during every plan, faster than his bot was built for. Ours plans in the
-step itself and the game waits for it either way. A real-time game takes about
+step itself: in step mode the game waits for it, in real time it runs on for the
+solve (under a second). A real-time game takes about
 as long in wall time as in game time (1 675 game s took 1 747 s): give run_batch
 a --wall-timeout well above the 1 800 s limit.
 """
