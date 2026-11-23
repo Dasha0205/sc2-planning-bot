@@ -1,0 +1,75 @@
+[32m2026-11-22 22:15:07.841[0m | [33m[1mWARNING [0m | [36msc2.maps[0m:[36m__init__[0m:[36m31[0m - [33m[1mUsing absolute path: C:\Users\Dima\Desktop\FIT\sc2-bot-series\maps\AbyssalReefLE.SC2Map[0m
+[32m2026-11-22 22:15:16.586[0m | [1mINFO    [0m | [36msc2.protocol[0m:[36m_execute[0m:[36m120[0m - [1mClient status changed to Status.launched (was None)[0m
+[32m2026-11-22 22:15:16.586[0m | [1mINFO    [0m | [36msc2.controller[0m:[36mcreate_game[0m:[36m50[0m - [1mCreating new game[0m
+[32m2026-11-22 22:15:16.586[0m | [1mINFO    [0m | [36msc2.controller[0m:[36mcreate_game[0m:[36m51[0m - [1mMap:     AbyssalReefLE[0m
+[32m2026-11-22 22:15:16.587[0m | [1mINFO    [0m | [36msc2.controller[0m:[36mcreate_game[0m:[36m52[0m - [1mPlayers: Bot Measured(Terran), Computer Medium(Terran, RandomBuild)[0m
+[32m2026-11-22 22:15:16.593[0m | [1mINFO    [0m | [36msc2.protocol[0m:[36m_execute[0m:[36m120[0m - [1mClient status changed to Status.init_game (was Status.launched)[0m
+[32m2026-11-22 22:15:30.060[0m | [1mINFO    [0m | [36msc2.protocol[0m:[36m_execute[0m:[36m120[0m - [1mClient status changed to Status.in_game (was None)[0m
+[32m2026-11-22 22:15:30.061[0m | [1mINFO    [0m | [36msc2.main[0m:[36m_play_game[0m:[36m225[0m - [1mPlayer 1 - Bot Measured(Terran)[0m
+[WARNING] it=2160 BUILD: Worker 4348706817 abandoned order supply5.
+[WARNING] it=2280 BUILD: Worker 4354998273 abandoned order supply5.
+[WARNING] it=2340 BUILD: Worker 4356571137 abandoned order supply10.
+[WARNING] it=2340 BUILD: Worker 4347920385 abandoned order factory1.
+[WARNING] it=2400 BUILD: Worker 4356571137 abandoned order supply10.
+[WARNING] it=2880 BUILD: Worker 4348706817 abandoned order supply4.
+[WARNING] it=3000 BUILD: Worker 4347396097 abandoned order supply4.
+[WARNING] it=3060 BUILD: Worker 4347396097 abandoned order supply4.
+[WARNING] it=3120 BUILD: Worker 4347396097 abandoned order supply4.
+[WARNING] it=3180 BUILD: Worker 4348182529 abandoned order supply20.
+[WARNING] it=3240 BUILD: Worker 4349231105 abandoned order supply4.
+[WARNING] it=3240 BUILD: Worker 4348182529 abandoned order supply20.
+[WARNING] it=3360 BUILD: Worker 4349231105 abandoned order supply4.
+[WARNING] it=3420 BUILD: Worker 4348182529 abandoned order supply20.
+[WARNING] it=3480 BUILD: Worker 4348182529 abandoned order supply20.
+[32m2026-11-22 22:49:26.806[0m | [31m[1mERROR   [0m | [36msc2.protocol[0m:[36m__request[0m:[36m54[0m - [31m[1mCannot receive: Connection already closed.[0m
+[32m2026-11-22 22:49:26.807[0m | [1mINFO    [0m | [36msc2.sc2process[0m:[36m_close_connection[0m:[36m243[0m - [1mClosing connection at 63187...[0m
+[32m2026-11-22 22:49:26.807[0m | [1mINFO    [0m | [36msc2.sc2process[0m:[36mkill_all[0m:[36m36[0m - [1mkill_switch: Process cleanup for 1 processes[0m
+Traceback (most recent call last):
+  File "C:\Users\Dima\Desktop\FIT\sc2-bot-series\experiments\orava_bot.py", line 147, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-bot-series\experiments\orava_bot.py", line 132, in main
+    run_game(
+    ~~~~~~~~^
+        maps.Map(local) if local.is_file() else maps.get(args.map),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        [Bot(Race.Terran, measured), Computer(Race[args.race], Difficulty[args.difficulty])],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        realtime=args.realtime, random_seed=args.seed, game_time_limit=args.time_limit,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\main.py", line 531, in run_game
+    result = asyncio.run(
+        _host_game(
+    ...<10 lines>...
+        )
+    )
+  File "C:\Users\Dima\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\Dima\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Dima\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\main.py", line 371, in _host_game
+    result = await _play_game(players[0], client, realtime, portconfig, game_time_limit, rgb_render_config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\main.py", line 230, in _play_game
+    result = await _play_game_ai(client, player_id, player.ai, realtime, game_time_limit)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\main.py", line 197, in _play_game_ai
+    proto_game_info = await client._execute(game_info=sc_pb.RequestGameInfo())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\protocol.py", line 116, in _execute
+    response: sc_pb.Response = await self.__request(sc_pb.Request(**kwargs))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\sc2\protocol.py", line 41, in __request
+    await self._ws.send_bytes(request.SerializeToString())
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\aiohttp\client_ws.py", line 252, in send_bytes
+    await self._writer.send_frame(data, WSMsgType.BINARY, compress=compress)
+  File "C:\Users\Dima\Desktop\FIT\sc2-planning-bot\.venv\Lib\site-packages\aiohttp\_websocket\writer.py", line 79, in send_frame
+    raise ClientConnectionResetError("Cannot write to closing transport")
+aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport
